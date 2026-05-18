@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Hoshino — Purple A: Royal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+  /* ════════════════════════════════════════════
+     DESIGN TOKENS — 8dp grid, Apple HIG + MD3
+     ════════════════════════════════════════════ */
+  :root {
+    /* Palette */
+    --bg-primary: #F5F2ED;
+    --bg-secondary: #EDE9E3;
+    --bg-card: #FFFFFF;
+    --bg-elevated: #F0ECE6;
+    --bg-input: #F8F6F2;
+    --accent: #6D28D9;
+    --accent-light: #7C3AED;
+    --accent-soft: rgba(109, 40, 217, 0.08);
+    --accent-border: rgba(109, 40, 217, 0.2);
+    --text-primary: #1C1917;
+    --text-secondary: #57534E;
+    --text-tertiary: #A8A29E;
+    --text-inverse: #FFFFFF;
+    --furigana: #6D28D9;
+    --border: #E7E5E4;
+    --border-strong: #D6D3D1;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+
+    /* JLPT */
+    --n5: #16A34A; --n5-bg: rgba(22,163,74,0.08);
+    --n4: #2563EB; --n4-bg: rgba(37,99,235,0.08);
+    --n3: #D97706; --n3-bg: rgba(217,119,6,0.08);
+    --n2: #DC2626; --n2-bg: rgba(220,38,38,0.08);
+    --n1: #7C3AED; --n1-bg: rgba(124,58,237,0.08);
+
+    /* Spacing — 8dp grid */
+    --sp-2: 2px; --sp-4: 4px; --sp-8: 8px; --sp-12: 12px;
+    --sp-16: 16px; --sp-20: 20px; --sp-24: 24px; --sp-32: 32px;
+    --sp-40: 40px; --sp-48: 48px; --sp-56: 56px; --sp-64: 64px;
+
+    /* Radii */
+    --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-full: 9999px;
+
+    /* Type scale — Apple HIG inspired */
+    --fs-caption2: 11px; --fs-caption: 12px; --fs-footnote: 13px;
+    --fs-subhead: 15px; --fs-body: 17px; --fs-title3: 20px;
+    --fs-title2: 22px; --fs-title1: 28px; --fs-largeTitle: 34px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+  body {
+    font-family: 'Inter', 'Noto Sans JP', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    max-width: 390px;
+    margin: 0 auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.5;
+  }
+
+  /* ─── Lucide icon base ─── */
+  .icon {
+    width: 24px; height: 24px;
+    stroke: currentColor; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+    fill: none; flex-shrink: 0;
+  }
+  .icon-sm { width: 18px; height: 18px; }
+  .icon-xs { width: 16px; height: 16px; }
+  .icon-lg { width: 28px; height: 28px; }
+
+  /* ─── Screen label ─── */
+  .screen-label {
+    position: fixed; top: var(--sp-12); right: var(--sp-12);
+    background: var(--accent); color: var(--text-inverse);
+    font-size: var(--fs-caption2); font-weight: 700;
+    padding: var(--sp-4) var(--sp-12); border-radius: var(--r-full);
+    letter-spacing: 0.5px; z-index: 200;
+  }
+
+  /* ─── Status bar (faux) ─── */
+  .status-bar {
+    height: 48px;
+    background: var(--bg-primary);
+  }
+
+  /* ════════════════════════════
+     NAVIGATION — Bottom Tab Bar
+     56px height + safe area
+     ════════════════════════════ */
+  .tab-bar {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 390px; height: 84px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: flex-start;
+    padding-top: var(--sp-8);
+    z-index: 100;
+  }
+  .tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: var(--sp-4);
+    padding: var(--sp-4) 0;
+    cursor: pointer; background: none; border: none; font-family: inherit;
+    color: var(--text-tertiary);
+    transition: color 0.2s;
+    min-height: 48px; /* touch target */
+    position: relative;
+  }
+  .tab.active { color: var(--accent); }
+  .tab-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.3px;
+  }
+  .tab-badge {
+    position: absolute; top: 0; right: calc(50% - 20px);
+    background: var(--accent); color: var(--text-inverse);
+    font-size: 10px; font-weight: 700;
+    min-width: 18px; height: 18px;
+    padding: 0 5px;
+    border-radius: var(--r-full);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ════════════════════════════
+     FURIGANA — Column flex approach
+     ════════════════════════════ */
+  .ruby-group {
+    display: inline-block;
+    text-align: center;
+    vertical-align: baseline;
+    line-height: 1;
+  }
+  .ruby-group .furi {
+    display: block;
+    font-size: 10px;
+    color: var(--furigana);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+    min-height: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .ruby-group .kanji-char {
+    display: block;
+    font-family: 'Noto Sans JP', sans-serif;
+    line-height: 1.2;
+  }
+
+  /* Larger furigana for detail/flashcard views */
+  .ruby-lg .furi {
+    font-size: 13px;
+    min-height: 18px;
+  }
+  .ruby-xl .furi {
+    font-size: 15px;
+    min-height: 20px;
+    letter-spacing: 1px;
+  }
+
+  /* ════════════════════════════
+     HEADER
+     ════════════════════════════ */
+  .header {
+    padding: var(--sp-8) var(--sp-16) var(--sp-16);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    display: flex; align-items: center; gap: var(--sp-8);
+    font-size: var(--fs-title2); font-weight: 700;
+    color: var(--text-primary); letter-spacing: -0.5px;
+  }
+  .logo-mark {
+    width: 32px; height: 32px;
+    background: var(--text-primary);
+    color: var(--text-inverse);
+    border-radius: var(--r-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 700;
+  }
+  .header-actions {
+    display: flex; gap: var(--sp-8);
+  }
+  .icon-btn {
+    width: 40px; height: 40px;
+    border-radius: var(--r-full);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .icon-btn:hover { background: var(--bg-elevated); }
+
+  /* ════════════════════════════
+     SEARCH BAR
+     ════════════════════════════ */
+  .search-container { padding: 0 var(--sp-16) var(--sp-16); }
+  .search-bar {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: var(--sp-12) var(--sp-16);
+    display: flex; align-items: center; gap: var(--sp-12);
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    min-height: 48px; /* touch target */
+  }
+  .search-bar:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .search-bar input {
+    background: none; border: none; outline: none;
+    color: var(--text-primary);
+    font-size: var(--fs-body); font-family: inherit; width: 100%;
+  }
+  .search-bar input::placeholder { color: var(--text-tertiary); }
+  .search-bar .icon { color: var(--text-tertiary); }
+  .search-bar:focus-within .icon { color: var(--accent); }
+
+  /* ════════════════════════════
+     SECTION HEADERS
+     ════════════════════════════ */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-16) var(--sp-16) var(--sp-8);
+  }
+  .section-title {
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .section-action {
+    font-size: var(--fs-footnote);
+    color: var(--accent);
+    font-weight: 500;
+    cursor: pointer;
+    background: none; border: none; font-family: inherit;
+    padding: var(--sp-4) var(--sp-8);
+    border-radius: var(--r-sm);
+  }
+  .section-action:hover { background: var(--accent-soft); }
+
+  /* ════════════════════════════
+     WORD OF THE DAY / RECOMMENDED
+     ════════════════════════════ */
+  .featured-card {
+    margin: 0 var(--sp-16) var(--sp-8);
+    background: var(--bg-card);
+    border-radius: var(--r-lg);
+    padding: var(--sp-20);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+  }
+  .featured-card:hover { box-shadow: var(--shadow-lg); }
+  .featured-label {
+    display: inline-flex; align-items: center; gap: var(--sp-4);
+    font-size: var(--fs-caption2);
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: var(--sp-12);
+  }
+  .featured-word {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--sp-16);
+    margin-bottom: var(--sp-8);
+  }
+  .featured-kanji {
+    font-size: 40px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 700;
+    line-height: 1;
+    display: flex; gap: 2px;
+  }
+  .featured-kanji .ruby-group .kanji-char { font-size: 40px; }
+  .featured-kanji .ruby-group .furi { font-size: 12px; min-height: 16px; }
+  .featured-meta {
+    display: flex; flex-direction: column; gap: var(--sp-4);
+    padding-bottom: var(--sp-4);
+  }
+  .featured-reading {
+    font-size: var(--fs-footnote);
+    color: var(--text-tertiary);
+  }
+  .featured-meaning {
+    font-size: var(--fs-subhead);
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+  .featured-badges {
+    display: flex; gap: var(--sp-8); margin-top: var(--sp-4);
+  }
+
+  /* ════════════════════════════
+     RECENTLY SEARCHED
+     ════════════════════════════ */
+  .recent-scroll {
+    padding: 0 var(--sp-16);
+    display: flex; gap: var(--sp-8);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: var(--sp-8);
+  }
+  .recent-scroll::-webkit-scrollbar { display: none; }
+  .recent-chip {
+    display: flex; flex-direction: column; align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: var(--sp-12) var(--sp-16);
+    min-width: 80px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+  }
+  .recent-chip:hover {
+    border-color: var(--accent-border);
+    box-shadow: var(--shadow-md);
+  }
+  .recent-chip .kanji-char {
+    font-size: 24px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 700;
+  }
+  .recent-chip .furi { font-size: 9px; }
+  .recent-chip-meaning {
+    font-size: var(--fs-caption2);
+    color: var(--text-tertiary);
+    margin-top: var(--sp-4);
+    white-space: nowrap;
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ════════════════════════════
+     SEARCH RESULTS
+     ════════════════════════════ */
+  .results { padding: 0 var(--sp-16); }
+  .result-item {
+    background: var(--bg-card);
+    border-radius: var(--r-md);
+    padding: var(--sp-16);
+    margin-bottom: var(--sp-8);
+    display: flex; align-items: center;
+    gap: var(--sp-16);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    min-height: 72px; /* comfortable touch */
+  }
+  .result-item:hover, .result-item:active {
+    border-color: var(--accent-border);
+    box-shadow: var(--shadow-md);
+  }
+  .result-word {
+    display: flex; gap: 1px;
+  }
+  .result-word .kanji-char {
+    font-size: 26px;
+    font-weight: 700;
+  }
+  .result-word .furi {
+    font-size: 9px;
+    min-height: 12px;
+  }
+  .result-info { flex: 1; min-width: 0; }
+  .result-meaning {
+    font-size: var(--fs-subhead);
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-top: var(--sp-4);
+  }
+  .result-end {
+    display: flex; flex-direction: column;
+    align-items: flex-end; gap: var(--sp-4);
+    flex-shrink: 0;
+  }
+
+  /* ─── Badges ─── */
+  .badge {
+    font-size: var(--fs-caption2);
+    font-weight: 600;
+    padding: var(--sp-2) var(--sp-8);
+    border-radius: 6px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .badge-n5 { background: var(--n5-bg); color: var(--n5); }
+  .badge-n4 { background: var(--n4-bg); color: var(--n4); }
+  .badge-n3 { background: var(--n3-bg); color: var(--n3); }
+  .badge-n2 { background: var(--n2-bg); color: var(--n2); }
+  .badge-n1 { background: var(--n1-bg); color: var(--n1); }
+  .badge-common {
+    font-size: 10px; color: var(--text-tertiary); font-weight: 500;
+  }
+  .badge-pos {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .chevron { color: var(--text-tertiary); }
+
+  /* ════════════════════════════
+     WORD DETAIL
+     ════════════════════════════ */
+  .detail-view { display: none; }
+  .detail-view.visible { display: block; }
+
+  .detail-top-bar {
+    padding: var(--sp-8) var(--sp-16);
+    display: flex; align-items: center; gap: var(--sp-12);
+  }
+  .back-btn {
+    width: 40px; height: 40px;
+    border-radius: var(--r-full);
+    background: none; border: none;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .detail-top-title {
+    font-size: var(--fs-body);
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .detail-hero {
+    text-align: center;
+    padding: var(--sp-16) var(--sp-16) var(--sp-24);
+  }
+  .detail-hero-badges {
+    display: flex; gap: var(--sp-8);
+    justify-content: center;
+    margin-bottom: var(--sp-16);
+  }
+  .detail-hero-word {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: var(--sp-8);
+  }
+  .detail-hero-word .kanji-char {
+    font-size: 56px;
+    font-weight: 700;
+  }
+  .detail-hero-word .furi {
+    font-size: 15px;
+    min-height: 20px;
+  }
+  .detail-romaji {
+    font-size: var(--fs-subhead);
+    color: var(--text-tertiary);
+    font-weight: 400;
+  }
+
+  .detail-card {
+    margin: 0 var(--sp-16) var(--sp-12);
+    background: var(--bg-card);
+    border-radius: var(--r-lg);
+    padding: var(--sp-20);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+  }
+  .detail-card-title {
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: var(--sp-12);
+    display: flex; align-items: center; gap: var(--sp-8);
+  }
+  .detail-card p {
+    font-size: var(--fs-subhead);
+    line-height: 1.6;
+    color: var(--text-primary);
+  }
+  .detail-card .pos-tag {
+    font-size: var(--fs-footnote);
+    color: var(--text-tertiary);
+    font-style: italic;
+    margin-bottom: var(--sp-4);
+  }
+
+  .example-row { padding: var(--sp-4) 0; }
+  .example-jp {
+    font-size: var(--fs-body);
+    font-family: 'Noto Sans JP', sans-serif;
+    line-height: 1.8;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1px;
+  }
+  .example-jp .highlight { color: var(--accent); font-weight: 500; }
+  .example-en {
+    font-size: var(--fs-footnote);
+    color: var(--text-tertiary);
+    line-height: 1.5;
+    margin-top: var(--sp-2);
+  }
+  .example-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: var(--sp-12) 0;
+  }
+
+  /* Conjugation */
+  .conj-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-8);
+  }
+  .conj-cell {
+    background: var(--bg-elevated);
+    border-radius: var(--r-sm);
+    padding: var(--sp-12);
+  }
+  .conj-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: var(--sp-4);
+  }
+  .conj-value {
+    font-size: var(--fs-subhead);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 500;
+  }
+
+  /* ════════════════════════════
+     FLASHCARD STUDY
+     ════════════════════════════ */
+  .study-view { display: none; }
+  .study-view.visible {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 132px);
+    padding: 0 var(--sp-16);
+  }
+
+  .study-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--sp-8) 0 var(--sp-16);
+  }
+  .study-list-name {
+    font-size: var(--fs-subhead);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .study-count {
+    font-size: var(--fs-footnote);
+    color: var(--text-tertiary);
+  }
+
+  .study-progress-bar {
+    width: 100%; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: var(--sp-24);
+  }
+  .study-progress-fill {
+    width: 35%; height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  .flashcard {
+    flex: 1;
+    background: var(--bg-card);
+    border-radius: var(--r-xl);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: var(--sp-40);
+    border: 1.5px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s;
+    position: relative;
+    min-height: 400px;
+  }
+  .flashcard:active { transform: scale(0.98); }
+
+  .flashcard-word {
+    display: flex; gap: 4px; margin-bottom: var(--sp-16);
+  }
+  .flashcard-word .kanji-char { font-size: 72px; font-weight: 700; }
+  .flashcard-word .furi { font-size: 18px; min-height: 24px; letter-spacing: 1px; }
+
+  .flashcard-hint {
+    font-size: var(--fs-footnote);
+    color: var(--text-tertiary);
+    position: absolute;
+    bottom: var(--sp-24);
+    display: flex; align-items: center; gap: var(--sp-4);
+  }
+
+  .rating-bar {
+    display: flex; gap: var(--sp-8);
+    padding: var(--sp-16) 0;
+  }
+  .rating-btn {
+    flex: 1;
+    padding: var(--sp-16) var(--sp-8);
+    border-radius: var(--r-md);
+    border: 1.5px solid;
+    background: var(--bg-card);
+    font-family: inherit;
+    font-size: var(--fs-footnote);
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s;
+    min-height: 48px; /* touch target */
+    display: flex; flex-direction: column;
+    align-items: center; gap: var(--sp-2);
+  }
+  .rating-btn:active { transform: scale(0.95); }
+  .rating-btn .rating-interval {
+    font-size: 10px; font-weight: 400;
+  }
+  .rating-again { color: #B91C1C; border-color: rgba(185,28,28,0.2); }
+  .rating-again .rating-interval { color: #DC2626; }
+  .rating-hard { color: #B45309; border-color: rgba(180,83,9,0.2); }
+  .rating-hard .rating-interval { color: #D97706; }
+  .rating-good { color: #15803D; border-color: rgba(21,128,61,0.2); }
+  .rating-good .rating-interval { color: #16A34A; }
+  .rating-easy { color: #1D4ED8; border-color: rgba(29,78,216,0.2); }
+  .rating-easy .rating-interval { color: #2563EB; }
+
+  /* ════════════════════════════
+     LISTS VIEW
+     ════════════════════════════ */
+  .lists-view { display: none; }
+  .lists-view.visible { display: block; }
+
+  .list-card {
+    margin: 0 var(--sp-16) var(--sp-8);
+    background: var(--bg-card);
+    border-radius: var(--r-md);
+    padding: var(--sp-16);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: border-color 0.15s;
+    min-height: 64px;
+  }
+  .list-card:hover { border-color: var(--accent-border); }
+  .list-card-row {
+    display: flex; align-items: center;
+    gap: var(--sp-12);
+  }
+  .list-icon-wrap {
+    width: 40px; height: 40px;
+    border-radius: var(--r-sm);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .list-icon-wrap.searched {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .list-icon-wrap.jlpt-icon {
+    color: var(--text-inverse);
+  }
+  .list-card-info { flex: 1; min-width: 0; }
+  .list-card-name {
+    font-size: var(--fs-subhead);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .list-card-count {
+    font-size: var(--fs-footnote);
+    color: var(--text-tertiary);
+  }
+  .list-card-progress {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-elevated);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: var(--sp-12) 0 var(--sp-8);
+  }
+  .list-card-progress-fill {
+    height: 100%; border-radius: 2px;
+  }
+  .list-card-stats {
+    display: flex; gap: var(--sp-16);
+    font-size: var(--fs-caption);
+    color: var(--text-tertiary);
+  }
+  .list-card-stats strong {
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  /* ════════════════════════════
+     STUDY LANDING — Stats Banner
+     ════════════════════════════ */
+  .stats-banner {
+    margin: 0 var(--sp-16) var(--sp-16);
+    background: var(--bg-card);
+    border-radius: var(--r-lg);
+    padding: var(--sp-20) var(--sp-8);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+  }
+  .stat-item {
+    display: flex; flex-direction: column;
+    align-items: center; gap: var(--sp-4);
+    flex: 1;
+  }
+  .stat-icon { margin-bottom: var(--sp-2); }
+  .stat-value {
+    font-size: var(--fs-title2);
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: var(--fs-caption2);
+    color: var(--text-tertiary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--border);
+  }
+
+  /* ════════════════════════════
+     STUDY LANDING — Due Today CTA
+     ════════════════════════════ */
+  .due-today-card {
+    margin: 0 var(--sp-16) var(--sp-16);
+    background: var(--accent);
+    border-radius: var(--r-lg);
+    padding: var(--sp-16) var(--sp-20);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    box-shadow: var(--shadow-md);
+  }
+  .due-today-card:active { opacity: 0.9; }
+  .due-today-left {
+    display: flex; align-items: center; gap: var(--sp-16);
+  }
+  .due-today-count {
+    font-size: var(--fs-largeTitle);
+    font-weight: 700;
+    color: var(--text-inverse);
+    line-height: 1;
+  }
+  .due-today-text {
+    display: flex; flex-direction: column; gap: var(--sp-2);
+  }
+  .due-today-title {
+    font-size: var(--fs-subhead);
+    font-weight: 600;
+    color: var(--text-inverse);
+  }
+  .due-today-sub {
+    font-size: var(--fs-caption);
+    color: rgba(255,255,255,0.7);
+  }
+  .due-today-btn {
+    width: 44px; height: 44px;
+    background: rgba(255,255,255,0.2);
+    border-radius: var(--r-full);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ════════════════════════════
+     STUDY LANDING — Active List Due Pill
+     ════════════════════════════ */
+  .list-due-pill {
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: var(--sp-4) var(--sp-12);
+    border-radius: var(--r-full);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ════════════════════════════
+     LISTS — Browse-only card (simpler)
+     ════════════════════════════ */
+  .list-browse-card {
+    min-height: 56px;
+  }
+  .list-browse-card .list-card-count {
+    font-size: var(--fs-caption);
+    line-height: 1.4;
+  }
+
+  /* ─── Utility ─── */
+  .spacer { height: 100px; }
+  .view-container > div { display: none; }
+  .view-container > div.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div class="screen-label">HOSHINO — PURPLE A: ROYAL</div>
+<div class="status-bar"></div>
+
+<!-- ═══════════════════════════════
+     DICTIONARY VIEW
+     ═══════════════════════════════ -->
+<div id="view-dict" class="visible">
+  <div class="header">
+    <div class="logo">
+      <div class="logo-mark">星</div>
+      Hoshino
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn">
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-container">
+    <div class="search-bar">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="Search in English, kana, or kanji...">
+    </div>
+  </div>
+
+  <!-- Recommended Word -->
+  <div class="section-header">
+    <span class="section-title">Recommended</span>
+    <button class="section-action">
+      <svg class="icon icon-xs" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+      Refresh
+    </button>
+  </div>
+  <div class="featured-card" onclick="showView('detail')">
+    <div class="featured-label">
+      <svg class="icon icon-xs" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Word of the Day
+    </div>
+    <div class="featured-word">
+      <div class="featured-kanji">
+        <span class="ruby-group">
+          <span class="furi">きょ</span>
+          <span class="kanji-char">虚</span>
+        </span>
+        <span class="ruby-group">
+          <span class="furi">ろ</span>
+          <span class="kanji-char">路</span>
+        </span>
+      </div>
+      <div class="featured-meta">
+        <span class="featured-reading">kyoro</span>
+        <span class="featured-meaning">void; emptiness; a path without destination</span>
+      </div>
+    </div>
+    <div class="featured-badges">
+      <span class="badge badge-n2">N2</span>
+      <span class="badge badge-pos">Noun</span>
+    </div>
+  </div>
+
+  <!-- Recently Searched -->
+  <div class="section-header">
+    <span class="section-title">Recently Searched</span>
+    <button class="section-action">See All</button>
+  </div>
+  <div class="recent-scroll">
+    <div class="recent-chip">
+      <div class="ruby-group">
+        <span class="furi">た</span>
+        <span class="kanji-char">食</span>
+      </div>
+      <span class="recent-chip-meaning">to eat</span>
+    </div>
+    <div class="recent-chip">
+      <div class="ruby-group">
+        <span class="furi">の</span>
+        <span class="kanji-char">飲</span>
+      </div>
+      <span class="recent-chip-meaning">to drink</span>
+    </div>
+    <div class="recent-chip">
+      <div class="ruby-group">
+        <span class="furi">はし</span>
+        <span class="kanji-char">走</span>
+      </div>
+      <span class="recent-chip-meaning">to run</span>
+    </div>
+    <div class="recent-chip">
+      <div class="ruby-group">
+        <span class="furi">ある</span>
+        <span class="kanji-char">歩</span>
+      </div>
+      <span class="recent-chip-meaning">to walk</span>
+    </div>
+    <div class="recent-chip">
+      <div class="ruby-group">
+        <span class="furi">み</span>
+        <span class="kanji-char">見</span>
+      </div>
+      <span class="recent-chip-meaning">to see</span>
+    </div>
+    <div class="recent-chip">
+      <div class="ruby-group">
+        <span class="furi">き</span>
+        <span class="kanji-char">聞</span>
+      </div>
+      <span class="recent-chip-meaning">to hear</span>
+    </div>
+  </div>
+
+  <!-- Results (shown when searching) -->
+  <div class="section-header">
+    <span class="section-title">Results for "taberu"</span>
+  </div>
+  <div class="results">
+    <div class="result-item" onclick="showView('detail')">
+      <div class="result-info">
+        <div class="result-word">
+          <span class="ruby-group"><span class="furi">た</span><span class="kanji-char">食</span></span><span class="ruby-group"><span class="furi">　</span><span class="kanji-char">べ</span></span><span class="ruby-group"><span class="furi">　</span><span class="kanji-char">る</span></span>
+        </div>
+        <div class="result-meaning">to eat; to have a meal</div>
+      </div>
+      <div class="result-end">
+        <span class="badge badge-n5">N5</span>
+        <span class="badge-common">Common</span>
+        <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+    </div>
+
+    <div class="result-item">
+      <div class="result-info">
+        <div class="result-word">
+          <span class="ruby-group"><span class="furi">た</span><span class="kanji-char">食</span></span><span class="ruby-group"><span class="furi">　</span><span class="kanji-char">べ</span></span><span class="ruby-group"><span class="furi">もの</span><span class="kanji-char">物</span></span>
+        </div>
+        <div class="result-meaning">food; provisions</div>
+      </div>
+      <div class="result-end">
+        <span class="badge badge-n5">N5</span>
+        <span class="badge-common">Common</span>
+        <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+    </div>
+
+    <div class="result-item">
+      <div class="result-info">
+        <div class="result-word">
+          <span class="ruby-group"><span class="furi">た</span><span class="kanji-char">食</span></span><span class="ruby-group"><span class="furi">　</span><span class="kanji-char">べ</span></span><span class="ruby-group"><span class="furi">す</span><span class="kanji-char">過</span></span><span class="ruby-group"><span class="furi">　</span><span class="kanji-char">ぎ</span></span>
+        </div>
+        <div class="result-meaning">overeating; eating too much</div>
+      </div>
+      <div class="result-end">
+        <span class="badge badge-n3">N3</span>
+        <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+    </div>
+
+    <div class="result-item">
+      <div class="result-info">
+        <div class="result-word">
+          <span class="ruby-group"><span class="furi">た</span><span class="kanji-char">食</span></span><span class="ruby-group"><span class="furi">　</span><span class="kanji-char">べ</span></span><span class="ruby-group"><span class="furi">ほう</span><span class="kanji-char">放</span></span><span class="ruby-group"><span class="furi">だい</span><span class="kanji-char">題</span></span>
+        </div>
+        <div class="result-meaning">all-you-can-eat; buffet</div>
+      </div>
+      <div class="result-end">
+        <span class="badge badge-n2">N2</span>
+        <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+</div>
+
+<!-- ═══════════════════════════════
+     WORD DETAIL VIEW
+     ═══════════════════════════════ -->
+<div id="view-detail">
+  <div class="detail-top-bar">
+    <button class="back-btn" onclick="showView('dict')">
+      <svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <span class="detail-top-title">Word Detail</span>
+    <button class="icon-btn" style="width:36px;height:36px;">
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    </button>
+    <button class="icon-btn" style="width:36px;height:36px;">
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </div>
+
+  <div class="detail-hero">
+    <div class="detail-hero-badges">
+      <span class="badge badge-n5">N5</span>
+      <span class="badge badge-pos">Ichidan verb</span>
+    </div>
+    <div class="detail-hero-word">
+      <span class="ruby-group ruby-xl"><span class="furi">た</span><span class="kanji-char" style="font-size:56px;">食</span></span>
+      <span class="ruby-group ruby-xl"><span class="furi">　</span><span class="kanji-char" style="font-size:56px;">べ</span></span>
+      <span class="ruby-group ruby-xl"><span class="furi">　</span><span class="kanji-char" style="font-size:56px;">る</span></span>
+    </div>
+    <span class="detail-romaji">taberu</span>
+  </div>
+
+  <div class="detail-card">
+    <div class="detail-card-title">
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+      Meanings
+    </div>
+    <p class="pos-tag">Ichidan verb, transitive</p>
+    <p>1. to eat; to have a meal</p>
+    <p style="color:var(--text-secondary); margin-top: var(--sp-4);">2. to make a living; to survive</p>
+  </div>
+
+  <div class="detail-card">
+    <div class="detail-card-title">
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Example Sentences
+    </div>
+    <div class="example-row">
+      <div class="example-jp">
+        <span class="ruby-group"><span class="furi">あさ</span><span class="kanji-char">朝</span></span>ごはんを<span class="highlight ruby-group"><span class="furi">た</span><span class="kanji-char">食</span></span><span class="highlight">べ</span>ましたか？
+      </div>
+      <div class="example-en">Did you eat breakfast?</div>
+    </div>
+    <hr class="example-divider">
+    <div class="example-row">
+      <div class="example-jp">
+        <span class="ruby-group"><span class="furi">にほん</span><span class="kanji-char">日本</span></span>で<span class="ruby-group"><span class="furi">すし</span><span class="kanji-char">寿司</span></span>を<span class="highlight ruby-group"><span class="furi">た</span><span class="kanji-char">食</span></span><span class="highlight">べ</span>たい。
+      </div>
+      <div class="example-en">I want to eat sushi in Japan.</div>
+    </div>
+  </div>
+
+  <div class="detail-card">
+    <div class="detail-card-title">
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M17 18a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2"/><rect width="18" height="18" x="3" y="4" rx="2"/><circle cx="12" cy="10" r="2"/><line x1="8" x2="8" y1="2" y2="4"/><line x1="16" x2="16" y1="2" y2="4"/></svg>
+      Colloquial Usage
+    </div>
+    <div class="example-row">
+      <div class="example-jp">もう<span class="highlight">食べ</span>た？</div>
+      <div class="example-en">"Already ate?" — Casual check-in about meals</div>
+    </div>
+    <hr class="example-divider">
+    <div class="example-row">
+      <div class="example-jp">めっちゃ<span class="highlight">食べ</span>すぎた〜</div>
+      <div class="example-en">"I totally ate too much~" — Very casual/spoken</div>
+    </div>
+  </div>
+
+  <div class="detail-card">
+    <div class="detail-card-title">
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
+      Conjugations
+    </div>
+    <div class="conj-grid">
+      <div class="conj-cell"><div class="conj-label">Dictionary</div><div class="conj-value">食べる</div></div>
+      <div class="conj-cell"><div class="conj-label">Polite</div><div class="conj-value">食べます</div></div>
+      <div class="conj-cell"><div class="conj-label">Negative</div><div class="conj-value">食べない</div></div>
+      <div class="conj-cell"><div class="conj-label">Past</div><div class="conj-value">食べた</div></div>
+      <div class="conj-cell"><div class="conj-label">Te-form</div><div class="conj-value">食べて</div></div>
+      <div class="conj-cell"><div class="conj-label">Potential</div><div class="conj-value">食べられる</div></div>
+      <div class="conj-cell"><div class="conj-label">Passive</div><div class="conj-value">食べられる</div></div>
+      <div class="conj-cell"><div class="conj-label">Causative</div><div class="conj-value">食べさせる</div></div>
+      <div class="conj-cell"><div class="conj-label">Volitional</div><div class="conj-value">食べよう</div></div>
+      <div class="conj-cell"><div class="conj-label">Conditional</div><div class="conj-value">食べれば</div></div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+</div>
+
+<!-- ═══════════════════════════════
+     STUDY LANDING VIEW
+     ═══════════════════════════════ -->
+<div id="view-study">
+  <div class="header">
+    <div class="logo">
+      <div class="logo-mark">星</div>
+      Study
+    </div>
+  </div>
+
+  <!-- Today's Summary -->
+  <div class="stats-banner">
+    <div class="stat-item">
+      <div class="stat-icon">
+        <!-- flame/streak -->
+        <svg class="icon" viewBox="0 0 24 24" style="color:var(--accent);"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+      </div>
+      <div class="stat-value">12</div>
+      <div class="stat-label">Day Streak</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-icon">
+        <!-- target/accuracy -->
+        <svg class="icon" viewBox="0 0 24 24" style="color:var(--n5);"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      </div>
+      <div class="stat-value">78%</div>
+      <div class="stat-label">Accuracy</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-icon">
+        <!-- cards reviewed -->
+        <svg class="icon" viewBox="0 0 24 24" style="color:var(--n4);"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 0 12-1v-4"/></svg>
+      </div>
+      <div class="stat-value">34</div>
+      <div class="stat-label">Reviewed Today</div>
+    </div>
+  </div>
+
+  <!-- Due Today CTA -->
+  <div class="due-today-card" onclick="showView('session')">
+    <div class="due-today-left">
+      <div class="due-today-count">53</div>
+      <div class="due-today-text">
+        <div class="due-today-title">Cards due today</div>
+        <div class="due-today-sub">Across all active lists</div>
+      </div>
+    </div>
+    <div class="due-today-btn">
+      <svg class="icon" viewBox="0 0 24 24" style="color:var(--text-inverse);"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+    </div>
+  </div>
+
+  <!-- Active Lists (ones with progress) -->
+  <div class="section-header">
+    <span class="section-title">Active Lists</span>
+    <button class="section-action" onclick="showView('lists')">Browse All</button>
+  </div>
+
+  <div class="list-card" onclick="showView('session')">
+    <div class="list-card-row">
+      <div class="list-icon-wrap jlpt-icon" style="background:var(--n5);">
+        <span style="font-weight:700;font-size:13px;">N5</span>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">N5 Vocabulary</div>
+        <div class="list-card-count">800 words</div>
+      </div>
+      <div class="list-due-pill">18 due</div>
+    </div>
+    <div class="list-card-progress">
+      <div class="list-card-progress-fill" style="width:65%; background: var(--n5);"></div>
+    </div>
+    <div class="list-card-stats">
+      <span><strong>520</strong> mastered</span>
+      <span><strong>160</strong> learning</span>
+      <span><strong>120</strong> new</span>
+    </div>
+  </div>
+
+  <div class="list-card" onclick="showView('session')">
+    <div class="list-card-row">
+      <div class="list-icon-wrap jlpt-icon" style="background:var(--n4);">
+        <span style="font-weight:700;font-size:13px;">N4</span>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">N4 Vocabulary</div>
+        <div class="list-card-count">1,500 words</div>
+      </div>
+      <div class="list-due-pill">35 due</div>
+    </div>
+    <div class="list-card-progress">
+      <div class="list-card-progress-fill" style="width:30%; background: var(--n4);"></div>
+    </div>
+    <div class="list-card-stats">
+      <span><strong>450</strong> mastered</span>
+      <span><strong>200</strong> learning</span>
+      <span><strong>850</strong> new</span>
+    </div>
+  </div>
+
+  <div class="list-card" onclick="showView('session')">
+    <div class="list-card-row">
+      <div class="list-icon-wrap searched">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">Searched Terms</div>
+        <div class="list-card-count">43 words</div>
+      </div>
+      <div class="list-due-pill">12 due</div>
+    </div>
+    <div class="list-card-progress">
+      <div class="list-card-progress-fill" style="width:22%; background: var(--accent);"></div>
+    </div>
+    <div class="list-card-stats">
+      <span><strong>3</strong> mastered</span>
+      <span><strong>12</strong> learning</span>
+      <span><strong>28</strong> new</span>
+    </div>
+  </div>
+
+  <div class="list-card" onclick="showView('session')">
+    <div class="list-card-row">
+      <div class="list-icon-wrap jlpt-icon" style="background:var(--n5);">
+        <span style="font-weight:700;font-size:13px;">N5</span>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">N5 Kanji</div>
+        <div class="list-card-count">103 kanji</div>
+      </div>
+      <div class="list-due-pill">4 due</div>
+    </div>
+    <div class="list-card-progress">
+      <div class="list-card-progress-fill" style="width:88%; background: var(--n5);"></div>
+    </div>
+    <div class="list-card-stats">
+      <span><strong>91</strong> mastered</span>
+      <span><strong>10</strong> learning</span>
+      <span><strong>2</strong> new</span>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+</div>
+
+<!-- ═══════════════════════════════
+     FLASHCARD SESSION VIEW
+     ═══════════════════════════════ -->
+<div id="view-session" class="study-view">
+  <div class="study-top-bar">
+    <button class="back-btn" onclick="showView('study')" style="margin-left:-8px;">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <span class="study-list-name">N5 Vocabulary</span>
+    <span class="study-count">7 / 20</span>
+  </div>
+
+  <div class="study-progress-bar">
+    <div class="study-progress-fill"></div>
+  </div>
+
+  <div class="flashcard">
+    <div class="flashcard-word">
+      <span class="ruby-group">
+        <span class="furi" style="font-size:18px;min-height:24px;">の</span>
+        <span class="kanji-char" style="font-size:72px;font-weight:700;">飲</span>
+      </span>
+      <span class="ruby-group">
+        <span class="furi" style="font-size:18px;min-height:24px;">　</span>
+        <span class="kanji-char" style="font-size:72px;font-weight:700;">む</span>
+      </span>
+    </div>
+    <div class="flashcard-hint">
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M15 15l-2 5L9 9l11 4-5 2z"/><path d="m2 2 7.07 7.07"/></svg>
+      Tap to reveal
+    </div>
+  </div>
+
+  <div class="rating-bar">
+    <button class="rating-btn rating-again">
+      Again
+      <span class="rating-interval">&lt;1m</span>
+    </button>
+    <button class="rating-btn rating-hard">
+      Hard
+      <span class="rating-interval">6m</span>
+    </button>
+    <button class="rating-btn rating-good">
+      Good
+      <span class="rating-interval">10m</span>
+    </button>
+    <button class="rating-btn rating-easy">
+      Easy
+      <span class="rating-interval">4d</span>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     LISTS VIEW (Browse Catalogue)
+     ═══════════════════════════════ -->
+<div id="view-lists">
+  <div class="header">
+    <div class="logo">
+      <div class="logo-mark">星</div>
+      Lists
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn">
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search / filter -->
+  <div class="search-container">
+    <div class="search-bar">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="Filter lists...">
+    </div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">Your Lists</span>
+  </div>
+
+  <div class="list-card list-browse-card">
+    <div class="list-card-row">
+      <div class="list-icon-wrap searched">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">Searched Terms</div>
+        <div class="list-card-count">43 words — auto-captured from lookups</div>
+      </div>
+      <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">JLPT N5</span>
+  </div>
+
+  <div class="list-card list-browse-card">
+    <div class="list-card-row">
+      <div class="list-icon-wrap jlpt-icon" style="background:var(--n5);">
+        <span style="font-weight:700;font-size:13px;">N5</span>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">Vocabulary</div>
+        <div class="list-card-count">800 words — essential beginner vocab</div>
+      </div>
+      <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+  </div>
+
+  <div class="list-card list-browse-card">
+    <div class="list-card-row">
+      <div class="list-icon-wrap jlpt-icon" style="background:var(--n5);">
+        <span style="font-weight:700;font-size:13px;">N5</span>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">Kanji</div>
+        <div class="list-card-count">103 kanji — foundational characters</div>
+      </div>
+      <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">JLPT N4</span>
+  </div>
+
+  <div class="list-card list-browse-card">
+    <div class="list-card-row">
+      <div class="list-icon-wrap jlpt-icon" style="background:var(--n4);">
+        <span style="font-weight:700;font-size:13px;">N4</span>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">Vocabulary</div>
+        <div class="list-card-count">1,500 words — upper beginner</div>
+      </div>
+      <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+  </div>
+
+  <div class="list-card list-browse-card">
+    <div class="list-card-row">
+      <div class="list-icon-wrap jlpt-icon" style="background:var(--n4);">
+        <span style="font-weight:700;font-size:13px;">N4</span>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">Kanji</div>
+        <div class="list-card-count">181 kanji — everyday reading</div>
+      </div>
+      <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">JLPT N3</span>
+  </div>
+
+  <div class="list-card list-browse-card">
+    <div class="list-card-row">
+      <div class="list-icon-wrap jlpt-icon" style="background:var(--n3);">
+        <span style="font-weight:700;font-size:13px;">N3</span>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">Vocabulary</div>
+        <div class="list-card-count">3,750 words — intermediate</div>
+      </div>
+      <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+  </div>
+
+  <div class="list-card list-browse-card">
+    <div class="list-card-row">
+      <div class="list-icon-wrap jlpt-icon" style="background:var(--n3);">
+        <span style="font-weight:700;font-size:13px;">N3</span>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">Kanji</div>
+        <div class="list-card-count">370 kanji — news & media literacy</div>
+      </div>
+      <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">JLPT N2</span>
+  </div>
+
+  <div class="list-card list-browse-card">
+    <div class="list-card-row">
+      <div class="list-icon-wrap jlpt-icon" style="background:var(--n2);">
+        <span style="font-weight:700;font-size:13px;">N2</span>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">Vocabulary</div>
+        <div class="list-card-count">6,000 words — advanced</div>
+      </div>
+      <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">JLPT N1</span>
+  </div>
+
+  <div class="list-card list-browse-card">
+    <div class="list-card-row">
+      <div class="list-icon-wrap jlpt-icon" style="background:var(--n1);">
+        <span style="font-weight:700;font-size:13px;">N1</span>
+      </div>
+      <div class="list-card-info">
+        <div class="list-card-name">Vocabulary</div>
+        <div class="list-card-count">10,000+ words — native-level fluency</div>
+      </div>
+      <svg class="icon icon-sm chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+</div>
+
+<!-- ═══ TAB BAR ═══ -->
+<div class="tab-bar">
+  <button class="tab active" onclick="showView('dict')">
+    <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <span class="tab-label">Dictionary</span>
+  </button>
+  <button class="tab" onclick="showView('study')" style="position:relative;">
+    <span class="tab-badge">53</span>
+    <!-- graduation-cap -->
+    <svg class="icon" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 0 12-1v-4"/></svg>
+    <span class="tab-label">Study</span>
+  </button>
+  <button class="tab" onclick="showView('lists')">
+    <!-- library -->
+    <svg class="icon" viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>
+    <span class="tab-label">Lists</span>
+  </button>
+</div>
+
+<script>
+function showView(view) {
+  ['dict','detail','study','session','lists'].forEach(v => {
+    const el = document.getElementById('view-' + v);
+    if (!el) return;
+    if (v === view) {
+      el.style.display = '';
+      el.classList.add('visible');
+    } else {
+      el.classList.remove('visible');
+      el.style.display = 'none';
+    }
+  });
+  // Map sub-views to their parent tab
+  const tabMap = { dict: 0, detail: 0, study: 1, session: 1, lists: 2 };
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', i === tabMap[view]);
+  });
+}
+</script>
+
+</body>
+</html>
