@@ -18,6 +18,8 @@ Hoshino is a cross-platform Japanese language learning app (iOS, Android, Web) b
 | SRS Engine | **FSRS (ts-fsrs)** | Modern spaced repetition; 20–30% more efficient than SM-2 |
 | Animations | **react-native-reanimated** | Smooth flashcard flip/swipe gestures at 60fps |
 | Text/Furigana | Custom component | Ruby text rendering for kanji with furigana overlay |
+| Backend | **Supabase** | Auth (email + password) and PostgreSQL for remote persistence of user data |
+| Sync client | **@supabase/supabase-js** | Typed JS client for auth session management and user-table sync |
 
 ---
 
@@ -309,6 +311,6 @@ hoshino/
 These are **not MVP** but worth keeping in mind so we don't paint ourselves into a corner:
 
 - **Remote API layer**: When the AI chat feature lands, we'll need a backend. A lightweight edge function (Cloudflare Workers or Vercel Edge) calling Claude's API would slot in cleanly.
-- **User accounts & sync**: If you want progress to sync across devices, a Supabase or similar backend with auth + PostgreSQL would mirror the local SQLite schema. Use CRDT or last-write-wins for conflict resolution on SRS state.
+- **Extended sync features**: The MVP sync covers the 5 user tables with last-write-wins conflict resolution. Post-MVP could introduce finer-grained conflict handling, real-time sync via Supabase Realtime, or shared/collaborative lists.
 - **Grammar lessons**: These are structured content — markdown or JSON lesson files that can be bundled or fetched. The lesson viewer is a separate screen group in Expo Router.
 - **Audio pronunciation**: TTS via device APIs or bundled audio clips per entry. The schema can accommodate an `audio_url` column on entries without breaking anything.

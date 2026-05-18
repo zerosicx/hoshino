@@ -128,6 +128,20 @@ The primary user is an intermediate-to-advanced Japanese learner (JLPT N3–N1 l
 - Theme preference (if multiple themes offered)
 - Data management: reset SRS progress for a list, export/import progress
 
+#### FR-09: Authentication & Cross-Device Sync
+- Users can create an account (email + password) to save progress and access it across iOS, Android, and Web
+- The app supports **guest mode**: users can use all core features without signing in; data is stored locally only
+- Sign-in is not required at launch; instead, a natural prompt is shown when appropriate ("your progress is only saved on this device — sign in to back it up")
+- Auth screens required for MVP: Sign Up, Sign In, Password Reset, and a guest mode entry point (accessible from the sign-in screen)
+- OAuth (Google, Apple) is deferred to post-MVP; email + password is sufficient for MVP
+- The backend is **Supabase** (Auth + PostgreSQL); the Supabase JS client is used from React Native/Web via `@supabase/supabase-js`
+- Dictionary data (JMdict, KANJIDIC2, Tatoeba) is **never synced** — it is bundled locally and read-only
+- Only the following 5 user tables are synced to Supabase: `srs_cards`, `lists`, `list_items`, `search_history`, `study_stats`
+- **Local SQLite is the source of truth while offline**; writes go to SQLite first, then are pushed to Supabase when connectivity is available
+- Sync is **opportunistic**: triggered on app launch and periodically in the background when online
+- **Conflict resolution**: last-write-wins based on `last_review` timestamp; FSRS card state is self-contained and does not require merge logic
+- When a user signs in on a new device, their remote data is pulled down and merged into the local SQLite database
+
 ### 3.2 Non-Functional Requirements
 
 #### NFR-01: Performance
@@ -166,6 +180,15 @@ The primary user is an intermediate-to-advanced Japanese learner (JLPT N3–N1 l
 - All services have clear interfaces and are independently testable
 - Database migrations are versioned for future schema updates
 
+#### NFR-08: Sync Reliability
+- The app must be fully functional with no network connection; sync failure must never block core features
+- All writes go to local SQLite first; Supabase is a secondary, asynchronous destination
+- Sync operations are idempotent — retrying a failed sync must not produce duplicate records
+- Conflict resolution uses last-write-wins by `last_review` timestamp; no manual merge UI is required for MVP
+- On first sign-in, a full pull from Supabase is performed; subsequent syncs are incremental (rows modified since last sync timestamp)
+- Sync errors are logged silently; the user is not shown error alerts for background sync failures
+- Auth token refresh is handled transparently by the Supabase client; session expiry must not cause data loss
+
 ---
 
 ## 4. Roadmap
@@ -188,6 +211,9 @@ The primary user is an intermediate-to-advanced Japanese learner (JLPT N3–N1 l
 | Basic study progress per list | P1 | Motivational feedback |
 | Settings (card direction, daily limits) | P1 | Personalisation basics |
 | Beautiful, polished UI with animations | P0 | The app must feel premium from day one |
+| Supabase project setup (auth + PostgreSQL schema) | P0 | Backend foundation for sync; schema mirrors local SQLite user tables |
+| Auth screens: Sign Up, Sign In, Password Reset, Guest mode entry | P0 | Required before any sync work; guest mode is the default path |
+| Sync service for the 5 user tables (srs_cards, lists, list_items, search_history, study_stats) | P1 | Opportunistic background sync; offline-first, last-write-wins conflict resolution |
 
 ### Phase 2 — Enhanced Study Experience
 > *Deepen the learning tools*
@@ -219,7 +245,7 @@ The primary user is an intermediate-to-advanced Japanese learner (JLPT N3–N1 l
 | AI conversation partner | Chat with Claude to practise Japanese; corrects mistakes, explains nuance |
 | AI-powered explanations | "Why is this word used here and not X?" on any example sentence |
 | Smart review suggestions | AI analyses weak areas and suggests focused study sessions |
-| User accounts & cloud sync | Progress syncs across devices via Supabase or similar |
+| OAuth sign-in (Google, Apple) | Extends the MVP email + password auth with social login options |
 | Community sentence contributions | Users submit and vote on example sentences |
 | Shared custom lists | Export/import lists, or share publicly |
 
@@ -245,3 +271,4 @@ The primary user is an intermediate-to-advanced Japanese learner (JLPT N3–N1 l
 | Bundled DB over first-run download | Instant usability, no first-launch friction | 2026-05-18 |
 | Conjugation engine over stored forms | Smaller DB, consistent generation, easier to extend | 2026-05-18 |
 | NativeWind over styled-components | Tailwind DX, cross-platform, strong community | 2026-05-18 |
+| Supabase over custom backend | Auth + PostgreSQL + JS client in one service; free tier sufficient for MVP; schema mirrors local SQLite user tables | 2026-05-18 |

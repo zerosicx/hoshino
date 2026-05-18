@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Build outputs
+build/
+ios/build/
+android/build/
+android/.gradle/
+ios/Pods/
+
+# Native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Metro
+.metro-health-check*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Database files — generated, not for git
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+
+# Raw source data files — large, not for git
+scripts/sources/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code memory (private)
+.claude/
+
+# TypeScript
+*.tsbuildinfo
+
+# NativeWind generated
+.nativewind-cache/
