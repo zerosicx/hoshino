@@ -253,6 +253,7 @@ function parseJMdict(db: Database.Database): void {
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "@_",
+    processEntities: { enabled: true, maxTotalExpansions: 100_000_000, maxExpandedLength: 100_000_000 },
     isArray: (tagName) => {
       // These elements can appear multiple times
       return [
@@ -902,7 +903,7 @@ function buildFtsIndex(db: Database.Database): void {
 
   // Populate entries_fts by extracting flattened text from entries
   db.exec(`
-    INSERT INTO entries_fts (rowid, kanji_text, reading_text, meaning_text)
+    INSERT INTO entries_fts (entry_id, kanji_text, reading_text, meaning_text)
     SELECT
       e.id,
       COALESCE((
@@ -1020,11 +1021,10 @@ function createSchema(db: Database.Database): void {
     );
 
     CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
+      entry_id UNINDEXED,
       kanji_text,
       reading_text,
-      meaning_text,
-      content=entries,
-      content_rowid=id
+      meaning_text
     );
   `);
 }
