@@ -28,6 +28,7 @@ const ENG_SENTENCES_PATH = path.join(SOURCES_DIR, "eng_sentences.tsv");
 const LINKS_PATH = path.join(SOURCES_DIR, "links.csv");
 const JPN_INDICES_PATH = path.join(SOURCES_DIR, "jpn_indices.csv");
 const JLPT_VOCAB_PATH = path.join(SOURCES_DIR, "jlpt-vocab.json");
+const KANJI_JLPT_PATH = path.join(SOURCES_DIR, "kanji-jlpt.json");
 
 // ---------------------------------------------------------------------------
 // TypeScript types
@@ -544,6 +545,55 @@ function parseKanjidic(db: Database.Database): void {
 
   console.log(`[Phase 2] Inserted ${total} kanji.`);
   console.timeEnd("Phase 2");
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2b: Apply N1-N5 kanji JLPT levels from davidluzgouveia/kanji-data
+// KANJIDIC2 only carries the old 4-level system; this overlays the correct
+// N1-N5 values (jlpt_new field, 1=N1 … 5=N5) from a community-maintained source.
+// ---------------------------------------------------------------------------
+
+function applyKanjiJlptLevels(db: Database.Database): void {
+  if (!fileExists(KANJI_JLPT_PATH)) {
+    console.warn(
+      `[WARN] Kanji JLPT overlay not found at ${KANJI_JLPT_PATH}. Skipping Phase 2b.\n` +
+        `       Run ./scripts/download-sources.sh to download it.`
+    );
+    return;
+  }
+
+  console.log("[Phase 2b] Applying N1-N5 kanji JLPT levels…");
+  console.time("Phase 2b");
+
+  const raw: Record<string, { jlpt_new?: number | null }> = JSON.parse(
+    fs.readFileSync(KANJI_JLPT_PATH, "utf-8")
+  );
+
+  const update = db.prepare(
+    `UPDATE kanji SET jlpt_level = ? WHERE character = ?`
+  );
+
+  const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  let cleared = 0;
+
+  const applyAll = db.transaction(() => {
+    for (const [char, data] of Object.entries(raw)) {
+      const level = data.jlpt_new ?? null;
+      update.run(level, char);
+      if (level !== null && level >= 1 && level <= 5) {
+        counts[level]++;
+      } else if (level === null) {
+        cleared++;
+      }
+    }
+  });
+
+  applyAll();
+
+  console.log(
+    `[Phase 2b] N1=${counts[1]} N2=${counts[2]} N3=${counts[3]} N4=${counts[4]} N5=${counts[5]} (${cleared} non-JLPT)`
+  );
+  console.timeEnd("Phase 2b");
 }
 
 // ---------------------------------------------------------------------------
@@ -1133,6 +1183,9 @@ async function main(): Promise<void> {
   console.log("");
 
   parseKanjidic(db);
+  console.log("");
+
+  applyKanjiJlptLevels(db);
   console.log("");
 
   await parseTatoeba(db);

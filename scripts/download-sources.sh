@@ -95,7 +95,7 @@ mkdir -p "$SOURCES_DIR"
 echo ""
 echo "--- JMdict ---"
 download_and_decompress_gz \
-  "https://ftp.edrdg.org/pub/Nihongo/JMdict_e.gz" \
+  "https://www.edrdg.org/pub/Nihongo/JMdict_e.gz" \
   "$SOURCES_DIR/JMdict_e.xml"
 
 # ---------------------------------------------------------------------------
@@ -141,6 +141,28 @@ download_and_decompress_tar_bz2 \
   "https://downloads.tatoeba.org/exports/jpn_indices.tar.bz2" \
   "$SOURCES_DIR/jpn_indices.csv" \
   "jpn_indices.tar.bz2"
+
+# ---------------------------------------------------------------------------
+# Kanji JLPT N1-N5 data (davidluzgouveia/kanji-data)
+# License: MIT
+# Source:  https://github.com/davidluzgouveia/kanji-data
+# Provides jlpt_new (1=N1 … 5=N5) for all 13,108 KANJIDIC2 kanji.
+# KANJIDIC2 only carries the old 4-level JLPT system; this overlays the
+# correct N1-N5 classification maintained by the community.
+# ---------------------------------------------------------------------------
+
+echo ""
+echo "--- Kanji JLPT N1-N5 overlay ---"
+KANJI_DATA_PATH="$SOURCES_DIR/kanji-jlpt.json"
+if [[ -f "$KANJI_DATA_PATH" ]]; then
+  skip "$KANJI_DATA_PATH already exists."
+else
+  info "Downloading kanji-jlpt.json from davidluzgouveia/kanji-data …"
+  curl -L --progress-bar \
+    -o "$KANJI_DATA_PATH" \
+    "https://raw.githubusercontent.com/davidluzgouveia/kanji-data/master/kanji.json"
+  ok "kanji-jlpt.json ready."
+fi
 
 # ---------------------------------------------------------------------------
 # Summary
