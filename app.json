@@ -39,11 +39,11 @@
           "enableFTS": true,
           "useSQLCipher": false
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
     },
-    "sdkVersion": "52.0.0"
   }
 }
