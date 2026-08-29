@@ -1,25 +1,255 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  useColorScheme as useDeviceColorScheme,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ChevronLeft, BookOpen, MessageSquare } from "lucide-react-native";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { useSearchStore } from "@/stores/searchStore";
+import { getEntry, getExamples } from "@/services/dictionary";
+import FuriganaText, { buildFuriganaPairs } from "@/components/FuriganaText";
+import JlptBadge from "@/components/JlptBadge";
+import type { DictionaryEntry, ExampleSentence } from "@/types/dictionary";
 
 export default function WordDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const deviceScheme = useDeviceColorScheme();
+  const themeMode = useSettingsStore((s) => s.themeMode);
+  const isDark =
+    themeMode === "dark" || (themeMode === "system" && deviceScheme === "dark");
+  const recordSearch = useSearchStore((s) => s.recordSearch);
+
+  const [entry, setEntry] = useState<DictionaryEntry | null>(null);
+  const [examples, setExamples] = useState<ExampleSentence[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    const entryId = Number(id);
+
+    (async () => {
+      setLoading(true);
+      const [entryData, exampleData] = await Promise.all([
+        getEntry(entryId),
+        getExamples(entryId),
+      ]);
+      setEntry(entryData);
+      setExamples(exampleData);
+      setLoading(false);
+
+      if (entryData) {
+        recordSearch(entryId);
+      }
+    })();
+  }, [id, recordSearch]);
+
+  if (loading) {
+    return (
+      <View
+        className={`flex-1 justify-center items-center ${isDark ? "bg-zinc-950" : "bg-white"}`}
+      >
+        <ActivityIndicator
+          size="large"
+          color={isDark ? "#6366F1" : "#4F46E5"}
+        />
+      </View>
+    );
+  }
+
+  if (!entry) {
+    return (
+      <View
+        className={`flex-1 justify-center items-center ${isDark ? "bg-zinc-950" : "bg-white"}`}
+      >
+        <Text
+          className={`text-body ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+        >
+          Entry not found
+        </Text>
+      </View>
+    );
+  }
+
+  const primaryKanji = entry.kanjiForms[0] ?? entry.readingForms[0] ?? "";
+  const primaryReading = entry.readingForms[0] ?? "";
+  const furiganaPairs = buildFuriganaPairs(primaryKanji, primaryReading);
+
+  // Extract kanji characters for the breakdown section
+  const kanjiChars = primaryKanji
+    .split("")
+    .filter((ch) => /[\u4E00-\u9FFF]/.test(ch));
 
   return (
-    <View style={styles.container}>
-      <Pressable onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>← Back</Text>
-      </Pressable>
-      <Text style={styles.title}>Word #{id}</Text>
-      <Text style={styles.hint}>Word detail will display here.</Text>
+    <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"}`}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View className="px-4 pt-14 pb-2">
+          <Pressable
+            onPress={() => router.back()}
+            className="flex-row items-center mb-4"
+            hitSlop={8}
+          >
+            <ChevronLeft
+              size={20}
+              color={isDark ? "#6366F1" : "#4F46E5"}
+            />
+            <Text className="text-body text-accent dark:text-accent-light ml-1">
+              Back
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Hero */}
+        <View className="px-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">
+          <FuriganaText pairs={furiganaPairs} size="xl" />
+
+          {/* Alt readings / kanji forms */}
+          {entry.readingForms.length > 1 && (
+            <Text
+              className={`text-footnote ${isDark ? "text-zinc-400" : "text-zinc-500"} mt-2`}
+            >
+              {entry.readingForms.join("、")}
+            </Text>
+          )}
+
+          {/* Badges row */}
+          <View className="flex-row items-center gap-2 mt-3">
+            <JlptBadge level={entry.jlptLevel} />
+            {entry.isCommon && (
+              <View className="bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                <Text className="text-caption2 font-semibold text-emerald-600 dark:text-emerald-400">
+                  Common
+                </Text>
+              </View>
+            )}
+            {entry.conjugationClass && (
+              <View
+                className={`px-2 py-0.5 rounded-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`}
+              >
+                <Text
+                  className={`text-caption2 font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+                >
+                  {entry.conjugationClass}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Senses / Meanings */}
+        <View className="px-4 py-5">
+          <View className="flex-row items-center gap-2 mb-3">
+            <BookOpen size={18} color={isDark ? "#A1A1AA" : "#71717A"} />
+            <Text
+              className={`text-body font-semibold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
+            >
+              Meanings
+            </Text>
+          </View>
+
+          {entry.senses.map((sense, i) => (
+            <View key={i} className="mb-3">
+              <View className="flex-row">
+                <Text
+                  className={`text-footnote font-medium ${isDark ? "text-zinc-600" : "text-zinc-400"} w-6`}
+                >
+                  {i + 1}.
+                </Text>
+                <View className="flex-1">
+                  <Text
+                    className={`text-subheadline ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
+                  >
+                    {sense.glosses.join("; ")}
+                  </Text>
+                  {sense.pos.length > 0 && (
+                    <Text
+                      className={`text-caption1 ${isDark ? "text-zinc-500" : "text-zinc-400"} mt-0.5`}
+                    >
+                      {sense.pos.join(", ")}
+                    </Text>
+                  )}
+                  {sense.info.length > 0 && (
+                    <Text className="text-caption1 text-accent dark:text-accent-light mt-0.5">
+                      {sense.info.join("; ")}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Kanji Breakdown */}
+        {kanjiChars.length > 0 && (
+          <View className="px-4 py-5 border-t border-zinc-200 dark:border-zinc-800">
+            <Text
+              className={`text-body font-semibold ${isDark ? "text-zinc-50" : "text-zinc-900"} mb-3`}
+            >
+              Kanji
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {kanjiChars.map((char) => (
+                <Pressable
+                  key={char}
+                  onPress={() => router.push(`/dictionary/kanji/${char}`)}
+                  className={`w-12 h-12 items-center justify-center rounded-md border ${isDark ? "border-zinc-700 bg-zinc-900" : "border-zinc-200 bg-zinc-50"} active:bg-accent/10`}
+                >
+                  <Text
+                    className={`text-title2 font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
+                  >
+                    {char}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Examples */}
+        {examples.length > 0 && (
+          <View className="px-4 py-5 border-t border-zinc-200 dark:border-zinc-800">
+            <View className="flex-row items-center gap-2 mb-3">
+              <MessageSquare
+                size={18}
+                color={isDark ? "#A1A1AA" : "#71717A"}
+              />
+              <Text
+                className={`text-body font-semibold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
+              >
+                Examples
+              </Text>
+            </View>
+
+            {examples.map((ex) => (
+              <View
+                key={ex.id}
+                className="mb-4 pb-4 border-b border-zinc-100 dark:border-zinc-800/50 last:border-b-0"
+              >
+                <Text
+                  className={`text-subheadline ${isDark ? "text-zinc-200" : "text-zinc-800"} mb-1`}
+                >
+                  {ex.japanese}
+                </Text>
+                <Text
+                  className={`text-footnote ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                >
+                  {ex.english}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0F14', padding: 16, paddingTop: 60 },
-  back: { marginBottom: 16 },
-  backText: { color: '#8B5CF6', fontSize: 17 },
-  title: { fontSize: 28, fontWeight: '700', color: '#F4F4F8', marginBottom: 8 },
-  hint: { color: '#6B6B80', fontSize: 15 },
-});

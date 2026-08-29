@@ -1,47 +1,56 @@
-import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
+import { View, Text, FlatList, Pressable, useColorScheme as useDeviceColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
+import { ChevronRight, Bookmark } from 'lucide-react-native';
+import { useSettingsStore } from '@/stores/settingsStore';
 
-const PLACEHOLDER_LISTS = [
-  { id: '1', name: 'JLPT N5', count: 0 },
-  { id: '2', name: 'JLPT N4', count: 0 },
-  { id: '3', name: 'JLPT N3', count: 0 },
-  { id: '4', name: 'JLPT N2', count: 0 },
-  { id: '5', name: 'JLPT N1', count: 0 },
-  { id: '6', name: 'Searched Terms', count: 0 },
+const JLPT_LISTS = [
+  { id: '1', name: 'JLPT N5 Vocabulary', count: 634, level: 'N5' },
+  { id: '2', name: 'JLPT N5 Kanji', count: 180, level: 'N5' },
+  { id: '3', name: 'JLPT N4 Vocabulary', count: 602, level: 'N4' },
+  { id: '4', name: 'JLPT N4 Kanji', count: 262, level: 'N4' },
+  { id: '5', name: 'JLPT N3 Vocabulary', count: 1613, level: 'N3' },
+  { id: '6', name: 'JLPT N3 Kanji', count: 458, level: 'N3' },
+  { id: '7', name: 'JLPT N2 Vocabulary', count: 1682, level: 'N2' },
+  { id: '8', name: 'JLPT N2 Kanji', count: 394, level: 'N2' },
+  { id: '9', name: 'JLPT N1 Vocabulary', count: 3014, level: 'N1' },
+  { id: '10', name: 'JLPT N1 Kanji', count: 847, level: 'N1' },
 ];
 
 export default function ListsScreen() {
   const router = useRouter();
+  const deviceScheme = useDeviceColorScheme();
+  const themeMode = useSettingsStore((s) => s.themeMode);
+  const isDark = themeMode === 'dark' || (themeMode === 'system' && deviceScheme === 'dark');
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Lists</Text>
+    <View className={`flex-1 ${isDark ? 'bg-zinc-950' : 'bg-white'} pt-14`}>
+      {/* Header */}
+      <Text className={`text-3xl font-bold ${isDark ? 'text-zinc-50' : 'text-zinc-900'} mb-4 px-4 tracking-tight`}>
+        Study Lists
+      </Text>
+
       <FlatList
-        data={PLACEHOLDER_LISTS}
+        data={JLPT_LISTS}
         keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={() => <View className={`h-px ${isDark ? 'bg-zinc-900' : 'bg-zinc-100'} ml-12`} />}
         renderItem={({ item }) => (
-          <Pressable style={styles.row} onPress={() => router.push(`/lists/${item.id}`)}>
-            <Text style={styles.listName}>{item.name}</Text>
-            <Text style={styles.listMeta}>{item.count} words →</Text>
+          <Pressable
+            className={`flex-row items-center justify-between px-4 py-3.5 ${isDark ? 'active:bg-zinc-900' : 'active:bg-zinc-50'}`}
+            onPress={() => router.push(`/lists/${item.id}`)}
+          >
+            <View className="flex-row items-center flex-1">
+              <View className={`w-8 h-8 rounded-lg ${isDark ? 'bg-zinc-900' : 'bg-zinc-100'} items-center justify-center mr-3`}>
+                <Bookmark size={16} color={isDark ? '#818CF8' : '#4F46E5'} />
+              </View>
+              <View>
+                <Text className={`text-base font-semibold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{item.name}</Text>
+                <Text className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{item.count} items</Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color={isDark ? '#71717A' : '#A1A1AA'} />
           </Pressable>
         )}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0F14', paddingTop: 60 },
-  title: { fontSize: 28, fontWeight: '700', color: '#F4F4F8', marginBottom: 16, paddingHorizontal: 16 },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  separator: { height: 1, backgroundColor: '#1E1E28', marginHorizontal: 16 },
-  listName: { fontSize: 17, color: '#F4F4F8' },
-  listMeta: { fontSize: 15, color: '#6B6B80' },
-});

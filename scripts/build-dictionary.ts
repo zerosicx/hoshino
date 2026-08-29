@@ -16,7 +16,7 @@ import * as readline from "node:readline";
 // Paths
 // ---------------------------------------------------------------------------
 
-const SCRIPTS_DIR = path.resolve(import.meta.dirname ?? __dirname);
+const SCRIPTS_DIR = path.resolve(__dirname);
 const SOURCES_DIR = path.join(SCRIPTS_DIR, "sources");
 const REPO_ROOT = path.resolve(SCRIPTS_DIR, "..");
 const OUTPUT_PATH = path.join(REPO_ROOT, "assets", "hoshino.db");
@@ -671,9 +671,32 @@ async function parseTatoeba(db: Database.Database): Promise<void> {
   );
 
   // Step 3d: Parse jpn_indices.csv to link sentences to JMdict entries
-  // Format: sent_id \t entry_form \t A[entry_id]/B[entry_id]/...
   console.log("[Phase 3] Loading jpn_indices…");
 
+  // Load entries from database to build lookup maps
+  const rows = db.prepare("SELECT id, kanji_forms, reading_forms FROM entries").all() as Array<{ id: number; kanji_forms: string; reading_forms: string }>;
+  const kanjiReadingMap = new Map<string, number>();
+  const kanjiMap = new Map<string, number>();
+  const readingMap = new Map<string, number>();
+
+  for (const row of rows) {
+    const kanjis = JSON.parse(row.kanji_forms) as string[];
+    const readings = JSON.parse(row.reading_forms) as string[];
+
+    for (const r of readings) {
+      for (const k of kanjis) {
+        const key = `${k}|${r}`;
+        if (!kanjiReadingMap.has(key)) kanjiReadingMap.set(key, row.id);
+      }
+      if (!readingMap.has(r)) readingMap.set(r, row.id);
+    }
+
+    for (const k of kanjis) {
+      if (!kanjiMap.has(k)) kanjiMap.set(k, row.id);
+    }
+  }
+
+  const PARTICLES = new Set(["は", "が", "を", "に", "と", "へ", "も", "で"]);
   const sentenceTokens = new Map<number, TatoebaToken[]>();
 
   await processLineByLine(JPN_INDICES_PATH, (line) => {
@@ -682,22 +705,63 @@ async function parseTatoeba(db: Database.Database): Promise<void> {
     const sentId = parseInt(parts[0], 10);
     if (isNaN(sentId)) return;
 
-    const surface = parts[1] ?? "";
     const indexStr = parts[2] ?? "";
+    const words = indexStr.split(/\s+/).filter(Boolean);
+    const tokens: TatoebaToken[] = [];
 
-    // Parse entry IDs from format like "A[1234567]/B[7654321]"
-    let entry_id: number | null = null;
-    const match = indexStr.match(/[A-Z]\[(\d+)\]/);
-    if (match) {
-      entry_id = parseInt(match[1], 10);
+    for (const w of words) {
+      if (PARTICLES.has(w)) {
+        continue;
+      }
+
+      let entry_id: number | null = null;
+      const hasHash = w.includes("(#");
+      if (hasHash) {
+        const idMatch = w.match(/\(#(\d+)\)/);
+        if (idMatch) {
+          entry_id = parseInt(idMatch[1], 10);
+        }
+      }
+
+      let cleanTok = w;
+      if (hasHash) {
+        cleanTok = cleanTok.replace(/\(#\d+\)/g, "");
+      }
+      if (cleanTok.includes("[")) {
+        cleanTok = cleanTok.replace(/\[\d+\]/g, "");
+      }
+      if (cleanTok.includes("{")) {
+        cleanTok = cleanTok.replace(/\{[^{}]*\}/g, "");
+      }
+      if (cleanTok.endsWith("~")) {
+        cleanTok = cleanTok.replace(/~+$/g, "");
+      }
+
+      let lemma = cleanTok;
+      let reading = "";
+
+      if (cleanTok.includes("(")) {
+        const parenMatch = cleanTok.match(/^([^(]+)\(([^)]+)\)$/);
+        if (parenMatch) {
+          lemma = parenMatch[1];
+          reading = parenMatch[2];
+        }
+      }
+
+      if (!entry_id) {
+        if (reading) {
+          const key = `${lemma}|${reading}`;
+          entry_id = kanjiReadingMap.get(key) || kanjiMap.get(lemma) || readingMap.get(reading) || null;
+        } else {
+          entry_id = kanjiMap.get(lemma) || readingMap.get(lemma) || null;
+        }
+      }
+
+      tokens.push({ surface: lemma, reading, entry_id });
     }
 
-    const token: TatoebaToken = { surface, reading: "", entry_id };
-    const existing = sentenceTokens.get(sentId);
-    if (existing) {
-      existing.push(token);
-    } else {
-      sentenceTokens.set(sentId, [token]);
+    if (tokens.length > 0) {
+      sentenceTokens.set(sentId, tokens);
     }
   });
   console.log(

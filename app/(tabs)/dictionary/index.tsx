@@ -1,35 +1,170 @@
-import { View, Text, TextInput, StyleSheet } from 'react-native';
-import { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  useColorScheme as useDeviceColorScheme,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Search, X } from "lucide-react-native";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { useDictionary } from "@/hooks/useDictionary";
+import DictionaryResultRow from "@/components/DictionaryResultRow";
+import type { SearchResult } from "@/types/dictionary";
 
 export default function DictionaryScreen() {
-  const [query, setQuery] = useState('');
+  const router = useRouter();
+  const deviceScheme = useDeviceColorScheme();
+  const themeMode = useSettingsStore((s) => s.themeMode);
+  const isDark =
+    themeMode === "dark" || (themeMode === "system" && deviceScheme === "dark");
+
+  const {
+    query,
+    results,
+    recentSearches,
+    isLoading,
+    hasSearched,
+    setQuery,
+    clearSearch,
+  } = useDictionary();
+
+  const showResults = query.trim().length > 0;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Dictionary</Text>
-      <TextInput
-        style={styles.input}
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search words, kanji, or English…"
-        placeholderTextColor="#6B6B80"
-      />
-      <Text style={styles.hint}>Database not yet loaded — results will appear here.</Text>
+    <View
+      className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"} px-4 pt-14`}
+    >
+      {/* Header */}
+      <Text
+        className={`text-largeTitle font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"} mb-4 tracking-tight`}
+      >
+        Dictionary
+      </Text>
+
+      {/* Search Input */}
+      <View
+        className={`flex-row items-center ${isDark ? "bg-zinc-900 border-zinc-800" : "bg-zinc-100 border-zinc-200"} border rounded-lg px-3 h-12 mb-4`}
+      >
+        <Search size={18} color={isDark ? "#A1A1AA" : "#71717A"} />
+        <TextInput
+          className={`flex-1 ml-2 text-body ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search kanji, kana, or English..."
+          placeholderTextColor={isDark ? "#71717A" : "#A1A1AA"}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+        />
+        {query.length > 0 && (
+          <Pressable onPress={clearSearch} hitSlop={8}>
+            <X size={18} color={isDark ? "#A1A1AA" : "#71717A"} />
+          </Pressable>
+        )}
+      </View>
+
+      {showResults ? (
+        // Search results
+        <>
+          {isLoading && (
+            <View className="py-8 items-center">
+              <ActivityIndicator
+                size="small"
+                color={isDark ? "#6366F1" : "#4F46E5"}
+              />
+            </View>
+          )}
+
+          {!isLoading && hasSearched && results.length === 0 && (
+            <View className="flex-1 justify-center items-center pb-20">
+              <Text
+                className={`text-subheadline ${isDark ? "text-zinc-600" : "text-zinc-400"} text-center`}
+              >
+                No results for "{query}"
+              </Text>
+            </View>
+          )}
+
+          {!isLoading && results.length > 0 && (
+            <FlatList
+              data={results}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) => <DictionaryResultRow item={item} />}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 100 }}
+            />
+          )}
+        </>
+      ) : (
+        // Home state — recent searches + empty prompt
+        <View className="flex-1">
+          {recentSearches.length > 0 && (
+            <View className="mb-6">
+              <Text
+                className={`text-body font-semibold ${isDark ? "text-zinc-50" : "text-zinc-900"} mb-3`}
+              >
+                Recently Searched
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 12 }}
+              >
+                {recentSearches.slice(0, 10).map((item) => (
+                  <RecentSearchChip
+                    key={item.id}
+                    item={item}
+                    isDark={isDark}
+                    onPress={() => router.push(`/dictionary/${item.id}`)}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <View className="flex-1 justify-center items-center pb-20">
+            <Text
+              className={`text-subheadline ${isDark ? "text-zinc-600" : "text-zinc-400"} text-center`}
+            >
+              Search 217,000+ words & kanji
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0F14', padding: 16, paddingTop: 60 },
-  title: { fontSize: 28, fontWeight: '700', color: '#F4F4F8', marginBottom: 16 },
-  input: {
-    backgroundColor: '#1A1A24',
-    borderWidth: 1,
-    borderColor: '#2E2E3A',
-    borderRadius: 10,
-    padding: 12,
-    color: '#F4F4F8',
-    fontSize: 17,
-  },
-  hint: { marginTop: 24, color: '#6B6B80', fontSize: 15, textAlign: 'center' },
-});
+function RecentSearchChip({
+  item,
+  isDark,
+  onPress,
+}: {
+  item: SearchResult;
+  isDark: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className={`px-3 py-2 rounded-md ${isDark ? "bg-zinc-900" : "bg-zinc-100"} active:bg-accent/5`}
+    >
+      <Text
+        className={`text-subheadline font-medium ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
+      >
+        {item.kanjiForm}
+      </Text>
+      <Text
+        className={`text-caption1 ${isDark ? "text-zinc-500" : "text-zinc-400"} mt-0.5`}
+        numberOfLines={1}
+      >
+        {item.primaryMeaning}
+      </Text>
+    </Pressable>
+  );
+}

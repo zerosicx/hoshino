@@ -1,39 +1,104 @@
 import { Tabs } from 'expo-router';
-import { BookOpen, GraduationCap, List } from 'lucide-react-native';
+import { Search, GraduationCap, Library, Settings as SettingsIcon } from 'lucide-react-native';
+import { Platform, useColorScheme as useDeviceColorScheme } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 export default function TabsLayout() {
+  const deviceScheme = useDeviceColorScheme();
+  const themeMode = useSettingsStore((s) => s.themeMode);
+  const insets = useSafeAreaInsets();
+
+  const isDark = themeMode === 'dark' || (themeMode === 'system' && deviceScheme === 'dark');
+
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'web' ? 4 : 8);
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#1A1A24',
-          borderTopColor: '#2E2E3A',
+          backgroundColor: isDark ? '#09090B' : '#FFFFFF',
+          borderTopColor: isDark ? '#27272A' : '#E4E4E7',
           borderTopWidth: 1,
+          height: 56 + bottomPadding,
+          paddingBottom: bottomPadding,
+          paddingTop: 6,
         },
-        tabBarActiveTintColor: '#8B5CF6',
-        tabBarInactiveTintColor: '#6B6B80',
+        tabBarActiveTintColor: isDark ? '#6366F1' : '#4F46E5',
+        tabBarInactiveTintColor: isDark ? '#A1A1AA' : '#71717A',
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '500',
+        },
       }}
     >
       <Tabs.Screen
-        name="dictionary"
+        name="dictionary/index"
         options={{
           title: 'Dictionary',
-          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Search color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="study"
+        name="study/index"
         options={{
           title: 'Study',
-          tabBarIcon: ({ color, size }) => <GraduationCap color={color} size={size} />,
+          tabBarIcon: ({ size }) => (
+            <GraduationCap color={isDark ? '#3F3F46' : '#D4D4D8'} size={size} />
+          ),
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: '500',
+            color: isDark ? '#3F3F46' : '#D4D4D8',
+          },
+        }}
+        listeners={{ tabPress: (e) => e.preventDefault() }}
+      />
+      <Tabs.Screen
+        name="lists/index"
+        options={{
+          title: 'Lists',
+          tabBarIcon: ({ size }) => (
+            <Library color={isDark ? '#3F3F46' : '#D4D4D8'} size={size} />
+          ),
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: '500',
+            color: isDark ? '#3F3F46' : '#D4D4D8',
+          },
+        }}
+        listeners={{ tabPress: (e) => e.preventDefault() }}
+      />
+      <Tabs.Screen
+        name="settings/index"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="lists"
+        name="dictionary/[id]"
         options={{
-          title: 'Lists',
-          tabBarIcon: ({ color, size }) => <List color={color} size={size} />,
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="dictionary/kanji/[char]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="lists/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="study/session"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

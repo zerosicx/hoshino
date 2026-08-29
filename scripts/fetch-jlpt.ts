@@ -16,7 +16,7 @@ import AdmZip from "adm-zip";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-const SCRIPTS_DIR = path.resolve(import.meta.dirname ?? __dirname);
+const SCRIPTS_DIR = path.resolve(__dirname);
 const SOURCES_DIR = path.join(SCRIPTS_DIR, "sources");
 const DB_PATH = path.join(SCRIPTS_DIR, "..", "assets", "hoshino.db");
 const OUTPUT_PATH = path.join(SOURCES_DIR, "jlpt-vocab.json");

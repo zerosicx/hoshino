@@ -8,28 +8,53 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Primary accent — violet
+        // Primary accent — Indigo 600
         accent: {
-          DEFAULT: "#6D28D9",
-          light: "#8B5CF6",
-          dark: "#5B21B6",
-          subtle: "#EDE9FE",
+          DEFAULT: "#4F46E5",
+          light: "#6366F1",
+          dark: "#4338CA",
+          subtle: "#EEF2FF",
         },
-        // Surface hierarchy (dark-first)
+        primary: {
+          DEFAULT: "#4F46E5",
+          foreground: "#FFFFFF",
+        },
+        // Shadcn style neutral palette
+        background: {
+          light: "#FFFFFF",
+          dark: "#09090B",
+        },
+        card: {
+          light: "#FFFFFF",
+          dark: "#18181B",
+        },
+        muted: {
+          light: "#F4F4F5",
+          dark: "#27272A",
+          foreground: {
+            light: "#71717A",
+            dark: "#A1A1AA",
+          },
+        },
+        border: {
+          light: "#E4E4E7",
+          dark: "#27272A",
+        },
+        // Surface hierarchy
         surface: {
-          base: "#0F0F14",
-          elevated: "#1A1A24",
-          overlay: "#23232F",
-          border: "#2E2E3A",
-          "border-subtle": "#1E1E28",
+          base: "#09090B",
+          elevated: "#18181B",
+          overlay: "#27272A",
+          border: "#27272A",
+          "border-subtle": "#18181B",
         },
         // Text
         text: {
-          primary: "#F4F4F8",
-          secondary: "#A0A0B8",
-          tertiary: "#6B6B80",
-          disabled: "#3A3A4A",
-          inverse: "#0F0F14",
+          primary: "#09090B",
+          secondary: "#71717A",
+          tertiary: "#A1A1AA",
+          disabled: "#D4D4D8",
+          inverse: "#FFFFFF",
         },
         // JLPT level colors
         jlpt: {
@@ -48,12 +73,12 @@ module.exports = {
         },
         // Word type tags
         tag: {
-          verb: "#7C3AED",
-          noun: "#1D4ED8",
-          adjective: "#047857",
-          adverb: "#B45309",
-          particle: "#9D174D",
-          expression: "#374151",
+          verb: "#4F46E5",
+          noun: "#2563EB",
+          adjective: "#059669",
+          adverb: "#D97706",
+          particle: "#DB2777",
+          expression: "#4B5563",
         },
         // Feedback / status
         success: "#22C55E",

@@ -14,50 +14,52 @@
 
 | Element | Light | Dark |
 |---|---|---|
-| Logo mark background | `--text-primary` (#1C1917) | `--accent` (#6D28D9) |
+| Logo mark background | `--text-primary` (#09090B) | `--accent` (#4F46E5) |
 | Logo mark text | `--text-inverse` (#FFFFFF) | `--text-inverse` (#FFFFFF) |
 
 ---
 
 ## 2. Colour Palette
 
-### 2.1 Shared Accent
+### 2.1 Shared Accent (Tailwind Indigo 600)
 
-The primary accent is consistent across both themes, ensuring brand recognition regardless of mode.
+The primary accent is built on Tailwind's Indigo 600 (`#4F46E5`) for clean, modern visibility across both light and dark modes.
 
 | Token | Value | Usage |
 |---|---|---|
-| `--accent` | `#6D28D9` | Primary interactive colour, active tab, furigana, links, CTA backgrounds |
-| `--accent-light` | `#7C3AED` | Hover/pressed state |
-| `--accent-soft` | `rgba(109,40,217, 0.08)` light / `0.15` dark | Subtle tinted backgrounds (badges, pills, icon wraps) |
-| `--accent-border` | `rgba(109,40,217, 0.20)` light / `0.30` dark | Focused/hovered border tint |
-| `--furigana` | `#6D28D9` light / `#8B5CF6` dark | Furigana text colour (lighter in dark mode for readability) |
+| `--accent` | `#4F46E5` | Primary interactive colour, active tab, furigana, links, CTA backgrounds |
+| `--accent-light` | `#6366F1` | Hover/pressed state (Indigo 500) |
+| `--accent-soft` | `rgba(79,70,229, 0.08)` light / `0.15` dark | Subtle tinted backgrounds (badges, pills, icon wraps) |
+| `--accent-border` | `rgba(79,70,229, 0.20)` light / `0.30` dark | Focused/hovered border tint |
+| `--furigana` | `#4F46E5` light / `#6366F1` dark | Furigana text colour |
 
-### 2.2 Surface Colours
+### 2.2 Surface Colours (Shadcn Neutral Palette)
+
+Clean, high-contrast black and white slate defaults.
 
 | Token | Light | Dark | Usage |
 |---|---|---|---|
-| `--bg-primary` | `#F5F2ED` | `#0E0E14` | Page/screen background |
-| `--bg-secondary` | `#EDE9E3` | `#161622` | Tab bar, status bar |
-| `--bg-card` | `#FFFFFF` | `#1C1C28` | Flashcard, search bar, minimal card usage |
-| `--bg-elevated` | `#F0ECE6` | `#24243A` | Conjugation cells, nested surfaces |
-| `--bg-input` | `#F8F6F2` | `#1C1C28` | Input field backgrounds |
+| `--bg-primary` | `#FFFFFF` | `#09090B` | Page/screen background |
+| `--bg-secondary` | `#F4F4F5` | `#18181B` | Tab bar, header background |
+| `--bg-card` | `#FFFFFF` | `#18181B` | Flashcard, search bar, list items |
+| `--bg-elevated` | `#F4F4F5` | `#27272A` | Conjugation cells, nested surfaces |
+| `--bg-input` | `#F4F4F5` | `#18181B` | Input field backgrounds |
 
 ### 2.3 Text Colours
 
 | Token | Light | Dark | Usage |
 |---|---|---|---|
-| `--text-primary` | `#1C1917` | `#ECEAF2` | Headings, body text, kanji |
-| `--text-secondary` | `#57534E` | `#A8A4B8` | Secondary info, meanings, descriptions |
-| `--text-tertiary` | `#A8A29E` | `#6B6780` | Placeholders, hints, captions |
+| `--text-primary` | `#09090B` | `#FAFAFA` | Headings, body text, kanji |
+| `--text-secondary` | `#71717A` | `#A1A1AA` | Secondary info, meanings, descriptions |
+| `--text-tertiary` | `#A1A1AA` | `#71717A` | Placeholders, hints, captions |
 | `--text-inverse` | `#FFFFFF` | `#FFFFFF` | Text on accent/dark backgrounds |
 
 ### 2.4 Border & Shadow
 
 | Token | Light | Dark |
 |---|---|---|
-| `--border` | `#E7E5E4` | `#2A2A3C` |
-| `--border-strong` | `#D6D3D1` | `#3A3A50` |
+| `--border` | `#E4E4E7` | `#27272A` |
+| `--border-strong` | `#D4D4D8` | `#3F3F46` | `#3A3A50` |
 | `--divider` | `rgba(0,0,0,0.06)` | `rgba(255,255,255,0.06)` |
 | `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.04)` | `0 1px 2px rgba(0,0,0,0.2)` |
 | `--shadow-md` | `0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)` | `0 2px 8px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)` |
