@@ -1,48 +1,142 @@
+import { Asset } from "expo-asset";
 import * as SQLite from "expo-sqlite";
-import { importDatabaseFromAssetAsync } from "expo-sqlite";
 import { Platform } from "react-native";
+import { openDictionary } from "./sqliteWasm";
 
-let dictDbInstance: SQLite.SQLiteDatabase | null = null;
-let userDbInstance: SQLite.SQLiteDatabase | null = null;
+const DICT_ASSET_ID = require("../assets/hoshino.db") as number;
+const DICT_DB_NAME = "hoshino.db";
 
 /**
- * On web, expo-sqlite uses OPFS with a pool of 6 file handles (AccessHandlePoolVFS).
- * Stale handles from previous dev sessions fill the pool and cause SQLITE_CANTOPEN.
- * Clearing the OPFS directory before init frees those handles.
- * See: https://github.com/expo/expo/issues/39903
+ * The read-only slice of expo-sqlite's API that dictionary queries use.
+ *
+ * Web serves the dictionary from the official SQLite WebAssembly build instead
+ * of expo-sqlite, so this describes what both implementations provide. Only
+ * strings and numbers are ever bound in dictionary queries.
  */
-async function clearWebOPFS(): Promise<void> {
-  if (Platform.OS !== "web") return;
+export type DictionaryBindValue = string | number | null;
+
+export type DictionaryDb = {
+  getAllAsync<T>(source: string): Promise<T[]>;
+  getAllAsync<T>(source: string, params: DictionaryBindValue[]): Promise<T[]>;
+  getFirstAsync<T>(source: string): Promise<T | null>;
+  getFirstAsync<T>(
+    source: string,
+    params: DictionaryBindValue[]
+  ): Promise<T | null>;
+};
+
+let dictDbInstance: DictionaryDb | null = null;
+let userDbInstance: SQLite.SQLiteDatabase | null = null;
+let initPromise: Promise<void> | null = null;
+
+/**
+ * Runs one initialisation step, timing it and attributing any failure to the
+ * step by name so the console shows exactly where things broke.
+ */
+async function step<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  const started = Date.now();
+  console.log(`?? [DB] > ${label}`);
   try {
-    const root = await navigator.storage.getDirectory();
-    for await (const [name] of (root as any).entries()) {
-      await root.removeEntry(name, { recursive: true });
-    }
-  } catch {
-    // OPFS not available or already clean
+    const result = await fn();
+    console.log(`?? [DB] OK ${label} (${Date.now() - started}ms)`);
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(
+      `?? [DB] FAILED ${label} after ${Date.now() - started}ms:`,
+      err
+    );
+    throw new Error(`${label} — ${message}`);
   }
 }
 
 /**
- * Initializes both databases:
- * - hoshino.db (read-only dictionary, imported from bundled asset)
- * - hoshino_user.db (writable user data)
+ * Opens the read-only dictionary.
+ *
+ * Native imports the asset into the app's SQLite directory and opens it from
+ * disk. Web cannot use expo-sqlite at all for this file: its WebAssembly build
+ * omits FTS5, and a build without that module cannot read a schema declaring
+ * `CREATE VIRTUAL TABLE ... USING fts5`. So web hands the asset to a worker
+ * running the official SQLite WASM build, which ships FTS5 and can cache the
+ * file in OPFS.
  */
-export async function getDatabase(): Promise<void> {
+async function openDictionaryDb(): Promise<DictionaryDb> {
+  if (Platform.OS !== "web") {
+    await step("import dictionary asset", () =>
+      SQLite.importDatabaseFromAssetAsync(DICT_DB_NAME, {
+        assetId: DICT_ASSET_ID,
+        forceOverwrite: true,
+      })
+    );
+
+    return step("open dictionary db", () =>
+      SQLite.openDatabaseAsync(DICT_DB_NAME)
+    );
+  }
+
+  const asset = Asset.fromModule(DICT_ASSET_ID);
+  await asset.downloadAsync();
+
+  return step("open dictionary worker", () =>
+    openDictionary(asset.localUri ?? asset.uri, asset.hash)
+  );
+}
+
+/**
+ * Initializes both databases:
+ * - hoshino.db (read-only dictionary, from the bundled asset)
+ * - hoshino_user.db (writable user data)
+ *
+ * Concurrent callers share one attempt. Without this, React's dev-mode double
+ * invocation of effects starts the 98MB dictionary download twice, and the
+ * abandoned response shows up as "Cannot pipe to a closed or destroyed stream"
+ * in the dev server log.
+ */
+export function getDatabase(): Promise<void> {
+  if (!initPromise) {
+    initPromise = initialise().catch((err) => {
+      // Let a later attempt retry rather than caching the failure forever.
+      initPromise = null;
+      throw err;
+    });
+  }
+  return initPromise;
+}
+
+async function initialise(): Promise<void> {
   if (dictDbInstance && userDbInstance) return;
 
-  await clearWebOPFS();
+  dictDbInstance = await openDictionaryDb();
 
-  await importDatabaseFromAssetAsync("hoshino.db", {
-    assetId: require("../assets/hoshino.db") as number,
-    forceOverwrite: true,
+  await step("verify dictionary schema", async () => {
+    const table = await dictDbInstance!.getFirstAsync<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type IN ('table','view') AND name = 'entries_fts'"
+    );
+    if (!table) {
+      throw new Error(
+        "entries_fts is missing — the imported database is empty or incomplete"
+      );
+    }
+
+    const count = await dictDbInstance!.getFirstAsync<{ c: number }>(
+      "SELECT COUNT(*) as c FROM entries"
+    );
+    console.log(`?? [DB] dictionary contains ${count?.c ?? 0} entries`);
+
+    // Reading the schema is not enough — the fts5 module also has to run a
+    // MATCH, which is exactly what a build lacking FTS5 cannot do.
+    await dictDbInstance!.getFirstAsync<{ rowid: number }>(
+      "SELECT rowid FROM entries_fts WHERE entries_fts MATCH ? LIMIT 1",
+      ["meaning_text : water"]
+    );
   });
 
-  dictDbInstance = await SQLite.openDatabaseAsync("hoshino.db");
-  userDbInstance = await SQLite.openDatabaseAsync("hoshino_user.db");
+  userDbInstance = await step("open user db", () =>
+    SQLite.openDatabaseAsync("hoshino_user.db")
+  );
 
-  // 4. Create user schema tables.
-  await userDbInstance.execAsync(`
+  await step("create user schema", () =>
+    userDbInstance!.execAsync(`
     CREATE TABLE IF NOT EXISTS srs_cards (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       entry_id INTEGER NOT NULL,
@@ -96,25 +190,29 @@ export async function getDatabase(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_srs_cards_list ON srs_cards(list_id);
     CREATE INDEX IF NOT EXISTS idx_list_items_list ON list_items(list_id);
     CREATE INDEX IF NOT EXISTS idx_list_items_entry ON list_items(entry_id);
-  `);
+  `)
+  );
 
-  // 5. Pre-seed the system "Searched Terms" list if it does not exist.
-  const sysList = (await userDbInstance.getFirstAsync<{ count: number }>(
-    "SELECT COUNT(*) as count FROM lists WHERE type = 'system' AND name = 'Searched Terms'"
-  )) as { count: number } | null;
-
-  if (sysList && sysList.count === 0) {
-    await userDbInstance.runAsync(
-      "INSERT INTO lists (name, type, created_at) VALUES ('Searched Terms', 'system', ?)",
-      [new Date().toISOString()]
+  await step("seed system list", async () => {
+    const sysList = await userDbInstance!.getFirstAsync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM lists WHERE type = 'system' AND name = 'Searched Terms'"
     );
-  }
+
+    if (sysList && sysList.count === 0) {
+      await userDbInstance!.runAsync(
+        "INSERT INTO lists (name, type, created_at) VALUES ('Searched Terms', 'system', ?)",
+        [new Date().toISOString()]
+      );
+    }
+  });
+
+  console.log("?? [DB] initialisation complete");
 }
 
 /**
  * Returns the read-only dictionary database connection.
  */
-export function getDictDb(): SQLite.SQLiteDatabase {
+export function getDictDb(): DictionaryDb {
   if (!dictDbInstance) {
     throw new Error("Database not initialized. Call getDatabase() first.");
   }

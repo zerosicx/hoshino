@@ -178,7 +178,7 @@ export async function searchEntries(
   const rows = await db.getAllAsync<RawEntry>(
     `SELECT e.id, e.kanji_forms, e.reading_forms, e.senses, e.jlpt_level, e.is_common
      FROM entries_fts fts
-     JOIN entries e ON e.id = fts.entry_id
+     JOIN entries e ON e.id = fts.rowid
      WHERE entries_fts MATCH ?
      ORDER BY
        rank

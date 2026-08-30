@@ -173,6 +173,9 @@ function isCommonPri(pri: string): boolean {
   return pri === "ichi1" || pri === "news1" || pri === "spec1";
 }
 
+/** How many example sentences to keep per dictionary entry. */
+const MAX_EXAMPLES_PER_ENTRY = 5;
+
 // ---------------------------------------------------------------------------
 // JMdict POS → internal conjugation class mapping
 // ---------------------------------------------------------------------------
@@ -768,7 +771,65 @@ async function parseTatoeba(db: Database.Database): Promise<void> {
     `[Phase 3] Loaded index data for ${sentenceTokens.size} sentences.`
   );
 
-  // Step 3e: Insert examples
+  // Step 3e: Choose which examples to keep.
+  //
+  // Tatoeba links most common words to hundreds of sentences, but the UI only
+  // ever shows a handful. Keeping the shortest few per entry gives learners
+  // more digestible sentences and keeps the bundled database an order of
+  // magnitude smaller. Sentences that survive no entry's cut are dropped.
+  console.log("[Phase 3] Selecting examples per entry…");
+
+  interface Candidate {
+    exampleId: number;
+    length: number;
+  }
+
+  const candidatesByEntry = new Map<number, Candidate[]>();
+  const usableSentences = new Map<number, TatoebaExample>();
+
+  for (const [jpnId, japanese] of jpnSentences) {
+    const engId = jpnToEng.get(jpnId);
+    if (!engId) continue; // No English translation available
+
+    const english = engSentences.get(engId);
+    if (!english) continue;
+
+    const tokens = sentenceTokens.get(jpnId) ?? [];
+    if (tokens.length === 0) continue; // Not linked to any entry
+
+    usableSentences.set(jpnId, { id: jpnId, japanese, english, tokens });
+
+    const seenEntries = new Set<number>();
+    for (const tok of tokens) {
+      if (tok.entry_id === null || seenEntries.has(tok.entry_id)) continue;
+      seenEntries.add(tok.entry_id);
+
+      let list = candidatesByEntry.get(tok.entry_id);
+      if (!list) {
+        list = [];
+        candidatesByEntry.set(tok.entry_id, list);
+      }
+      list.push({ exampleId: jpnId, length: japanese.length });
+    }
+  }
+
+  const links: Array<{ entry_id: number; example_id: number }> = [];
+  const keptExampleIds = new Set<number>();
+
+  for (const [entryId, candidates] of candidatesByEntry) {
+    candidates.sort((a, b) => a.length - b.length);
+    for (const candidate of candidates.slice(0, MAX_EXAMPLES_PER_ENTRY)) {
+      links.push({ entry_id: entryId, example_id: candidate.exampleId });
+      keptExampleIds.add(candidate.exampleId);
+    }
+  }
+
+  console.log(
+    `[Phase 3] Keeping ${keptExampleIds.size} examples and ${links.length} links ` +
+      `across ${candidatesByEntry.size} entries.`
+  );
+
+  // Step 3f: Insert the selected examples and links.
   const insertExample = db.prepare(`
     INSERT INTO examples (id, japanese, english, tokens)
     VALUES (@id, @japanese, @english, @tokens)
@@ -779,64 +840,25 @@ async function parseTatoeba(db: Database.Database): Promise<void> {
     VALUES (@entry_id, @example_id)
   `);
 
-  const insertBatch = db.transaction(
-    (examples: TatoebaExample[], entryLinks: Array<{ entry_id: number; example_id: number }>) => {
-      for (const ex of examples) {
-        insertExample.run({
-          id: ex.id,
-          japanese: ex.japanese,
-          english: ex.english,
-          tokens: JSON.stringify(ex.tokens),
-        });
-      }
-      for (const link of entryLinks) {
-        insertEntryExample.run(link);
-      }
+  const insertAll = db.transaction(() => {
+    for (const exampleId of keptExampleIds) {
+      const ex = usableSentences.get(exampleId);
+      if (!ex) continue;
+      insertExample.run({
+        id: ex.id,
+        japanese: ex.japanese,
+        english: ex.english,
+        tokens: JSON.stringify(ex.tokens),
+      });
     }
-  );
-
-  let exBatch: TatoebaExample[] = [];
-  let linkBatch: Array<{ entry_id: number; example_id: number }> = [];
-  let total = 0;
-  const BATCH_SIZE = 500;
-
-  for (const [jpnId, japanese] of jpnSentences) {
-    const engId = jpnToEng.get(jpnId);
-    if (!engId) continue; // No English translation available
-
-    const english = engSentences.get(engId);
-    if (!english) continue;
-
-    const tokens = sentenceTokens.get(jpnId) ?? [];
-
-    exBatch.push({ id: jpnId, japanese, english, tokens });
-
-    // Collect unique entry_ids for this sentence
-    const seenEntries = new Set<number>();
-    for (const tok of tokens) {
-      if (tok.entry_id !== null && !seenEntries.has(tok.entry_id)) {
-        seenEntries.add(tok.entry_id);
-        linkBatch.push({ entry_id: tok.entry_id, example_id: jpnId });
-      }
+    for (const link of links) {
+      insertEntryExample.run(link);
     }
+  });
 
-    if (exBatch.length >= BATCH_SIZE) {
-      insertBatch(exBatch, linkBatch);
-      total += exBatch.length;
-      exBatch = [];
-      linkBatch = [];
-      if (total % 10000 === 0) {
-        process.stdout.write(`\r[Phase 3] Inserted ${total} examples…`);
-      }
-    }
-  }
+  insertAll();
 
-  if (exBatch.length > 0) {
-    insertBatch(exBatch, linkBatch);
-    total += exBatch.length;
-  }
-
-  process.stdout.write(`\r[Phase 3] Inserted ${total} examples total.\n`);
+  console.log(`[Phase 3] Inserted ${keptExampleIds.size} examples total.`);
   console.timeEnd("Phase 3");
 }
 
@@ -1017,7 +1039,7 @@ function buildFtsIndex(db: Database.Database): void {
 
   // Populate entries_fts by extracting flattened text from entries
   db.exec(`
-    INSERT INTO entries_fts (entry_id, kanji_text, reading_text, meaning_text)
+    INSERT INTO entries_fts (rowid, kanji_text, reading_text, meaning_text)
     SELECT
       e.id,
       COALESCE((
@@ -1036,8 +1058,9 @@ function buildFtsIndex(db: Database.Database): void {
     FROM entries e
   `);
 
+  // Contentless FTS5 tables cannot be scanned, so count the source instead.
   const count = (
-    db.prepare(`SELECT COUNT(*) as c FROM entries_fts`).get() as { c: number }
+    db.prepare(`SELECT COUNT(*) as c FROM entries`).get() as { c: number }
   ).c;
   console.log(`[Phase 6] FTS5 index built for ${count} entries.`);
   console.timeEnd("Phase 6");
@@ -1134,11 +1157,14 @@ function createSchema(db: Database.Database): void {
       streak_length INTEGER DEFAULT 0
     );
 
+    -- Contentless FTS5: the indexed text already lives in entries, so storing a
+    -- second copy here would waste ~18MB. rowid is the entry id, which is how
+    -- search results join back to entries.
     CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
-      entry_id UNINDEXED,
       kanji_text,
       reading_text,
-      meaning_text
+      meaning_text,
+      content=''
     );
   `);
 }
@@ -1157,8 +1183,9 @@ function createIndexes(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_list_items_entry ON list_items(entry_id);
     CREATE INDEX IF NOT EXISTS idx_srs_cards_due ON srs_cards(due);
     CREATE INDEX IF NOT EXISTS idx_srs_cards_entry ON srs_cards(entry_id);
-    CREATE INDEX IF NOT EXISTS idx_entry_examples_entry ON entry_examples(entry_id);
   `);
+  // No index on entry_examples(entry_id): the (entry_id, example_id) primary
+  // key already covers entry_id lookups, and a duplicate cost ~10MB.
 }
 
 // ---------------------------------------------------------------------------
@@ -1168,6 +1195,12 @@ function createIndexes(db: Database.Database): void {
 function finalise(db: Database.Database): void {
   console.log("[Phase 7] Finalising database…");
   console.time("Phase 7");
+
+  // WAL is baked into the file header and requires a real file with shared
+  // memory. No browser VFS provides that, so a WAL database fails to open on web
+  // with SQLITE_CANTOPEN as soon as SQLite touches it. WAL is only useful while
+  // building, so the shipped file goes back to a rollback journal.
+  db.pragma("journal_mode = DELETE");
 
   db.exec("VACUUM");
   db.exec("ANALYZE");

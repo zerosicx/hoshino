@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
     "@supabase/supabase-js": "^2.47.2",
     "babel-preset-expo": "~54.0.10",
     "expo": "~54.0.0",
