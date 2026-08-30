@@ -1,6 +1,6 @@
 import { View, Text, Pressable, ScrollView, useColorScheme as useDeviceColorScheme } from 'react-native';
-import { useSettingsStore, ThemeMode, ReadingMode } from '@/stores/settingsStore';
-import { Sun, Moon, Monitor, Eye, Volume2, ShieldCheck } from 'lucide-react-native';
+import { useSettingsStore } from '@/stores/settingsStore';
+import { Sun, Moon, Monitor, ShieldCheck } from 'lucide-react-native';
 
 export default function SettingsScreen() {
   const deviceScheme = useDeviceColorScheme();

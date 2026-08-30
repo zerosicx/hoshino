@@ -1,0 +1,109 @@
+# Changelog
+
+Notable changes to Hoshino, newest first.
+
+## Unreleased
+
+### Dictionary now works on web
+
+The dictionary could not be opened on web at all. Every query failed with
+`SQLITE_CANTOPEN` (error 14). There were two independent causes, and because
+each one masked the other, fixing either alone still failed — with a different
+error, which made every partial fix look like a wrong turn.
+
+**FTS5 was missing from expo-sqlite's WebAssembly build.** Its compile options
+list only `ENABLE_BATCH_ATOMIC_WRITE`, `ENABLE_PREUPDATE_HOOK` and
+`ENABLE_SESSION`, and the binary contains no fts5 symbols. A SQLite build
+without that module cannot read a schema declaring
+`CREATE VIRTUAL TABLE ... USING fts5`, so no amount of tuning file size, OPFS
+state or available memory would ever have helped. Web now serves the dictionary
+from `@sqlite.org/sqlite-wasm`, which ships FTS5 plus the unicode61, trigram,
+porter and ascii tokenizers. Native is untouched — expo-sqlite compiles FTS5 in
+there via `SQLITE_ENABLE_FTS5`.
+
+**The database was built in WAL mode.** WAL is recorded in the file header and
+requires a real file plus shared memory, which no browser VFS provides.
+`scripts/build-dictionary.ts` now finalises with `journal_mode = DELETE`, and a
+runtime guard rejects a WAL image with an actionable message instead of an
+opaque error code.
+
+Both failures surfaced at the *first query* rather than at open, because SQLite
+opens files lazily. That is why every step of initialisation reported success
+right up to the failure, and why step-by-step timing revealed nothing.
+
+### Dictionary cached in OPFS, off the main thread
+
+sqlite runs in a dedicated worker (`services/dictionaryWorker.ts`) so the
+dictionary can be cached in an OPFS pool. That VFS is built on
+`createSyncAccessHandle()`, which the spec only exposes inside a dedicated
+worker — on the main thread it throws.
+
+Three benefits follow: the 98MB file is downloaded once per browser rather than
+on every load; reading through a VFS keeps it out of the WASM heap, since SQLite
+pages in only what a query touches; and FTS5 searches no longer block the main
+thread.
+
+The cache is keyed by the asset's MD5 where the bundler provides it, so
+rebuilding the dictionary evicts stale copies automatically. Web dev builds have
+no asset hash and Metro's dev server sends neither ETag nor Last-Modified, so
+they fall back to keying on byte length. A rebuild landing on exactly the same
+size would go unnoticed there; clear `/hoshino-dictionary` in DevTools >
+Application > Storage if ever suspected.
+
+If OPFS is unavailable — an unsupported browser, or a second tab, which cannot
+share the pool's exclusive file handles — it falls back to an in-memory copy and
+still works.
+
+### Bundled database halved: 198MB to 98MB
+
+- `entries_fts` is now contentless, since the source columns already live in
+  `entries`
+- example sentences capped at five per entry, shortest first; Tatoeba links
+  common words to hundreds, but the UI only ever shows a handful
+- dropped a redundant index on `entry_examples`
+
+### Search accuracy
+
+Rewrote FTS5 matching to be column-aware and language-aware, and added a
+composite ranking that weights `rank` against `is_common` and `jlpt_level`, so
+everyday words outrank obscure ones. Ranking is still known to be weak — see
+`ROADMAP.md`.
+
+### Fixed
+
+- `metro.config.js` assigned `config.server` instead of extending it, silently
+  dropping six Expo and Metro defaults including `unstable_serverRoot`, the
+  value worker bundle URLs are resolved against
+- Metro's `blockList` regex `/\/scripts\/.*/` matched any path containing
+  `scripts/`, which broke `react-native-reanimated` on native; now scoped to the
+  project root
+- tab bar was clipped on web and ignored the iOS home indicator; the app is now
+  wrapped in `SafeAreaProvider` with padding derived from the real insets
+- `getDatabase()` is guarded by a shared promise, so React's dev-mode double
+  invocation of effects no longer starts the dictionary download twice
+- `import.meta.url` cannot be used to locate the worker: `babel-preset-expo`
+  rewrites it to a lookup backed by `document.currentScript`, which is null
+  outside synchronous script evaluation. Uses `window.location.href` instead.
+- the worker defines `globalThis.__ExpoImportMetaRegistry` itself, since Expo
+  installs it from the app entry's polyfills, which a worker bundle never runs
+
+### Changed
+
+- Study and Lists tabs greyed out and non-navigable while the dictionary is the
+  focus
+- `lucide-react-native` upgraded to `^1.37.0` for React 19 support
+- dropped the temporary startup diagnostics and OPFS pool inspection used to
+  chase error 14; initialisation now logs one summary line, and failures are
+  attributed to the step that produced them
+
+### Known issues
+
+- Metro's dev server logs `Cannot pipe to a closed or destroyed stream` on first
+  run. This is an unpatched bug in `expo-server@1.0.6`, whose `respond()` pipes
+  to the socket without checking the client is still connected. Upstream fixes
+  exist (expo/expo#43305, expo/expo#48660) but are not in this version. Dev-only
+  and harmless.
+- Native re-copies the 98MB dictionary on every cold start, because
+  `importDatabaseFromAssetAsync` is called with `forceOverwrite: true`. Removing
+  it naively would leave a stale dictionary after an app update, so it needs a
+  version check.

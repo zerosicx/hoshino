@@ -30,20 +30,20 @@ let userDbInstance: SQLite.SQLiteDatabase | null = null;
 let initPromise: Promise<void> | null = null;
 
 /**
- * Runs one initialisation step, timing it and attributing any failure to the
- * step by name so the console shows exactly where things broke.
+ * Names the step a failure came from.
+ *
+ * SQLite opens files lazily, so a failure usually surfaces well after the call
+ * that caused it. Without the step name attached, the error reads as an opaque
+ * code with no indication of which stage produced it.
  */
 async function step<T>(label: string, fn: () => Promise<T>): Promise<T> {
   const started = Date.now();
-  console.log(`?? [DB] > ${label}`);
   try {
-    const result = await fn();
-    console.log(`?? [DB] OK ${label} (${Date.now() - started}ms)`);
-    return result;
+    return await fn();
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(
-      `?? [DB] FAILED ${label} after ${Date.now() - started}ms:`,
+      `?? [DB] failed at "${label}" after ${Date.now() - started}ms:`,
       err
     );
     throw new Error(`${label} — ${message}`);
@@ -106,9 +106,10 @@ export function getDatabase(): Promise<void> {
 async function initialise(): Promise<void> {
   if (dictDbInstance && userDbInstance) return;
 
+  const started = Date.now();
   dictDbInstance = await openDictionaryDb();
 
-  await step("verify dictionary schema", async () => {
+  const entries = await step("verify dictionary schema", async () => {
     const table = await dictDbInstance!.getFirstAsync<{ name: string }>(
       "SELECT name FROM sqlite_master WHERE type IN ('table','view') AND name = 'entries_fts'"
     );
@@ -118,17 +119,17 @@ async function initialise(): Promise<void> {
       );
     }
 
-    const count = await dictDbInstance!.getFirstAsync<{ c: number }>(
-      "SELECT COUNT(*) as c FROM entries"
-    );
-    console.log(`?? [DB] dictionary contains ${count?.c ?? 0} entries`);
-
     // Reading the schema is not enough — the fts5 module also has to run a
     // MATCH, which is exactly what a build lacking FTS5 cannot do.
     await dictDbInstance!.getFirstAsync<{ rowid: number }>(
       "SELECT rowid FROM entries_fts WHERE entries_fts MATCH ? LIMIT 1",
       ["meaning_text : water"]
     );
+
+    const count = await dictDbInstance!.getFirstAsync<{ c: number }>(
+      "SELECT COUNT(*) as c FROM entries"
+    );
+    return count?.c ?? 0;
   });
 
   userDbInstance = await step("open user db", () =>
@@ -206,7 +207,9 @@ async function initialise(): Promise<void> {
     }
   });
 
-  console.log("?? [DB] initialisation complete");
+  console.log(
+    `?? [DB] ready in ${Date.now() - started}ms — ${entries} dictionary entries`
+  );
 }
 
 /**

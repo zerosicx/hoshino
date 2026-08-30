@@ -176,7 +176,7 @@ async function resolveCacheKey(
     const response = await fetch(assetUri, { method: "HEAD" });
     const length = response.headers.get("content-length");
     if (length) {
-      console.log(`?? [DICT] no asset hash, keying cache on ${length} bytes`);
+      // The length is visible in the cached filename, so it needs no log line.
       return `hoshino-len${length}`;
     }
   } catch (err) {
