@@ -22,6 +22,18 @@ Keep implementations simple and readable.
 
 ---
 
+## Project Docs
+
+| File | Purpose |
+|---|---|
+| `ROADMAP.md` | What is built, what is next, and known issues. Read before starting a feature; update when a stage item lands. |
+| `CHANGELOG.md` | Record of shipped changes and why. Add an entry for anything user-visible or architectural. |
+| `DESIGN_SYSTEM.md` | Colour, spacing, typography and component tokens. Follow exactly. |
+| `ARCHITECTURE.md` | System and data-layer structure. |
+| `SRD.md` | Product requirements. |
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
