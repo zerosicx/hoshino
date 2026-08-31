@@ -37,13 +37,24 @@ database.ts → root layout → tab bar                        ✅
 
 Three things stand between the dictionary being *functional* and being *good*.
 
-- [ ] **Search ranking.** The weakest part of the app. Matching is column-aware
-      and weighted by `is_common` and `jlpt_level`, but results still surface
-      obscure entries above everyday ones. Rewrite as explicit tiers: exact
-      reading, exact kanji, prefix, then full-text — each tier sorted by
-      frequency. Requires keeping JMdict's `nfNN` priority tags in the build
-      instead of collapsing them into the `is_common` boolean, since `nf01`
-      through `nf48` is the frequency signal Jisho-class ranking depends on.
+- [ ] **Search ranking, part two — the data the ranker still lacks.** Tiered
+      scoring landed (see `CHANGELOG.md`) and the benchmark is at 45/45, but
+      several results win by a margin of ten points or less because the only
+      tie-breakers are the `is_common` boolean and `jlpt_level`, which covers
+      3.5% of entries. Keep JMdict's `nfNN` priority tags in the build instead
+      of collapsing them into `is_common`: `nf01` through `nf48` is the
+      frequency signal Jisho-class ranking depends on, and it would replace
+      those thin margins with a real ordering.
+- [ ] **Mid-word kanji search.** `entries_fts` uses the default `unicode61`
+      tokenizer, which makes a whole Japanese word one token, and matching is
+      prefix-anchored. So 曜 finds 曜日 but can never reach 水曜日. Needs a
+      second FTS table using the `trigram` tokenizer over kanji and reading
+      text, which is a database rebuild.
+- [ ] **`conjugation_class` is empty for all 217,783 rows.** `detectConjugationClass`
+      looks up JMdict short codes (`v5r`, `adj-i`), but `fast-xml-parser`
+      expands the XML entities first, so the value it actually receives is
+      `Godan verb with 'ru' ending` and the lookup never hits. Must be fixed
+      before the conjugation table below can be built.
 - [ ] **Native cold-start copy.** `importDatabaseFromAssetAsync` runs with
       `forceOverwrite: true`, re-copying 98MB on every launch. Needs a stored
       build version compared against the asset's, so it copies only when the
@@ -52,8 +63,9 @@ Three things stand between the dictionary being *functional* and being *good*.
 - [ ] **`utils/conjugation.ts`** — generate conjugations from POS tag +
       dictionary form: godan (all variants), ichidan, i-adjective; dictionary,
       masu, te, ta, nai, potential, passive, causative, conditional and
-      volitional, plain and polite. `entries.conjugationClass` is already
-      populated and unused.
+      volitional, plain and polite. Blocked on `conjugation_class` above.
+      `utils/deinflect.ts` already encodes the reverse mapping and its kana-row
+      table can be reused.
 - [ ] **`components/ConjugationTable.tsx`** — render those forms on word detail.
 
 ---
@@ -74,6 +86,12 @@ Deferred deliberately; the screens work without them.
 
 **Checkpoint:** conjugation table renders for verbs and i-adjectives, and search
 ranking puts common words first.
+
+Search quality is tracked by `npm test`, which measures ranking against
+`tests/benchmark.ts` — 45 queries whose expected answers came from jisho.org.
+The benchmark needs `assets/hoshino.db` present; without it the suite skips
+rather than fails. Ranking cannot be tested against a small fixture, because
+BM25 scores depend on corpus-wide statistics.
 
 ---
 
@@ -170,6 +188,9 @@ loop (search → add to list → study → review) works on all three platforms.
 
 ## Known issues
 
+- **`npm run lint` has never worked.** There is no ESLint configuration file in
+  the repo, so the command exits with "couldn't find a configuration file".
+  `eslint-config-expo` is installed but nothing references it.
 - **Dev cache key is weak.** Web dev builds have no asset hash and Metro sends
   no ETag or Last-Modified, so the OPFS cache keys on byte length. A rebuild
   landing on exactly the same size would serve a stale dictionary. Production

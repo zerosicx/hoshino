@@ -1,11 +1,16 @@
 import { getDictDb, getUserDb } from "./database";
+import {
+  buildSearchIntent,
+  buildSearchQuery,
+  rankEntries,
+} from "./searchQuery";
+import { parseJsonArray, parseSenses } from "@/utils/entryJson";
 import type {
   DictionaryEntry,
   ExampleSentence,
   ExampleToken,
   KanjiEntry,
   SearchResult,
-  Sense,
 } from "@/types/dictionary";
 
 // Raw row shapes from SQLite (JSON columns are strings)
@@ -52,32 +57,6 @@ interface RawSearchHistory {
 // ---------------------------------------------------------------------------
 // Parsers — JSON columns → typed objects
 // ---------------------------------------------------------------------------
-
-function parseJsonArray(raw: string | null): string[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function parseSenses(raw: string | null): Sense[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((s: Record<string, unknown>) => ({
-      glosses: Array.isArray(s.glosses) ? s.glosses : [],
-      pos: Array.isArray(s.pos) ? s.pos : [],
-      misc: Array.isArray(s.misc) ? s.misc : [],
-      info: Array.isArray(s.info) ? s.info : [],
-    }));
-  } catch {
-    return [];
-  }
-}
 
 function parseTokens(raw: string | null): ExampleToken[] {
   if (!raw) return [];
@@ -151,51 +130,17 @@ function rawToExample(row: RawExample): ExampleSentence {
 // Public API
 // ---------------------------------------------------------------------------
 
-const JP_REGEX = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
-
 export async function searchEntries(
   query: string,
   limit = 50
 ): Promise<SearchResult[]> {
-  const trimmed = query.trim();
-  if (!trimmed) return [];
+  const intent = buildSearchIntent(query);
+  if (!intent) return [];
 
-  const db = getDictDb();
-  const isJapanese = JP_REGEX.test(trimmed);
-  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  const plan = buildSearchQuery(intent);
+  const rows = await getDictDb().getAllAsync<RawEntry>(plan.sql, plan.params);
 
-  let ftsQuery: string;
-  if (isJapanese) {
-    // Japanese input: prefix-match against kanji and reading columns only
-    ftsQuery = tokens
-      .map((t) => `{kanji_text reading_text} : ${t}*`)
-      .join(" ");
-  } else {
-    // English input: exact token match against meaning column only
-    ftsQuery = tokens.map((t) => `meaning_text : ${t}`).join(" ");
-  }
-
-  const rows = await db.getAllAsync<RawEntry>(
-    `SELECT e.id, e.kanji_forms, e.reading_forms, e.senses, e.jlpt_level, e.is_common
-     FROM entries_fts fts
-     JOIN entries e ON e.id = fts.rowid
-     WHERE entries_fts MATCH ?
-     ORDER BY
-       rank
-       - (e.is_common * 15)
-       - (CASE e.jlpt_level
-            WHEN 5 THEN 10
-            WHEN 4 THEN 8
-            WHEN 3 THEN 6
-            WHEN 2 THEN 4
-            WHEN 1 THEN 2
-            ELSE 0
-          END)
-     LIMIT ?`,
-    [ftsQuery, limit]
-  );
-
-  return rows.map(rawToSearchResult);
+  return rankEntries(intent, rows, limit).map(rawToSearchResult);
 }
 
 export async function getEntry(

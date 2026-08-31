@@ -4,6 +4,53 @@ Notable changes to Hoshino, newest first.
 
 ## Unreleased
 
+### Search finds conjugated verbs, kana and romaji — and ranks the right word first
+
+Measured against a 45-query benchmark whose expected answers were taken from
+jisho.org, search went from **16/45 to 45/45** correct top results.
+
+Two separate faults were doing the damage.
+
+**Nothing distinguished an exact match from an incidental one.** Everything went
+into one pool ordered by `rank - (is_common * 15) - jlptBonus`, where `rank` is
+FTS5's BM25 score. BM25 divides by document length, and in a dictionary the
+indexed document is the word's full set of meanings — so the more useful a word
+is, the more senses it has, and the harder BM25 punishes it. Searching 水
+returned 水曜日 ("Wednesday", one sense, 103 characters) above 水 ("water", five
+senses, 565 characters). Searching `eat` put the honorific 召し上がる above 食べる,
+losing by 0.18 of a point.
+
+Ranking is now banded, in `services/searchQuery.ts`: an exact form match scores
+above any gloss match, a gloss match scores by which sense and which gloss it
+landed in, and `is_common` and `jlpt_level` only break ties inside a band. They
+can no longer promote an unrelated entry over a real match.
+
+**Conjugated input returned nothing at all.** 食べます, 食べた, 見ました and 買わない
+each returned zero results, because the default `unicode61` tokenizer makes a
+whole Japanese word a single token and matching was prefix-anchored, so any
+change to the tail of a word stopped matching. `utils/deinflect.ts` now maps a
+conjugated form back to candidate dictionary forms. The rules are deliberately
+over-generous — 飲み yields both 飲みる and 飲む — because the dictionary itself is
+the filter, which keeps the rule table small enough to read.
+
+Also new: katakana input folds to hiragana (タベル finds 食べる), and romaji
+converts before matching (`taberu`, `tabemasu`, `arigatou`). Romaji is Hepburn
+only; accepting wapuro spellings like `ti` is what makes jisho.org answer `time`
+with 血眼 (ちめ, "bloodshot eyes").
+
+The slowest query in the suite runs in under 4ms.
+
+### Tests
+
+Vitest, run with `npm test`. The ranking benchmark opens `assets/hoshino.db`
+directly through `better-sqlite3` rather than booting Expo, and skips when the
+database is absent. It has to use the real 217k-entry dictionary: BM25 scores
+depend on corpus-wide statistics, so a small fixture would rank differently and
+prove nothing.
+
+`services/searchRobustness.test.ts` holds a second set of queries that were
+never used for tuning, so the benchmark score can be checked for overfitting.
+
 ### Dictionary now works on web
 
 The dictionary could not be opened on web at all. Every query failed with
