@@ -4,6 +4,9 @@
     "slug": "hoshino",
     "version": "1.0.0",
     "scheme": "hoshino",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",

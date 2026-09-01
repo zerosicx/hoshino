@@ -226,6 +226,43 @@ export default function WordDetailScreen() {
           ))}
         </View>
 
+        {/* Examples */}
+        {examples.length > 0 && (
+          <View className="px-4 py-5 border-t border-zinc-200 dark:border-zinc-800">
+            <View className="flex-row items-center gap-2 mb-3">
+              <MessageSquare
+                size={18}
+                color={isDark ? "#A1A1AA" : "#71717A"}
+              />
+              <Text
+                className={`text-body font-semibold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
+              >
+                Examples
+              </Text>
+            </View>
+
+            {examples.map((ex) => (
+              <View
+                key={ex.id}
+                className="mb-4 pb-4 border-b border-zinc-100 dark:border-zinc-800/50 last:border-b-0"
+              >
+                <View className="mb-1">
+                  <FuriganaText
+                    pairs={ex.furigana}
+                    size="sentence"
+                    readingMode={readingMode}
+                  />
+                </View>
+                <Text
+                  className={`text-footnote ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                >
+                  {ex.english}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Conjugations */}
         {entry.wordClass && (
           <ConjugationTable
@@ -263,42 +300,6 @@ export default function WordDetailScreen() {
           </View>
         )}
 
-        {/* Examples */}
-        {examples.length > 0 && (
-          <View className="px-4 py-5 border-t border-zinc-200 dark:border-zinc-800">
-            <View className="flex-row items-center gap-2 mb-3">
-              <MessageSquare
-                size={18}
-                color={isDark ? "#A1A1AA" : "#71717A"}
-              />
-              <Text
-                className={`text-body font-semibold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
-              >
-                Examples
-              </Text>
-            </View>
-
-            {examples.map((ex) => (
-              <View
-                key={ex.id}
-                className="mb-4 pb-4 border-b border-zinc-100 dark:border-zinc-800/50 last:border-b-0"
-              >
-                <View className="mb-1">
-                  <FuriganaText
-                    pairs={ex.furigana}
-                    size="sentence"
-                    readingMode={readingMode}
-                  />
-                </View>
-                <Text
-                  className={`text-footnote ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                >
-                  {ex.english}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
       </ScrollView>
 
       <AddToListDrawer

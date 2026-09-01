@@ -1,0 +1,46 @@
+# What NOT to upload to EAS Build.
+#
+# When this file exists EAS uses it in place of .gitignore, which is the whole
+# point: .gitignore excludes *.db, and assets/hoshino.db is the dictionary the
+# app cannot start without. It is generated rather than committed, so a build
+# driven by .gitignore would ship without it and fail on first launch.
+#
+# Keep assets/ out of this file.
+
+node_modules/
+.git/
+
+# Build outputs
+.expo/
+dist/
+web-build/
+build/
+android/build/
+android/.gradle/
+ios/build/
+ios/Pods/
+
+# Raw pipeline inputs — hundreds of MB, and only build:db reads them
+scripts/sources/
+
+# Secrets and signing material
+.env
+.env.local
+.env.*.local
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Local noise
+.DS_Store
+._*
+*.log
+npm-debug.log*
+.vscode/
+.idea/
+.claude/
+*.tsbuildinfo
+.metro-health-check*
+.nativewind-cache/

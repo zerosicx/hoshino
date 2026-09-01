@@ -101,12 +101,13 @@ export default function ListDetailScreen() {
 
   return (
     <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"} pt-14`}>
+      {header}
+
       {list.type === "jlpt_kanji" ? (
         <FlatList
           data={kanji}
           keyExtractor={(item) => item.character}
           numColumns={5}
-          ListHeaderComponent={header}
           columnWrapperStyle={{ paddingHorizontal: 12 }}
           contentContainerStyle={{ paddingBottom: 100 }}
           renderItem={({ item }) => (
@@ -130,7 +131,6 @@ export default function ListDetailScreen() {
         <FlatList
           data={entries}
           keyExtractor={(item) => String(item.id)}
-          ListHeaderComponent={header}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
           ListEmptyComponent={
             <Text
