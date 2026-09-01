@@ -130,11 +130,16 @@ The app ships with a pre-built SQLite database bundled as an asset. On first lau
 |---|---|---|
 | id | INTEGER PK | Auto-increment |
 | name | TEXT | Display name |
-| type | TEXT | "jlpt", "system", "user" |
+| type | TEXT | "custom", "system", "jlpt_vocab", "jlpt_kanji" |
 | jlpt_level | INTEGER | For JLPT lists only |
 | created_at | TEXT | ISO timestamp |
+| starred | INTEGER | 1 pins the list to the top of the Lists screen |
+
+There is no `updated_at`. Recency is derived from `list_items` — see "Recency is derived, not stored".
 
 #### `list_items` — Entries belonging to a list
+
+Holds rows only for `custom` and `system` lists. JLPT lists are resolved from `jlpt_level` at read time and store nothing here.
 
 | Column | Type | Description |
 |---|---|---|
@@ -236,6 +241,19 @@ NativeWind resolves every `dark:` class from its own colour scheme, which follow
 
 Screens must take `isDark` from `hooks/useTheme.ts`, which writes the setting into NativeWind and reads the resolved value back. `tailwind.config.js` must keep `darkMode: "class"`: NativeWind's web runtime throws on a manual colour-scheme change while dark mode is `"media"`, which is the default.
 
+### JLPT lists are a query, not stored rows
+The ten preloaded JLPT lists exist in `lists` for identity, starring and naming, but hold nothing in `list_items`. Their contents come from `jlpt_level`, which the build already writes onto both `entries` and `kanji`. Materialising them would put roughly 9,700 rows in the user database to express something the dictionary already knows, and would need reseeding whenever the dictionary is rebuilt.
+
+It also sidesteps a type mismatch: `list_items.entry_id` is an integer pointing at `entries`, so it cannot hold a kanji, which is keyed by character. Query-backed JLPT kanji lists work anyway. Letting a user put a kanji in their own list is still unsolved and needs an `item_type` + `item_key` pair on `list_items`.
+
+### Recency is derived, not stored
+A list sorts by when it was last added to. That is read at query time as the newest `list_items.added_at`, falling back to `lists.created_at` for an empty list, rather than kept in an `updated_at` column. A stored column is one more thing every write has to remember to touch, and it goes wrong silently; the derived value cannot disagree with the items it is derived from. The cost is a correlated subquery over a table holding tens of lists, which is not worth optimising.
+
+### Schema lives apart from the connection
+`services/schema.ts` holds the user-database DDL and the built-in list seeds, and `services/database.ts` executes it. The split exists so tests can build the identical schema in plain SQLite without importing expo-sqlite, which does not run under Node. That is what allows the list ordering rules to be tested as the actual SQL the app runs, rather than a JavaScript reimplementation of them that could drift.
+
+Columns added after release also need an entry in `MIGRATIONS`, because `CREATE TABLE IF NOT EXISTS` does nothing to a database an earlier build already created.
+
 ### FSRS over SM-2
 The FSRS algorithm (used by Anki 23.10+) is empirically better. The `ts-fsrs` npm package provides a TypeScript implementation ready to use.
 
@@ -275,7 +293,12 @@ hoshino/
 │   ├── StatsBar.tsx              # Study landing stats (streak, accuracy, reviewed today)
 │   ├── DueTodayCard.tsx          # Accent-coloured CTA showing total due cards
 │   ├── ListDuePill.tsx           # Compact pill badge showing due count per list
-│   ├── ListCard.tsx              # Reusable list card (active w/ progress or browse-only)
+│   ├── ListRow.tsx               # List row with star toggle and item count
+│   ├── BottomDrawer.tsx          # Slide-up panel shell used by the drawers
+│   ├── CreateListDrawer.tsx      # Name a new list
+│   ├── AddToListDrawer.tsx       # Pick a list for a word, or make one
+│   ├── SwipeToAdd.tsx            # Swipe a search result right to add it
+│   ├── Toast.tsx                 # Bottom toast, mounted once at the root
 │   ├── RecentChip.tsx            # Recently searched word chip
 │   └── FeaturedWord.tsx          # Word of the Day / recommended word card
 ├── services/                     # Business logic
@@ -283,6 +306,8 @@ hoshino/
 │   ├── searchQuery.ts            # Query intent, FTS5 SQL, tiered ranking
 │   ├── srs.ts                    # FSRS scheduling logic
 │   ├── lists.ts                  # List CRUD, Searched Terms
+│   ├── listQuery.ts              # List ordering and membership SQL
+│   ├── schema.ts                 # User schema, built-in seeds, migrations
 │   ├── stats.ts                  # Streak, accuracy, daily review counts
 │   └── database.ts               # SQLite connection + DAL
 ├── hooks/                        # Custom React hooks
@@ -294,6 +319,7 @@ hoshino/
 ├── stores/                       # Zustand stores
 │   ├── searchStore.ts
 │   ├── studyStore.ts
+│   ├── toastStore.ts
 │   └── settingsStore.ts
 ├── utils/                        # Pure functions
 │   ├── conjugation.ts            # Conjugation engine

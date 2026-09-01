@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   View,
   Text,
@@ -13,12 +14,36 @@ import { useTheme } from "@/hooks/useTheme";
 import { useDictionary } from "@/hooks/useDictionary";
 import { useSettingsStore } from "@/stores/settingsStore";
 import DictionaryResultRow from "@/components/DictionaryResultRow";
+import SwipeToAdd from "@/components/SwipeToAdd";
+import CreateListDrawer from "@/components/CreateListDrawer";
+import { useAddToList, useCreateList } from "@/hooks/useLists";
 import type { SearchResult } from "@/types/dictionary";
 
 export default function DictionaryScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const readingMode = useSettingsStore((s) => s.readingMode);
+
+  const { add, addToMostRecent } = useAddToList();
+  const createList = useCreateList();
+  // Held while the drawer is open so the word survives the round trip through
+  // list creation, which is what a swipe with no lists yet turns into.
+  const [pendingAdd, setPendingAdd] = useState<SearchResult | null>(null);
+
+  const swipeAdd = async (item: SearchResult) => {
+    const word = item.kanjiForm || item.readingForm;
+    const list = await addToMostRecent(item.id, word);
+    if (!list) setPendingAdd(item);
+  };
+
+  const createAndAdd = async (name: string) => {
+    const item = pendingAdd;
+    setPendingAdd(null);
+    if (!item) return;
+
+    const created = await createList(name);
+    if (created) await add(item.id, item.kanjiForm || item.readingForm, created);
+  };
 
   const {
     query,
@@ -92,7 +117,9 @@ export default function DictionaryScreen() {
               data={results}
               keyExtractor={(item) => String(item.id)}
               renderItem={({ item }) => (
-                <DictionaryResultRow item={item} readingMode={readingMode} />
+                <SwipeToAdd onAdd={() => swipeAdd(item)}>
+                  <DictionaryResultRow item={item} readingMode={readingMode} />
+                </SwipeToAdd>
               )}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
@@ -136,6 +163,12 @@ export default function DictionaryScreen() {
           </View>
         </View>
       )}
+
+      <CreateListDrawer
+        visible={pendingAdd !== null}
+        onClose={() => setPendingAdd(null)}
+        onCreate={createAndAdd}
+      />
     </View>
   );
 }

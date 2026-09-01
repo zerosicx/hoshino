@@ -270,33 +270,83 @@ export async function recordSearch(entryId: number): Promise<void> {
   }
 }
 
-export async function getRecentSearches(
-  limit = 20
+/**
+ * Entries for a set of ids, kept in the order the ids were given.
+ *
+ * `IN (...)` returns rows in whatever order SQLite likes, so the caller's
+ * ordering — recency, for both search history and list items — is reapplied.
+ */
+export async function getEntriesByIds(
+  ids: number[]
 ): Promise<SearchResult[]> {
-  const userDb = getUserDb();
-  const dictDb = getDictDb();
+  if (ids.length === 0) return [];
 
-  // Get recent entry IDs from user DB
-  const history = await userDb.getAllAsync<{ entry_id: number }>(
-    `SELECT entry_id FROM search_history ORDER BY searched_at DESC LIMIT ?`,
-    [limit]
-  );
-
-  if (history.length === 0) return [];
-
-  // Fetch entry data from dictionary DB
-  const ids = history.map((h) => h.entry_id);
   const placeholders = ids.map(() => "?").join(",");
-  const rows = await dictDb.getAllAsync<RawSearchHistory>(
+  const rows = await getDictDb().getAllAsync<RawSearchHistory>(
     `SELECT id, kanji_forms, reading_forms, senses, jlpt_level, is_common
      FROM entries WHERE id IN (${placeholders})`,
     ids
   );
 
-  // Preserve the search history order
   const rowMap = new Map(rows.map((r) => [r.id, r]));
   return ids
     .map((id) => rowMap.get(id))
     .filter((r): r is RawSearchHistory => r != null)
     .map(rawToSearchResult);
+}
+
+/** Vocabulary at a JLPT level, the words worth knowing first. */
+export async function getJlptEntries(
+  level: number
+): Promise<SearchResult[]> {
+  const rows = await getDictDb().getAllAsync<RawSearchHistory>(
+    `SELECT id, kanji_forms, reading_forms, senses, jlpt_level, is_common
+     FROM entries WHERE jlpt_level = ?
+     ORDER BY is_common DESC, id ASC`,
+    [level]
+  );
+  return rows.map(rawToSearchResult);
+}
+
+/** Kanji at a JLPT level, most frequent first, unranked ones last. */
+export async function getJlptKanji(level: number): Promise<KanjiEntry[]> {
+  const rows = await getDictDb().getAllAsync<RawKanji>(
+    `SELECT * FROM kanji WHERE jlpt_level = ?
+     ORDER BY frequency IS NULL, frequency ASC, stroke_count ASC`,
+    [level]
+  );
+  return rows.map(rawToKanji);
+}
+
+/**
+ * How many words and kanji sit at each JLPT level.
+ *
+ * Read rather than hardcoded: the counts previously written into the Lists
+ * screen were right for vocabulary and wrong for every kanji level.
+ */
+export async function getJlptCounts(): Promise<{
+  vocab: Record<number, number>;
+  kanji: Record<number, number>;
+}> {
+  const db = getDictDb();
+  const read = async (table: string) => {
+    const rows = await db.getAllAsync<{ jlpt_level: number; n: number }>(
+      `SELECT jlpt_level, COUNT(*) as n FROM ${table}
+       WHERE jlpt_level IS NOT NULL GROUP BY jlpt_level`
+    );
+    return Object.fromEntries(rows.map((r) => [r.jlpt_level, r.n]));
+  };
+
+  return { vocab: await read("entries"), kanji: await read("kanji") };
+}
+
+export async function getRecentSearches(
+  limit = 20
+): Promise<SearchResult[]> {
+  const history = await getUserDb().getAllAsync<{ entry_id: number }>(
+    `SELECT entry_id FROM search_history ORDER BY searched_at DESC LIMIT ?`,
+    [limit]
+  );
+
+  return getEntriesByIds(history.map((h) => h.entry_id));
 }

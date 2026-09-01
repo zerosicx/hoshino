@@ -56,16 +56,8 @@ export default function TabsLayout() {
         name="lists/index"
         options={{
           title: 'Lists',
-          tabBarIcon: ({ size }) => (
-            <Library color={isDark ? '#3F3F46' : '#D4D4D8'} size={size} />
-          ),
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '500',
-            color: isDark ? '#3F3F46' : '#D4D4D8',
-          },
+          tabBarIcon: ({ color, size }) => <Library color={color} size={size} />,
         }}
-        listeners={{ tabPress: (e) => e.preventDefault() }}
       />
       <Tabs.Screen
         name="settings/index"
@@ -88,6 +80,12 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="lists/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="lists/jlpt"
         options={{
           href: null,
         }}

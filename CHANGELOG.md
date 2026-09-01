@@ -4,6 +4,40 @@ Notable changes to Hoshino, newest first.
 
 ## Unreleased
 
+### Lists
+
+Words can now be collected into lists. The plus button on a word page opens a
+picker showing your lists most-recently-added-to first, with a New list option
+that creates one and adds the word in a single step. On a search result, a
+rightward swipe reveals a plus and drops the word into whichever list you used
+last; if you have no lists yet, the swipe opens the creation drawer instead of
+failing. Every add reports itself with a toast naming both the word and the
+list, and says the same on failure so it is clear which add did not happen.
+
+The main Lists screen shows starred lists first, then Searched Terms, then the
+rest by how recently they were added to. "Recently edited" is derived at read
+time from the newest item's timestamp, falling back to the creation date for an
+empty list, so it cannot fall out of step with the items the way a stored
+`updated_at` could.
+
+The ten JLPT lists live behind a JLPT section rather than filling the main
+screen, and starring one pins it alongside your own lists. They store no rows in
+`list_items`: their contents come from `jlpt_level`, which is already on both
+`entries` and `kanji`. That keeps ~9,700 rows out of the user database and means
+the kanji lists work despite `list_items` holding entry ids, which kanji do not
+have.
+
+The item counts shown for those lists are now read from the database. The
+previous screen hardcoded them, and while the five vocabulary figures were
+right, every kanji figure was wrong — N5 claimed 180 against an actual 79, and
+N1 claimed 847 against an actual 1,232.
+
+`lists` gained a `starred` column. Because `CREATE TABLE IF NOT EXISTS` leaves
+an existing database alone, a migration step adds the column to user databases
+an earlier build already created. The schema moved to `services/schema.ts` so
+tests can build the same tables in plain SQLite, which is what lets the ordering
+rules be tested against real queries rather than a reimplementation of them.
+
 ### The theme setting now actually changes the theme
 
 Picking Light while the device was in Dark produced white Japanese text on a

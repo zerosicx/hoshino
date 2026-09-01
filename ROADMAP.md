@@ -15,12 +15,12 @@ and furigana-annotated examples.
 |---|---|
 | 1 — App foundation | Done |
 | 2 — Dictionary tab | Done, bar the deferred items below |
-| 3 — Lists tab | Not started — **next** |
-| 4 — Study system | Not started |
+| 3 — Lists tab | Done, bar the deferred items below |
+| 4 — Study system | Not started — **next** |
 | 5 — Auth and sync | Not started |
 | 6 — Polish and ship | Settings done; build and store work outstanding |
 
-Study and Lists are greyed out in the tab bar until Stage 3 begins.
+Study is greyed out in the tab bar until Stage 4 begins.
 
 Work flows top-down through the dependency chain:
 
@@ -28,7 +28,7 @@ Work flows top-down through the dependency chain:
 database.ts → root layout → tab bar                        ✅
   → dictionary service → search screen → word detail       ✅
     → conjugation engine                                   ✅
-      → lists service → lists tab
+      → lists service → lists tab                          ✅
         → SRS service → study session
           → Supabase + auth + sync
             → EAS build + submission
@@ -117,21 +117,38 @@ Deferred deliberately; the screens work without them.
 
 ## Stage 3 — Lists tab
 
-- [ ] `services/lists.ts` — read JLPT lists and items, create/delete custom
-      lists, add/remove entries, read the Searched Terms list
-- [ ] `hooks/useLists.ts` — catalogue hook, list detail hook
-- [ ] `app/(tabs)/lists/index.tsx` — catalogue grouped by JLPT level (N5 → N1)
-      plus Searched Terms and custom lists, with a filter bar
-- [ ] `app/(tabs)/lists/[id].tsx` — list detail: entries with furigana, item
-      count, add-to-study button
-- [ ] `components/ListCard.tsx` — browse variant for Lists, active variant with
-      progress bar for Study
-- [ ] `components/ListDuePill.tsx` — due count badge per list
-- [ ] Wire dictionary lookups into the Searched Terms list and re-enable the
-      Lists tab
+- [x] `services/schema.ts` — user schema and built-in list seeds, importable by
+      tests without expo-sqlite
+- [x] `services/listQuery.ts` — the ordering rules as SQL, tested against real
+      SQLite
+- [x] `services/lists.ts` — create, star, add, read; JLPT contents resolved from
+      `jlpt_level` rather than stored
+- [x] `hooks/useLists.ts` — catalogue hook, add-to-list with toast reporting
+- [x] `app/(tabs)/lists/index.tsx` — starred, then Searched Terms, then recent
+- [x] `app/(tabs)/lists/jlpt.tsx` — the ten preloaded lists, star to pin
+- [x] `app/(tabs)/lists/[id].tsx` — words, or a kanji grid for JLPT kanji lists
+- [x] `components/BottomDrawer.tsx`, `CreateListDrawer.tsx`,
+      `AddToListDrawer.tsx`, `ListRow.tsx`, `SwipeToAdd.tsx`, `Toast.tsx`
+- [x] Plus button on word detail, swipe-to-add on search results, Lists tab
+      re-enabled
+
+### Deferred from Stage 3
+
+- [ ] **No way to delete or rename a list.** A list created by accident is
+      permanent, and a typo in its name cannot be fixed. Needs a decision on the
+      gesture — swipe on the row, or an edit mode.
+- [ ] **No way to remove a word from a list.** Same shape of problem as above.
+- [ ] **Kanji cannot go into a custom list.** `list_items.entry_id` is an
+      integer pointing at `entries`, and kanji are keyed by character in a
+      separate table. The JLPT kanji lists sidestep this by being query-backed.
+      Supporting it properly means an `item_type` + `item_key` pair on
+      `list_items`, which is worth doing only once study needs it.
+- [ ] **Swipe-to-add gives no undo.** It is one gesture away from putting a word
+      somewhere you did not mean, and nothing reverses it. The toast is the
+      natural place to hang an Undo action.
 
 **Checkpoint:** all 10 JLPT lists browsable, Searched Terms accumulating from
-lookups, custom lists creatable with entries added from word detail.
+lookups, custom lists creatable with entries added from word detail. Met.
 
 ---
 

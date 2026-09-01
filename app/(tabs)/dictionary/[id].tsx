@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, BookOpen, MessageSquare } from "lucide-react-native";
+import { ChevronLeft, BookOpen, MessageSquare, Plus } from "lucide-react-native";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { useSearchStore } from "@/stores/searchStore";
@@ -16,8 +16,13 @@ import FuriganaText from "@/components/FuriganaText";
 import JlptBadge from "@/components/JlptBadge";
 import ConjugationTable from "@/components/ConjugationTable";
 import WordClassBadges from "@/components/WordClassBadges";
+import AddToListDrawer from "@/components/AddToListDrawer";
+import CreateListDrawer from "@/components/CreateListDrawer";
+import { useAddToList, useCreateList } from "@/hooks/useLists";
+import { getCustomLists, getListIdsContaining } from "@/services/lists";
 import { alignFurigana } from "@/utils/furigana";
 import type { DictionaryEntry, ExampleSentence } from "@/types/dictionary";
+import type { ListSummary } from "@/types/lists";
 
 export default function WordDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,6 +34,13 @@ export default function WordDetailScreen() {
   const [entry, setEntry] = useState<DictionaryEntry | null>(null);
   const [examples, setExamples] = useState<ExampleSentence[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const { add } = useAddToList();
+  const createList = useCreateList();
+  const [picking, setPicking] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [lists, setLists] = useState<ListSummary[]>([]);
+  const [containing, setContaining] = useState<number[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -81,6 +93,27 @@ export default function WordDetailScreen() {
   const primaryReading = entry.readingForms[0] ?? "";
   const furiganaPairs = alignFurigana(primaryKanji, primaryReading);
 
+  const openPicker = async () => {
+    const [custom, alreadyIn] = await Promise.all([
+      getCustomLists(),
+      getListIdsContaining(entry.id),
+    ]);
+    setLists(custom);
+    setContaining(alreadyIn);
+    setPicking(true);
+  };
+
+  const pickList = async (list: ListSummary) => {
+    setPicking(false);
+    await add(entry.id, primaryKanji, list);
+  };
+
+  const createAndAdd = async (name: string) => {
+    setCreating(false);
+    const created = await createList(name);
+    if (created) await add(entry.id, primaryKanji, created);
+  };
+
   // Extract kanji characters for the breakdown section
   const kanjiChars = primaryKanji
     .split("")
@@ -94,10 +127,10 @@ export default function WordDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View className="px-4 pt-14 pb-2">
+        <View className="px-4 pt-14 pb-2 flex-row items-center justify-between mb-4">
           <Pressable
             onPress={() => router.back()}
-            className="flex-row items-center mb-4"
+            className="flex-row items-center"
             hitSlop={8}
           >
             <ChevronLeft
@@ -107,6 +140,15 @@ export default function WordDetailScreen() {
             <Text className="text-body text-accent dark:text-accent-light ml-1">
               Back
             </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={openPicker}
+            hitSlop={8}
+            accessibilityLabel="Add to list"
+            className="w-9 h-9 rounded-full bg-accent items-center justify-center"
+          >
+            <Plus size={20} color="#FFFFFF" />
           </Pressable>
         </View>
 
@@ -258,6 +300,24 @@ export default function WordDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      <AddToListDrawer
+        visible={picking}
+        lists={lists}
+        containing={containing}
+        onClose={() => setPicking(false)}
+        onPick={pickList}
+        onCreateNew={() => {
+          setPicking(false);
+          setCreating(true);
+        }}
+      />
+
+      <CreateListDrawer
+        visible={creating}
+        onClose={() => setCreating(false)}
+        onCreate={createAndAdd}
+      />
     </View>
   );
 }

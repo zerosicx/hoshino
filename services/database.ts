@@ -3,6 +3,8 @@ import * as SQLite from "expo-sqlite";
 import { Platform } from "react-native";
 import { openDictionary } from "./sqliteWasm";
 
+import { BUILT_IN_LISTS, MIGRATIONS, USER_SCHEMA } from "./schema";
+
 const DICT_ASSET_ID = require("../assets/hoshino.db") as number;
 const DICT_DB_NAME = "hoshino.db";
 
@@ -137,72 +139,29 @@ async function initialise(): Promise<void> {
   );
 
   await step("create user schema", () =>
-    userDbInstance!.execAsync(`
-    CREATE TABLE IF NOT EXISTS srs_cards (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      entry_id INTEGER NOT NULL,
-      list_id INTEGER NOT NULL,
-      due TEXT,
-      stability REAL DEFAULT 0,
-      difficulty REAL DEFAULT 0,
-      elapsed_days INTEGER DEFAULT 0,
-      scheduled_days INTEGER DEFAULT 0,
-      reps INTEGER DEFAULT 0,
-      lapses INTEGER DEFAULT 0,
-      state INTEGER DEFAULT 0,
-      last_review TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS lists (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      type TEXT NOT NULL,
-      jlpt_level INTEGER,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS list_items (
-      list_id INTEGER NOT NULL,
-      entry_id INTEGER NOT NULL,
-      added_at TEXT NOT NULL,
-      PRIMARY KEY (list_id, entry_id)
-    );
-
-    CREATE TABLE IF NOT EXISTS search_history (
-      entry_id INTEGER PRIMARY KEY,
-      searched_at TEXT NOT NULL,
-      search_count INTEGER DEFAULT 1
-    );
-
-    CREATE TABLE IF NOT EXISTS study_stats (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      date TEXT UNIQUE NOT NULL,
-      cards_reviewed INTEGER DEFAULT 0,
-      cards_correct INTEGER DEFAULT 0,
-      cards_again INTEGER DEFAULT 0,
-      cards_hard INTEGER DEFAULT 0,
-      cards_easy INTEGER DEFAULT 0,
-      session_count INTEGER DEFAULT 0,
-      streak_length INTEGER DEFAULT 0
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_srs_cards_due ON srs_cards(due);
-    CREATE INDEX IF NOT EXISTS idx_srs_cards_entry ON srs_cards(entry_id);
-    CREATE INDEX IF NOT EXISTS idx_srs_cards_list ON srs_cards(list_id);
-    CREATE INDEX IF NOT EXISTS idx_list_items_list ON list_items(list_id);
-    CREATE INDEX IF NOT EXISTS idx_list_items_entry ON list_items(entry_id);
-  `)
+    userDbInstance!.execAsync(USER_SCHEMA)
   );
 
-  await step("seed system list", async () => {
-    const sysList = await userDbInstance!.getFirstAsync<{ count: number }>(
-      "SELECT COUNT(*) as count FROM lists WHERE type = 'system' AND name = 'Searched Terms'"
-    );
+  await step("migrate user schema", async () => {
+    for (const migration of MIGRATIONS) {
+      const columns = await userDbInstance!.getAllAsync<{ name: string }>(
+        `PRAGMA table_info(${migration.table})`
+      );
+      if (!columns.some((c) => c.name === migration.column)) {
+        await userDbInstance!.execAsync(migration.sql);
+      }
+    }
+  });
 
-    if (sysList && sysList.count === 0) {
+  await step("seed built-in lists", async () => {
+    const now = new Date().toISOString();
+
+    for (const { name, type, level } of BUILT_IN_LISTS) {
       await userDbInstance!.runAsync(
-        "INSERT INTO lists (name, type, created_at) VALUES ('Searched Terms', 'system', ?)",
-        [new Date().toISOString()]
+        `INSERT INTO lists (name, type, jlpt_level, created_at)
+         SELECT ?, ?, ?, ?
+         WHERE NOT EXISTS (SELECT 1 FROM lists WHERE type = ? AND name = ?)`,
+        [name, type, level, now, type, name]
       );
     }
   });
