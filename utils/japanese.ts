@@ -34,6 +34,13 @@ export function isKanaOnly(text: string): boolean {
   return text.length > 0 && [...text].every(isKana);
 }
 
+/** Han characters, including the extension A block KANJIDIC2 draws on. */
+const KANJI_CHAR = /[\u3400-\u4dbf\u4e00-\u9fff]/;
+
+export function isKanjiOnly(text: string): boolean {
+  return text.length > 0 && [...text].every((c) => KANJI_CHAR.test(c));
+}
+
 // ---------------------------------------------------------------------------
 // Romaji
 // ---------------------------------------------------------------------------

@@ -59,28 +59,29 @@ a real device after any theme or typography change.
 
 ## Now
 
-### The next database rebuild
+### The database rebuild — done
 
-Three things need the bundled database regenerated, so they should land
-together in one rebuild rather than forcing users through a 98MB download
-twice.
+All three landed in one rebuild. The database is 101MB, up from 98MB.
 
-- [ ] **Keep JMdict's `nfNN` frequency tags.** The build collapses `ichi1`,
-      `news1` and `spec1` into the `is_common` boolean and throws `nf01`–`nf48`
-      away. Ranking is at 45/45 on the benchmark, but several of those wins are
-      by ten points or less, because the only tie-breakers are that boolean and
-      `jlpt_level`, which covers 3.5% of entries. `nfNN` is the frequency signal
-      Jisho-class ranking depends on and would turn those thin margins into a
-      real ordering.
-- [ ] **Mid-word kanji search.** `entries_fts` uses the default `unicode61`
-      tokenizer, which makes a whole Japanese word a single token, and matching
-      is prefix-anchored. So 曜 finds 曜日 but can never reach 水曜日. Needs a
-      second FTS table using the `trigram` tokenizer over kanji and reading text.
-- [ ] **Fix or drop `conjugation_class`.** Null on all 217,783 rows:
-      `detectConjugationClass` looks up short codes like `v5r`, but
-      `fast-xml-parser` expands the XML entities first, so what arrives is
-      `Godan verb with 'ru' ending`. Nothing is blocked — `utils/wordClass.ts`
-      reads the expanded strings at runtime — so this is dead-column cleanup.
+- [x] **Keep JMdict's `nfNN` frequency tags.** Stored as `frequency_rank`.
+      Weighted far lower than planned: `nfNN` turned out to be *newspaper*
+      frequency, and everyday words carry `ichi1` with no band at all — 本 and
+      行く have none, while 書物 and 行う score nf14 and nf01. Scoring an absent
+      band as "least frequent" cost two benchmark cases. Absent now scores as
+      average, and the whole signal is worth 12 points against `is_common`'s 50.
+- [x] **Mid-word kanji search.** Not the planned trigram table: FTS5's trigram
+      tokenizer ignores queries under three characters, so it could not have
+      answered 曜 or 曜日 — the very queries it was for. Each kanji instead
+      stores its 50 most frequent words (`kanji.entry_ids`, ~3MB against 19MB
+      for indexing all 502k pairs). 曜 now returns 曜日 first and the weekdays
+      behind it.
+- [x] **Fix or drop `conjugation_class`.** Dropped. `utils/wordClass.ts` derives
+      the class from sense tags at runtime and nothing read the column.
+
+Known limitation: every word starting with the query outranks every word merely
+containing it, so a kanji with many compounds of its own buries its mid-word
+matches — 64 words begin with 階, pushing 二階 to position 65. Reachable, but
+not on the first page.
 
 ### Independent of the rebuild
 

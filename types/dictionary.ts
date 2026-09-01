@@ -15,7 +15,6 @@ export interface DictionaryEntry {
   senses: Sense[];
   jlptLevel: number | null;
   isCommon: boolean;
-  conjugationClass: string | null;
   tags: string[];
   /** Derived from the part-of-speech tags on `senses`, not from a column. */
   wordClass: WordClassInfo | null;

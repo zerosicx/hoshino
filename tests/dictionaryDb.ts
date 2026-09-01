@@ -1,19 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
-import type { SearchQueryPlan } from "@/services/searchQuery";
+import type { RankableRow, SearchQueryPlan } from "@/services/searchQuery";
 
 export const DICT_DB_PATH = path.join(process.cwd(), "assets", "hoshino.db");
 
 export const dictionaryDbExists = fs.existsSync(DICT_DB_PATH);
 
-export interface BenchmarkRow {
+/** A ranked row plus the id, which the benchmark needs to identify entries. */
+export interface BenchmarkRow extends RankableRow {
   id: number;
-  kanji_forms: string | null;
-  reading_forms: string | null;
-  senses: string | null;
-  jlpt_level: number | null;
-  is_common: number;
 }
 
 let db: Database.Database | null = null;

@@ -1,5 +1,6 @@
 import { getDictDb, getUserDb } from "./database";
 import {
+  buildMidWordQuery,
   buildSearchIntent,
   buildSearchQuery,
   rankEntries,
@@ -24,7 +25,7 @@ interface RawEntry {
   senses: string | null;
   jlpt_level: number | null;
   is_common: number;
-  conjugation_class: string | null;
+  frequency_rank: number | null;
   tags: string | null;
 }
 
@@ -84,7 +85,6 @@ function rawToEntry(row: RawEntry): DictionaryEntry {
     senses,
     jlptLevel: row.jlpt_level,
     isCommon: row.is_common === 1,
-    conjugationClass: row.conjugation_class,
     tags: parseJsonArray(row.tags),
     wordClass: classifySenses(senses),
   };
@@ -142,8 +142,17 @@ export async function searchEntries(
   const intent = buildSearchIntent(query);
   if (!intent) return [];
 
+  const db = getDictDb();
   const plan = buildSearchQuery(intent);
-  const rows = await getDictDb().getAllAsync<RawEntry>(plan.sql, plan.params);
+  const rows = await db.getAllAsync<RawEntry>(plan.sql, plan.params);
+
+  // The full-text index cannot reach words that merely contain the query.
+  const midWord = buildMidWordQuery(intent.raw);
+  if (midWord) {
+    const extra = await db.getAllAsync<RawEntry>(midWord.sql, midWord.params);
+    const seen = new Set(rows.map((r) => r.id));
+    rows.push(...extra.filter((r) => !seen.has(r.id)));
+  }
 
   return rankEntries(intent, rows, limit).map(rawToSearchResult);
 }

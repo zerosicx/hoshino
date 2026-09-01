@@ -77,8 +77,9 @@ interface ParsedEntry {
   reading_forms: string[];
   senses: ParsedSense[];
   is_common: number;
+  /** JMdict's nfNN band, 1 (most frequent) to 48. Null when unranked. */
+  frequency_rank: number | null;
   jlpt_level: number | null;
-  conjugation_class: string | null;
   tags: string[];
 }
 
@@ -173,53 +174,30 @@ function isCommonPri(pri: string): boolean {
   return pri === "ichi1" || pri === "news1" || pri === "spec1";
 }
 
+/**
+ * JMdict's frequency band, from a priority tag like `nf12`.
+ *
+ * The corpus is split into 500-word bands, so nf01 is the 500 most frequent
+ * words and nf48 the least. This is the only fine-grained frequency signal
+ * JMdict carries; `is_common` collapses the whole distribution into a boolean.
+ */
+function parseFrequencyRank(pri: string): number | null {
+  const match = /^nf(\d{2})$/.exec(pri);
+  return match ? Number(match[1]) : null;
+}
+
+/** The best band across every spelling and reading of one entry. */
+function bestFrequencyRank(priorities: string[]): number | null {
+  let best: number | null = null;
+  for (const pri of priorities) {
+    const rank = parseFrequencyRank(pri);
+    if (rank !== null && (best === null || rank < best)) best = rank;
+  }
+  return best;
+}
+
 /** How many example sentences to keep per dictionary entry. */
 const MAX_EXAMPLES_PER_ENTRY = 5;
-
-// ---------------------------------------------------------------------------
-// JMdict POS → internal conjugation class mapping
-// ---------------------------------------------------------------------------
-
-const POS_TO_CONJUGATION: Record<string, string> = {
-  "v5u": "godan-u",
-  "v5k": "godan-ku",
-  "v5g": "godan-gu",
-  "v5s": "godan-su",
-  "v5t": "godan-tsu",
-  "v5n": "godan-nu",
-  "v5b": "godan-bu",
-  "v5m": "godan-mu",
-  "v5r": "godan-ru",
-  "v5r-i": "godan-ru-irreg",
-  "v5aru": "godan-aru",
-  "v5uru": "godan-uru",
-  "v5k-s": "godan-kuru",
-  "v1": "ichidan",
-  "v1-s": "ichidan-kure",
-  "vk": "kuru",
-  "vs": "suru-noun",
-  "vs-s": "suru-special",
-  "vs-i": "suru-i",
-  "vs-c": "suru-c",
-  "vz": "zuru",
-  "vi": "intransitive",
-  "vt": "transitive",
-  "v2a-s": "nidan-as",
-  "v4r": "yodan-r",
-  "vn": "nu-irregular",
-  "vr": "ru-irregular",
-  "adj-i": "i-adj",
-  "adj-ix": "i-adj-ii",
-  "adj-na": "na-adj",
-};
-
-function detectConjugationClass(posTags: string[]): string | null {
-  for (const pos of posTags) {
-    const mapped = POS_TO_CONJUGATION[pos];
-    if (mapped) return mapped;
-  }
-  return null;
-}
 
 // ---------------------------------------------------------------------------
 // JLPT detection from misc tags
@@ -290,9 +268,9 @@ function parseJMdict(db: Database.Database): void {
 
   const insertEntry = db.prepare(`
     INSERT OR REPLACE INTO entries
-      (id, kanji_forms, reading_forms, senses, jlpt_level, is_common, conjugation_class, tags)
+      (id, kanji_forms, reading_forms, senses, jlpt_level, is_common, frequency_rank, tags)
     VALUES
-      (@id, @kanji_forms, @reading_forms, @senses, @jlpt_level, @is_common, @conjugation_class, @tags)
+      (@id, @kanji_forms, @reading_forms, @senses, @jlpt_level, @is_common, @frequency_rank, @tags)
   `);
 
   const insertMany = db.transaction((batch: ParsedEntry[]) => {
@@ -304,7 +282,7 @@ function parseJMdict(db: Database.Database): void {
         senses: JSON.stringify(e.senses),
         jlpt_level: e.jlpt_level,
         is_common: e.is_common,
-        conjugation_class: e.conjugation_class,
+        frequency_rank: e.frequency_rank,
         tags: JSON.stringify(e.tags),
       });
     }
@@ -328,33 +306,19 @@ function parseJMdict(db: Database.Database): void {
       typeof r.reb === "string" ? r.reb : String(r.reb)
     );
 
-    // Detect is_common from ke_pri / re_pri
-    let is_common = 0;
-    for (const k of kElements) {
-      for (const pri of toArray(k.ke_pri)) {
-        if (isCommonPri(String(pri))) {
-          is_common = 1;
-          break;
-        }
-      }
-      if (is_common) break;
-    }
-    if (!is_common) {
-      for (const r of rElements) {
-        for (const pri of toArray(r.re_pri)) {
-          if (isCommonPri(String(pri))) {
-            is_common = 1;
-            break;
-          }
-        }
-        if (is_common) break;
-      }
-    }
+    // Priority tags carry both signals: ichi1/news1/spec1 say "common at all",
+    // nfNN says how common. Collect once and read both off it.
+    const priorities: string[] = [
+      ...kElements.flatMap((k) => toArray(k.ke_pri).map(String)),
+      ...rElements.flatMap((r) => toArray(r.re_pri).map(String)),
+    ];
+
+    const is_common = priorities.some(isCommonPri) ? 1 : 0;
+    const frequency_rank = bestFrequencyRank(priorities);
 
     // Parse senses
     const rawSenses = toArray(entry.sense);
     let jlpt_level: number | null = null;
-    const allPosTags: string[] = [];
 
     const senses: ParsedSense[] = rawSenses.map((s) => {
       const glosses: string[] = [];
@@ -371,7 +335,6 @@ function parseJMdict(db: Database.Database): void {
       }
 
       const pos = toArray(s.pos).map(String);
-      allPosTags.push(...pos);
 
       const misc = toArray(s.misc).map(String);
       const info = toArray(s.s_inf).map(String);
@@ -384,7 +347,6 @@ function parseJMdict(db: Database.Database): void {
       return { glosses, pos, misc, info };
     });
 
-    const conjugation_class = detectConjugationClass(allPosTags);
     const tags: string[] = [];
 
     batch.push({
@@ -393,8 +355,8 @@ function parseJMdict(db: Database.Database): void {
       reading_forms,
       senses,
       is_common,
+      frequency_rank,
       jlpt_level,
-      conjugation_class,
       tags,
     });
 
@@ -1067,6 +1029,110 @@ function buildFtsIndex(db: Database.Database): void {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 7: Words for each kanji
+// ---------------------------------------------------------------------------
+
+/** Han characters, including the extension A block KANJIDIC2 draws on. */
+const KANJI_CHAR = /[\u3400-\u4dbf\u4e00-\u9fff]/;
+
+/**
+ * How many words to remember per kanji.
+ *
+ * There are 502k (kanji, word) pairs in JMdict, and indexing all of them costs
+ * about 19MB on a database users already wait to download. Keeping the most
+ * frequent words per kanji costs roughly 2MB, and the tail it drops is words no
+ * one searches for — 曜 has to reach 水曜日, not every rare compound.
+ */
+const WORDS_PER_KANJI = 50;
+
+/**
+ * Records the most frequent words containing each kanji.
+ *
+ * `entries_fts` is prefix-anchored and treats a whole word as one token, so 曜
+ * can reach 曜日 but never 水曜日. A trigram index does not fix this: FTS5's
+ * trigram tokenizer ignores queries under three characters, and the Japanese
+ * words being searched for are one and two characters long.
+ */
+function buildKanjiWordIndex(db: Database.Database): void {
+  console.log("[Phase 7] Indexing words by kanji…");
+  console.time("Phase 7");
+
+  const rows = db
+    .prepare(
+      `SELECT id, kanji_forms, is_common, frequency_rank
+       FROM entries WHERE kanji_forms IS NOT NULL AND kanji_forms != '[]'`
+    )
+    .all() as {
+    id: number;
+    kanji_forms: string;
+    is_common: number;
+    frequency_rank: number | null;
+  }[];
+
+  interface Candidate {
+    id: number;
+    is_common: number;
+    frequency_rank: number | null;
+  }
+  const byKanji = new Map<string, Candidate[]>();
+
+  for (const row of rows) {
+    let forms: string[] = [];
+    try {
+      forms = JSON.parse(row.kanji_forms) as string[];
+    } catch {
+      continue;
+    }
+
+    // A word is listed once per kanji it uses, not once per occurrence.
+    const seen = new Set<string>();
+    for (const form of forms) {
+      for (const char of form) {
+        if (!KANJI_CHAR.test(char) || seen.has(char)) continue;
+        seen.add(char);
+
+        const list = byKanji.get(char);
+        const candidate = {
+          id: row.id,
+          is_common: row.is_common,
+          frequency_rank: row.frequency_rank,
+        };
+        if (list) list.push(candidate);
+        else byKanji.set(char, [candidate]);
+      }
+    }
+  }
+
+  const update = db.prepare(`UPDATE kanji SET entry_ids = ? WHERE character = ?`);
+
+  const writeAll = db.transaction(() => {
+    for (const [char, candidates] of byKanji) {
+      candidates.sort(
+        (a, b) =>
+          // An unranked word sorts behind every ranked one.
+          (a.frequency_rank ?? Infinity) - (b.frequency_rank ?? Infinity) ||
+          b.is_common - a.is_common ||
+          a.id - b.id
+      );
+
+      const ids = candidates.slice(0, WORDS_PER_KANJI).map((c) => c.id);
+      update.run(JSON.stringify(ids), char);
+    }
+  });
+  writeAll();
+
+  const covered = (
+    db
+      .prepare(`SELECT COUNT(*) as c FROM kanji WHERE entry_ids IS NOT NULL`)
+      .get() as { c: number }
+  ).c;
+  console.log(
+    `[Phase 7] Indexed ${byKanji.size} kanji, ${covered} matched a KANJIDIC entry.`
+  );
+  console.timeEnd("Phase 7");
+}
+
+// ---------------------------------------------------------------------------
 // Database schema creation
 // ---------------------------------------------------------------------------
 
@@ -1079,7 +1145,7 @@ function createSchema(db: Database.Database): void {
       senses TEXT,
       jlpt_level INTEGER,
       is_common INTEGER,
-      conjugation_class TEXT,
+      frequency_rank INTEGER,
       tags TEXT
     );
 
@@ -1092,7 +1158,8 @@ function createSchema(db: Database.Database): void {
       grade INTEGER,
       stroke_count INTEGER,
       radicals TEXT,
-      frequency INTEGER
+      frequency INTEGER,
+      entry_ids TEXT
     );
 
     CREATE TABLE IF NOT EXISTS examples (
@@ -1177,6 +1244,7 @@ function createIndexes(db: Database.Database): void {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_entries_jlpt ON entries(jlpt_level);
     CREATE INDEX IF NOT EXISTS idx_entries_common ON entries(is_common);
+    CREATE INDEX IF NOT EXISTS idx_entries_frequency ON entries(frequency_rank);
     CREATE INDEX IF NOT EXISTS idx_kanji_jlpt ON kanji(jlpt_level);
     CREATE INDEX IF NOT EXISTS idx_kanji_grade ON kanji(grade);
     CREATE INDEX IF NOT EXISTS idx_list_items_list ON list_items(list_id);
@@ -1189,12 +1257,12 @@ function createIndexes(db: Database.Database): void {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 7: Finalise
+// Phase 8: Finalise
 // ---------------------------------------------------------------------------
 
 function finalise(db: Database.Database): void {
-  console.log("[Phase 7] Finalising database…");
-  console.time("Phase 7");
+  console.log("[Phase 8] Finalising database…");
+  console.time("Phase 8");
 
   // WAL is baked into the file header and requires a real file with shared
   // memory. No browser VFS provides that, so a WAL database fails to open on web
@@ -1224,7 +1292,7 @@ function finalise(db: Database.Database): void {
   const stat = fs.statSync(OUTPUT_PATH);
   const sizeMb = (stat.size / 1024 / 1024).toFixed(1);
 
-  console.timeEnd("Phase 7");
+  console.timeEnd("Phase 8");
 
   console.log("");
   console.log("=".repeat(50));
@@ -1295,6 +1363,9 @@ async function main(): Promise<void> {
   console.log("");
 
   buildFtsIndex(db);
+  console.log("");
+
+  buildKanjiWordIndex(db);
   console.log("");
 
   finalise(db);

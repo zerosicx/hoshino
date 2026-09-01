@@ -91,7 +91,7 @@ The app ships with a pre-built SQLite database bundled as an asset. On first lau
 | senses | TEXT (JSON) | Meanings, POS tags, usage notes |
 | jlpt_level | INTEGER | 1–5 (nullable for non-JLPT words) |
 | is_common | BOOLEAN | Common word flag |
-| conjugation_class | TEXT | e.g. "godan-ru", "ichidan", "i-adj" |
+| frequency_rank | INTEGER | JMdict `nfNN` band, 1–48 (nullable — newspaper frequency, absent on much everyday vocabulary) |
 | tags | TEXT (JSON) | Usage domains, dialects, formality |
 
 #### `kanji` — Kanji details (from KANJIDIC2)
@@ -107,6 +107,7 @@ The app ships with a pre-built SQLite database bundled as an asset. On first lau
 | stroke_count | INTEGER | Number of strokes |
 | radicals | TEXT (JSON) | Component radicals |
 | frequency | INTEGER | Newspaper frequency rank |
+| entry_ids | TEXT (JSON) | The 50 most frequent words using this kanji |
 
 #### `examples` — Example sentences (from Tatoeba)
 
@@ -234,7 +235,13 @@ The entire dictionary and SRS state lives locally. No network required for core 
 ### Conjugation engine, not conjugation data
 Japanese conjugation is highly regular, so rather than storing every conjugated form we derive the verb class and generate forms programmatically. This covers: dictionary, masu, te, ta, nai, potential, passive, causative, imperative, conditional, volitional forms — plus their polite variants.
 
-The class is read at runtime rather than stored. `entries.conjugation_class` exists but is null on every row, because the build script looks up JMdict short codes like `v5r` while `fast-xml-parser` has already expanded them to `Godan verb with 'ru' ending`. `utils/wordClass.ts` reads those expanded strings off `senses` instead, which is why the conjugation feature needed no database rebuild.
+The class is read at runtime rather than stored. `utils/wordClass.ts` derives it from the part-of-speech tags on `senses`, which is why the conjugation feature needed no database rebuild. A `conjugation_class` column existed until the last rebuild and was null on every row — the build script looked up JMdict short codes like `v5r` while `fast-xml-parser` had already expanded them to `Godan verb with 'ru' ending` — and was dropped rather than fixed, since nothing read it.
+
+### Frequency is a tie-breaker, not a ranking signal
+`entries.frequency_rank` holds JMdict's `nfNN` band, but it measures *newspaper* frequency and much everyday vocabulary has no band at all: 本 and 行く carry only `ichi1`, while 書物 and 行う score nf14 and nf01. Weighting it heavily promotes newspaper words over the words a learner is looking for, so it is worth 12 points against `is_common`'s 50, and an absent band scores as average rather than worst.
+
+### Mid-word kanji search is an index, not a tokenizer
+`entries_fts` treats a whole Japanese word as one token and matches prefixes, so 曜 reaches 曜日 but never 水曜日. A trigram FTS table cannot fix this: FTS5's trigram tokenizer ignores queries shorter than three characters, and Japanese queries are routinely one or two. `kanji.entry_ids` instead stores the 50 most frequent words using each kanji, and `buildMidWordQuery` unions the lists for the characters typed. Capping at 50 costs about 3MB where indexing all 502k (kanji, word) pairs would cost 19MB.
 
 ### One source of truth for the colour scheme
 NativeWind resolves every `dark:` class from its own colour scheme, which follows the device unless it is told otherwise. Anything that computes its own `isDark` from the settings store is therefore a second, competing answer, and the two disagree whenever the chosen theme differs from the device — which is exactly how light mode ended up rendering white text on Android.

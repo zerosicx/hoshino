@@ -4,6 +4,35 @@ Notable changes to Hoshino, newest first.
 
 ## Unreleased
 
+### Dictionary rebuild: frequency ranking and mid-word kanji search
+
+Three changes that each needed the bundled database regenerated, landed in one
+rebuild so the download only changes once. 98MB → 101MB.
+
+**Frequency ranking.** Entries now carry `frequency_rank`, JMdict's `nfNN` band.
+The plan was to weight it heavily as the main tie-breaker; measuring it said
+otherwise. `nfNN` is *newspaper* frequency, and everyday vocabulary often has no
+band at all — 本 and 行く carry only `ichi1`, while 書物 and 行う score nf14 and
+nf01. Treating absent as "least frequent" handed 60 points to newspaper words
+and none to the words a learner actually wants, which cost two benchmark cases.
+Absent now scores as average, and the signal is worth 12 points against
+`is_common`'s 50, so it breaks ties without deciding results.
+
+**Mid-word kanji search.** 曜 could reach 曜日 but never 水曜日, because
+`entries_fts` treats a whole Japanese word as one token and matches prefixes.
+The planned fix was a trigram index; it cannot work here, as FTS5's trigram
+tokenizer ignores queries shorter than three characters and these queries are
+one and two. Each kanji instead stores its 50 most frequent words, about 3MB
+against 19MB to index all 502k (kanji, word) pairs. Searching 曜 now returns
+曜日 first and 火曜日, 金曜日, 月曜日, 水曜日 behind it.
+
+Words starting with the query still outrank words merely containing it, so a
+kanji with many compounds of its own buries the mid-word matches: 64 words begin
+with 階, which puts 二階 at position 65.
+
+**`conjugation_class` dropped.** Null on all 217,783 rows and read by nothing;
+`utils/wordClass.ts` derives the class from sense tags at runtime.
+
 ### The dictionary is no longer copied on every launch
 
 `importDatabaseFromAssetAsync` ran with `forceOverwrite: true`, so all 98MB was
