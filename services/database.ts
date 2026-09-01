@@ -83,7 +83,7 @@ async function openDictionaryDb(): Promise<DictionaryDb> {
   }
 
   const asset = Asset.fromModule(DICT_ASSET_ID);
-  await asset.downloadAsync();
+  await step("resolve dictionary asset", () => asset.downloadAsync());
 
   return step("open dictionary worker", () =>
     openDictionary(asset.localUri ?? asset.uri, asset.hash)
