@@ -4,6 +4,18 @@ Notable changes to Hoshino, newest first.
 
 ## Unreleased
 
+### The dictionary is no longer copied on every launch
+
+`importDatabaseFromAssetAsync` ran with `forceOverwrite: true`, so all 98MB was
+copied out of the app bundle every cold start. It cost seconds of startup and a
+second 98MB on disk, for a file that only changes when the app is updated.
+
+The copy now happens on first launch and after a dictionary rebuild, keyed on
+the asset's MD5. The marker is written only once the schema check has passed, so
+an interrupted copy or a file deleted underneath the app is re-imported next
+launch rather than trusted forever. A build whose hash cannot be read copies, on
+the grounds that slow beats stale.
+
 ### Lists
 
 Words can now be collected into lists. The plus button on a word page opens a

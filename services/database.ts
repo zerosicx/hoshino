@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Asset } from "expo-asset";
 import * as SQLite from "expo-sqlite";
 import { Platform } from "react-native";
@@ -7,6 +8,9 @@ import { BUILT_IN_LISTS, MIGRATIONS, USER_SCHEMA } from "./schema";
 
 const DICT_ASSET_ID = require("../assets/hoshino.db") as number;
 const DICT_DB_NAME = "hoshino.db";
+
+/** Which dictionary build the copy on disk came from. */
+const DICT_VERSION_KEY = "hoshino.dictionary.version";
 
 /**
  * The read-only slice of expo-sqlite's API that dictionary queries use.
@@ -64,12 +68,14 @@ async function step<T>(label: string, fn: () => Promise<T>): Promise<T> {
  */
 async function openDictionaryDb(): Promise<DictionaryDb> {
   if (Platform.OS !== "web") {
-    await step("import dictionary asset", () =>
-      SQLite.importDatabaseFromAssetAsync(DICT_DB_NAME, {
-        assetId: DICT_ASSET_ID,
-        forceOverwrite: true,
-      })
-    );
+    if (await needsImport()) {
+      await step("import dictionary asset", () =>
+        SQLite.importDatabaseFromAssetAsync(DICT_DB_NAME, {
+          assetId: DICT_ASSET_ID,
+          forceOverwrite: true,
+        })
+      );
+    }
 
     return step("open dictionary db", () =>
       SQLite.openDatabaseAsync(DICT_DB_NAME)
@@ -82,6 +88,46 @@ async function openDictionaryDb(): Promise<DictionaryDb> {
   return step("open dictionary worker", () =>
     openDictionary(asset.localUri ?? asset.uri, asset.hash)
   );
+}
+
+/**
+ * The bundled dictionary's identity, or null when it cannot be established.
+ *
+ * The hash is the asset's MD5, so it changes exactly when the file does.
+ */
+function dictionaryVersion(): string | null {
+  return Asset.fromModule(DICT_ASSET_ID).hash;
+}
+
+/**
+ * Whether the 98MB asset has to be copied out of the app bundle.
+ *
+ * It used to be copied on every cold start, which cost seconds of startup and a
+ * second 98MB on disk for a file that only changes when the app is updated. The
+ * copy now happens on first launch and after a dictionary rebuild.
+ *
+ * An unidentifiable build copies, because being slow beats running against a
+ * stale dictionary.
+ */
+async function needsImport(): Promise<boolean> {
+  const version = dictionaryVersion();
+  if (!version) return true;
+
+  return (await AsyncStorage.getItem(DICT_VERSION_KEY)) !== version;
+}
+
+/**
+ * Records that the copy on disk is good.
+ *
+ * Deliberately written only after the schema check passes, so a copy that was
+ * interrupted or a file that was deleted underneath us is re-imported on the
+ * next launch rather than trusted forever.
+ */
+async function rememberImport(): Promise<void> {
+  const version = dictionaryVersion();
+  if (Platform.OS === "web" || !version) return;
+
+  await AsyncStorage.setItem(DICT_VERSION_KEY, version);
 }
 
 /**
@@ -133,6 +179,8 @@ async function initialise(): Promise<void> {
     );
     return count?.c ?? 0;
   });
+
+  await rememberImport();
 
   userDbInstance = await step("open user db", () =>
     SQLite.openDatabaseAsync("hoshino_user.db")

@@ -84,11 +84,9 @@ twice.
 
 ### Independent of the rebuild
 
-- [ ] **Native cold-start copy.** `importDatabaseFromAssetAsync` runs with
-      `forceOverwrite: true`, re-copying 98MB on every launch. Needs a stored
-      build version compared against the asset's, so it copies only when the
-      dictionary actually changes — dropping the flag alone would strand users
-      on a stale dictionary after an app update.
+- [x] **Native cold-start copy.** Was re-copying 98MB on every launch. Now keyed
+      on the asset's MD5, with the marker written only after the schema check
+      passes so a bad copy is not trusted.
 
 ---
 
