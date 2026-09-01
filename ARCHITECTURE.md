@@ -227,7 +227,14 @@ This is a **build-time** script (Node.js/TypeScript) that:
 The entire dictionary and SRS state lives locally. No network required for core functionality. This is non-negotiable for a study tool — you need it on the train, on a plane, anywhere.
 
 ### Conjugation engine, not conjugation data
-Japanese conjugation is highly regular. Rather than storing every conjugated form, we store the verb class and generate forms programmatically. This covers: dictionary, masu, te, ta, nai, potential, passive, causative, imperative, conditional, volitional forms — plus their polite variants.
+Japanese conjugation is highly regular, so rather than storing every conjugated form we derive the verb class and generate forms programmatically. This covers: dictionary, masu, te, ta, nai, potential, passive, causative, imperative, conditional, volitional forms — plus their polite variants.
+
+The class is read at runtime rather than stored. `entries.conjugation_class` exists but is null on every row, because the build script looks up JMdict short codes like `v5r` while `fast-xml-parser` has already expanded them to `Godan verb with 'ru' ending`. `utils/wordClass.ts` reads those expanded strings off `senses` instead, which is why the conjugation feature needed no database rebuild.
+
+### One source of truth for the colour scheme
+NativeWind resolves every `dark:` class from its own colour scheme, which follows the device unless it is told otherwise. Anything that computes its own `isDark` from the settings store is therefore a second, competing answer, and the two disagree whenever the chosen theme differs from the device — which is exactly how light mode ended up rendering white text on Android.
+
+Screens must take `isDark` from `hooks/useTheme.ts`, which writes the setting into NativeWind and reads the resolved value back. `tailwind.config.js` must keep `darkMode: "class"`: NativeWind's web runtime throws on a manual colour-scheme change while dark mode is `"media"`, which is the default.
 
 ### FSRS over SM-2
 The FSRS algorithm (used by Anki 23.10+) is empirically better. The `ts-fsrs` npm package provides a TypeScript implementation ready to use.
@@ -273,12 +280,14 @@ hoshino/
 │   └── FeaturedWord.tsx          # Word of the Day / recommended word card
 ├── services/                     # Business logic
 │   ├── dictionary.ts             # Search, lookup, conjugation
+│   ├── searchQuery.ts            # Query intent, FTS5 SQL, tiered ranking
 │   ├── srs.ts                    # FSRS scheduling logic
 │   ├── lists.ts                  # List CRUD, Searched Terms
 │   ├── stats.ts                  # Streak, accuracy, daily review counts
 │   └── database.ts               # SQLite connection + DAL
 ├── hooks/                        # Custom React hooks
 │   ├── useDictionary.ts
+│   ├── useTheme.ts               # Theme setting -> NativeWind colour scheme
 │   ├── useStudySession.ts
 │   ├── useStudyStats.ts          # Hook for stats banner data
 │   └── useLists.ts
@@ -289,6 +298,10 @@ hoshino/
 ├── utils/                        # Pure functions
 │   ├── conjugation.ts            # Conjugation engine
 │   ├── furigana.ts               # Furigana parsing/alignment
+│   ├── japanese.ts               # Script detection, kana folding, romaji both ways
+│   ├── deinflect.ts              # Conjugated form -> dictionary form
+│   ├── wordClass.ts              # JMdict POS tags -> word class + transitivity
+│   ├── entryJson.ts              # Parses the JSON columns on entries
 │   └── formatting.ts             # Display helpers
 ├── assets/
 │   └── hoshino.db                # Pre-built dictionary database

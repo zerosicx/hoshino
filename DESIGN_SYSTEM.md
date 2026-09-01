@@ -418,3 +418,8 @@ module.exports = {
 ```
 
 Light/dark mode switching uses NativeWind's `dark:` variant, toggling the surface, text, border, and shadow tokens. The accent colour remains constant.
+
+Two rules make that switching actually follow the in-app setting rather than the device:
+
+- `tailwind.config.js` sets `darkMode: "class"`. The default is `"media"`, under which NativeWind's web runtime throws as soon as the app tries to set the colour scheme itself.
+- Screens read `isDark` from `hooks/useTheme.ts` and never recompute it from `settingsStore`. The hook pushes the setting into NativeWind and reads the resolved value back, so a conditional class string and a `dark:` class can never disagree. Both forms are fine to use; deriving the boolean anywhere else is not.

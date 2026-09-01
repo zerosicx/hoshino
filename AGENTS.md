@@ -146,6 +146,9 @@ Document any deliberate deviations here so future agents don't "fix" them.
 - **Shared client state** — Zustand stores in `stores/`.
 - **Persistent local data** — SQLite via `services/database.ts` and the service layer.
 - **Remote user data** — Supabase (auth session, user-owned rows synced from SQLite).
+- **Theme** — take `isDark` from `hooks/useTheme.ts`. Never derive it from
+  `settingsStore` in a screen: that produces a second answer that disagrees with
+  every NativeWind `dark:` class whenever the setting differs from the device.
 
 Do not add a new store for something that belongs in a service or local state.
 

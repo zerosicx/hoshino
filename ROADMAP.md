@@ -49,6 +49,11 @@ Neither can run against a small fixture: BM25 scores depend on corpus-wide
 statistics, so a cut-down database ranks differently. Both suites skip rather
 than fail when the database is absent.
 
+**Nothing renders a component.** The suite covers pure functions and database
+queries only, so anything that goes wrong in layout or colour has to be caught
+by eye — which is how light mode shipped rendering white text on Android. Check
+a real device after any theme or typography change.
+
 ---
 
 ## Now
@@ -100,6 +105,13 @@ Deferred deliberately; the screens work without them.
       expanded — seven of them for a verb — which is a lot of vertical scroll on
       a phone. Left that way on purpose so nothing has to be tapped to be
       understood; revisit once it has been used on a device.
+- [ ] **Check how romaji mode reads on a phone.** Romaji is wider than the kana
+      it replaces and sits above each kanji run in the same column layout, so
+      example sentences space out more than in furigana mode. Correct, but it
+      may want a smaller size or a different placement once seen on a device.
+- [ ] **Expose the "none" reading mode, or drop it.** `ReadingMode` has three
+      values and the components honour all three, but Settings only offers
+      Furigana and Romaji, so `none` is unreachable.
 
 ---
 
@@ -207,8 +219,15 @@ loop (search → add to list → study → review) works on all three platforms.
 - **Second browser tab loses OPFS.** The pool needs exclusive file handles, so a
   second tab falls back to an in-memory copy: correct, but it holds 98MB in the
   heap and re-downloads each load.
-- **`Cannot pipe to a closed or destroyed stream`** on first dev run — an
-  unpatched bug in `expo-server@1.0.6`, not our code. Harmless.
+- **`Cannot pipe to a closed or destroyed stream`** on first dev run — a bug in
+  `expo-server@1.0.6` (pulled in by `expo-router`), not our code, and harmless.
+  The browser cancels a bundle request, Node destroys the socket, and `respond`
+  in `vendor/http.ts` pipes the finished bundle to it anyway with no
+  `res.destroyed` guard. The same file already registers an abort listener on
+  `close`, so the disconnect is detected and then ignored. It clusters on the
+  first load because our bundles take 2–3 seconds, which widens the window for
+  the browser to give up first. The failed response is one nothing was waiting
+  for, so it is noise rather than a failure.
 
 ---
 
