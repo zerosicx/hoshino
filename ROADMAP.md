@@ -5,15 +5,17 @@ Where the app is, and what ships next. Shipped work is recorded in
 
 ## Where we are
 
-The data pipeline and the dictionary read path are done. `assets/hoshino.db`
-holds 217k entries, 13k kanji and 232k example sentences, and the dictionary now
-searches offline on iOS, Android and web from a single service layer.
+The data pipeline and the whole dictionary read path are done. `assets/hoshino.db`
+holds 217k entries, 13k kanji and 232k example sentences, and the dictionary
+searches offline on iOS, Android and web from a single service layer. Search
+handles conjugated verbs, kana and romaji; word detail shows conjugation tables
+and furigana-annotated examples.
 
 | Stage | Status |
 |---|---|
 | 1 — App foundation | Done |
-| 2 — Dictionary tab | Search and detail done; conjugation outstanding |
-| 3 — Lists tab | Not started |
+| 2 — Dictionary tab | Done, bar the deferred items below |
+| 3 — Lists tab | Not started — **next** |
 | 4 — Study system | Not started |
 | 5 — Auth and sync | Not started |
 | 6 — Polish and ship | Settings done; build and store work outstanding |
@@ -25,44 +27,62 @@ Work flows top-down through the dependency chain:
 ```
 database.ts → root layout → tab bar                        ✅
   → dictionary service → search screen → word detail       ✅
-    → conjugation engine → lists service → lists tab
-      → SRS service → study session
-        → Supabase + auth + sync
-          → EAS build + submission
+    → conjugation engine                                   ✅
+      → lists service → lists tab
+        → SRS service → study session
+          → Supabase + auth + sync
+            → EAS build + submission
 ```
+
+## How quality is checked
+
+`npm test` runs Vitest. Two suites measure behaviour rather than assert on
+mocks, and both open the real `assets/hoshino.db`:
+
+- **Search ranking** — `tests/benchmark.ts`, 45 queries whose expected answers
+  came from jisho.org, currently 45/45. `services/searchRobustness.test.ts`
+  holds a second set never used for tuning, to catch overfitting.
+- **Furigana coverage** — the share of kanji in example sentences that get a
+  reading, currently 98.7%.
+
+Neither can run against a small fixture: BM25 scores depend on corpus-wide
+statistics, so a cut-down database ranks differently. Both suites skip rather
+than fail when the database is absent.
 
 ---
 
 ## Now
 
-Three things stand between the dictionary being *functional* and being *good*.
+### The next database rebuild
 
-- [ ] **Search ranking, part two — the data the ranker still lacks.** Tiered
-      scoring landed (see `CHANGELOG.md`) and the benchmark is at 45/45, but
-      several results win by a margin of ten points or less because the only
-      tie-breakers are the `is_common` boolean and `jlpt_level`, which covers
-      3.5% of entries. Keep JMdict's `nfNN` priority tags in the build instead
-      of collapsing them into `is_common`: `nf01` through `nf48` is the
-      frequency signal Jisho-class ranking depends on, and it would replace
-      those thin margins with a real ordering.
+Three things need the bundled database regenerated, so they should land
+together in one rebuild rather than forcing users through a 98MB download
+twice.
+
+- [ ] **Keep JMdict's `nfNN` frequency tags.** The build collapses `ichi1`,
+      `news1` and `spec1` into the `is_common` boolean and throws `nf01`–`nf48`
+      away. Ranking is at 45/45 on the benchmark, but several of those wins are
+      by ten points or less, because the only tie-breakers are that boolean and
+      `jlpt_level`, which covers 3.5% of entries. `nfNN` is the frequency signal
+      Jisho-class ranking depends on and would turn those thin margins into a
+      real ordering.
 - [ ] **Mid-word kanji search.** `entries_fts` uses the default `unicode61`
-      tokenizer, which makes a whole Japanese word one token, and matching is
-      prefix-anchored. So 曜 finds 曜日 but can never reach 水曜日. Needs a
-      second FTS table using the `trigram` tokenizer over kanji and reading
-      text, which is a database rebuild.
-- [ ] **`conjugation_class` is empty for all 217,783 rows.** `detectConjugationClass`
-      looks up JMdict short codes (`v5r`, `adj-i`), but `fast-xml-parser`
-      expands the XML entities first, so the value it actually receives is
-      `Godan verb with 'ru' ending` and the lookup never hits. Not urgent:
-      `utils/wordClass.ts` reads the expanded strings off `senses` at runtime,
-      so nothing is blocked on it. Worth fixing to drop a dead column.
+      tokenizer, which makes a whole Japanese word a single token, and matching
+      is prefix-anchored. So 曜 finds 曜日 but can never reach 水曜日. Needs a
+      second FTS table using the `trigram` tokenizer over kanji and reading text.
+- [ ] **Fix or drop `conjugation_class`.** Null on all 217,783 rows:
+      `detectConjugationClass` looks up short codes like `v5r`, but
+      `fast-xml-parser` expands the XML entities first, so what arrives is
+      `Godan verb with 'ru' ending`. Nothing is blocked — `utils/wordClass.ts`
+      reads the expanded strings at runtime — so this is dead-column cleanup.
+
+### Independent of the rebuild
+
 - [ ] **Native cold-start copy.** `importDatabaseFromAssetAsync` runs with
       `forceOverwrite: true`, re-copying 98MB on every launch. Needs a stored
       build version compared against the asset's, so it copies only when the
       dictionary actually changes — dropping the flag alone would strand users
       on a stale dictionary after an app update.
-- [x] **`utils/conjugation.ts`** and **`components/ConjugationTable.tsx`** —
-      done; see `CHANGELOG.md`.
 
 ---
 
@@ -72,22 +92,14 @@ Deferred deliberately; the screens work without them.
 
 - [ ] `components/FeaturedWord.tsx` — word of the day, a random common entry
       seeded by date
-- [x] `utils/furigana.ts` — done. Alignment plus sentence annotation; 98.7% of
-      kanji in example sentences get a reading. The remaining 1.3% are left
-      bare on purpose, since a wrong reading is worse than none.
 - [ ] Extract `SearchBar`, `RecentChip` and `WordDetail` from the screens. The
       search input and recent-search row are currently inline in
       `dictionary/index.tsx`; `WordDetail` needs extracting before the flashcard
       back can reuse it in Stage 4.
-
-**Checkpoint:** conjugation table renders for verbs and i-adjectives, and search
-ranking puts common words first.
-
-Search quality is tracked by `npm test`, which measures ranking against
-`tests/benchmark.ts` — 45 queries whose expected answers came from jisho.org.
-The benchmark needs `assets/hoshino.db` present; without it the suite skips
-rather than fails. Ranking cannot be tested against a small fixture, because
-BM25 scores depend on corpus-wide statistics.
+- [ ] **Decide whether the conjugation table needs collapsing.** Every group is
+      expanded — seven of them for a verb — which is a lot of vertical scroll on
+      a phone. Left that way on purpose so nothing has to be tapped to be
+      understood; revisit once it has been used on a device.
 
 ---
 
