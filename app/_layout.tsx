@@ -4,11 +4,15 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { getDatabase } from '@/services/database';
+import { useTheme } from '@/hooks/useTheme';
 import '../global.css';
 
 export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false);
   const [dbError, setDbError] = useState<Error | null>(null);
+
+  // Applies the saved theme before any screen mounts
+  useTheme();
 
   useEffect(() => {
     getDatabase()

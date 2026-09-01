@@ -2,12 +2,15 @@ import { View, Text } from "react-native";
 import { SquarePen } from "lucide-react-native";
 import { conjugate, type ConjugatedForm } from "@/utils/conjugation";
 import type { WordClassInfo } from "@/utils/wordClass";
+import type { ReadingMode } from "@/stores/settingsStore";
+import { kanaToRomaji } from "@/utils/japanese";
 
 interface ConjugationTableProps {
   written: string;
   reading: string;
   info: WordClassInfo;
   isDark: boolean;
+  readingMode?: ReadingMode;
 }
 
 const TRANSITIVITY_HINT: Record<string, string> = {
@@ -20,6 +23,7 @@ export default function ConjugationTable({
   reading,
   info,
   isDark,
+  readingMode = "furigana",
 }: ConjugationTableProps) {
   const groups = conjugate(written, reading, info.wordClass);
   if (groups.length === 0) return null;
@@ -64,6 +68,7 @@ export default function ConjugationTable({
                 key={`${group.title}-${form.name}`}
                 form={form}
                 isDark={isDark}
+                readingMode={readingMode}
               />
             ))}
           </View>
@@ -76,10 +81,14 @@ export default function ConjugationTable({
 function FormCell({
   form,
   isDark,
+  readingMode,
 }: {
   form: ConjugatedForm;
   isDark: boolean;
+  readingMode: ReadingMode;
 }) {
+  const showReading = readingMode !== "none" && form.reading !== form.written;
+
   return (
     <View className="w-1/2 px-1 mb-2">
       <View
@@ -94,9 +103,9 @@ function FormCell({
         </Text>
 
         {/* Reading first so it reads like furigana above the word */}
-        {form.reading !== form.written && (
+        {showReading && (
           <Text className="text-caption2 text-accent dark:text-accent-light mt-1">
-            {form.reading}
+            {readingMode === "romaji" ? kanaToRomaji(form.reading) : form.reading}
           </Text>
         )}
 

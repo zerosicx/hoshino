@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   containsJapanese,
   isKanaOnly,
+  kanaToRomaji,
   romajiToHiragana,
   toHiragana,
   toKatakana,
@@ -69,5 +70,68 @@ describe("romajiToHiragana", () => {
   it("rejects non-letters", () => {
     expect(romajiToHiragana("mizu1")).toBeNull();
     expect(romajiToHiragana("")).toBeNull();
+  });
+});
+
+describe("kanaToRomaji", () => {
+  it.each([
+    ["たべる", "taberu"],
+    ["みず", "mizu"],
+    ["ねこ", "neko"],
+    ["ありがとう", "arigatou"],
+    ["ふじさん", "fujisan"],
+  ])("converts %s", (kana, romaji) => {
+    expect(kanaToRomaji(kana)).toBe(romaji);
+  });
+
+  it.each([
+    ["きょう", "kyou"],
+    ["しゃしん", "shashin"],
+    ["りょこう", "ryokou"],
+  ])("converts the contracted sound in %s", (kana, romaji) => {
+    expect(kanaToRomaji(kana)).toBe(romaji);
+  });
+
+  it.each([
+    ["きって", "kitte"],
+    ["がっこう", "gakkou"],
+    ["ちょっと", "chotto"],
+    ["ざっし", "zasshi"],
+    ["まっちゃ", "matcha"],
+  ])("doubles the consonant after a small tsu in %s", (kana, romaji) => {
+    expect(kanaToRomaji(kana)).toBe(romaji);
+  });
+
+  it.each([
+    ["ほん", "hon"],
+    ["しんぶん", "shinbun"],
+  ])("writes n for %s", (kana, romaji) => {
+    expect(kanaToRomaji(kana)).toBe(romaji);
+  });
+
+  it.each([
+    ["しんゆう", "shin'yuu"],
+    ["きんえん", "kin'en"],
+  ])("separates n from a following vowel or y in %s", (kana, romaji) => {
+    expect(kanaToRomaji(kana)).toBe(romaji);
+  });
+
+  it.each([
+    ["コーヒー", "koohii"],
+    ["テレビ", "terebi"],
+    ["ラーメン", "raamen"],
+  ])("converts katakana %s", (kana, romaji) => {
+    expect(kanaToRomaji(kana)).toBe(romaji);
+  });
+
+  it("leaves characters it cannot read untouched", () => {
+    expect(kanaToRomaji("")).toBe("");
+    expect(kanaToRomaji("ABC")).toBe("ABC");
+  });
+
+  it("round-trips through romajiToHiragana", () => {
+    for (const word of ["たべる", "がっこう", "しんぶん", "きょう", "みず"]) {
+      expect(romajiToHiragana(kanaToRomaji(word))).toBe(word);
+    }
   });
 });

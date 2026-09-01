@@ -4,6 +4,49 @@ Notable changes to Hoshino, newest first.
 
 ## Unreleased
 
+### The theme setting now actually changes the theme
+
+Picking Light while the device was in Dark produced white Japanese text on a
+white background. It was only visible on Android because that device was the
+one set to dark at the OS level; the iOS simulator happened to agree with the
+app, which hid the bug.
+
+The app had two independent ideas of "dark". Every screen computed its own
+`isDark` from the settings store, and used it for inline colours and for
+conditional class strings. NativeWind resolved every `dark:` class from its own
+colour scheme, which follows the device unless told otherwise, and nothing ever
+told it. So the screen background came out light while `dark:text-zinc-50` on
+the furigana stayed near-white.
+
+`hooks/useTheme.ts` now pushes the setting into NativeWind and reads the
+resolved answer back, so the two cannot drift apart. The seven screens that
+each repeated the same two-line computation now call the hook instead.
+
+`tailwind.config.js` also sets `darkMode: "class"`. NativeWind's web runtime
+throws outright on a manual colour-scheme change while dark mode is `"media"`,
+which is the default, so web would have broken the moment the fix worked
+everywhere else.
+
+### Romaji reading mode
+
+`readingMode` was saved and had a settings toggle, but nothing read it —
+furigana showed in kana no matter which option was picked. Readings above kanji
+now follow the setting, in the hero, in example sentences and in the
+conjugation table.
+
+`kanaToRomaji` in `utils/japanese.ts` does the conversion in Hepburn: 食(た),
+きって → kitte, まっちゃ → matcha, しんゆう → shin'yuu, コーヒー → koohii.
+Search result rows follow the setting too. Their reading stays visible under
+"none" though, because there it is the thing telling two spellings apart rather
+than a ruby gloss.
+
+### Dependency ranges match what is installed
+
+`expo` was declared as `~54.0.0` and `expo-router` as `~6.0.23` while
+`node_modules` held 54.0.37 and 6.0.24, which is what produced the version
+warning on every `expo start`. `expo install --check` tightened the ranges; no
+package actually changed version.
+
 ### Conjugation tables, word class, and furigana on every example
 
 Word detail now shows a full conjugation table. For 食べる that means 食べた,

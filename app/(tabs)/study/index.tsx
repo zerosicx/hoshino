@@ -1,13 +1,11 @@
-import { View, Text, Pressable, ScrollView, useColorScheme as useDeviceColorScheme } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Flame, Target, BookOpen, Play } from 'lucide-react-native';
-import { useSettingsStore } from '@/stores/settingsStore';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function StudyScreen() {
   const router = useRouter();
-  const deviceScheme = useDeviceColorScheme();
-  const themeMode = useSettingsStore((s) => s.themeMode);
-  const isDark = themeMode === 'dark' || (themeMode === 'system' && deviceScheme === 'dark');
+  const { isDark } = useTheme();
 
   return (
     <ScrollView className={`flex-1 ${isDark ? 'bg-zinc-950' : 'bg-white'} px-4 pt-14`}>

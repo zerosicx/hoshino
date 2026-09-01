@@ -1,12 +1,11 @@
-import { View, Text, Pressable, ScrollView, useColorScheme as useDeviceColorScheme } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useTheme } from '@/hooks/useTheme';
 import { Sun, Moon, Monitor, ShieldCheck } from 'lucide-react-native';
 
 export default function SettingsScreen() {
-  const deviceScheme = useDeviceColorScheme();
   const { themeMode, readingMode, setThemeMode, setReadingMode } = useSettingsStore();
-
-  const isDark = themeMode === 'dark' || (themeMode === 'system' && deviceScheme === 'dark');
+  const { isDark } = useTheme();
 
   return (
     <ScrollView className={`flex-1 ${isDark ? 'bg-zinc-950' : 'bg-white'} px-4 pt-14`}>

@@ -5,6 +5,9 @@ module.exports = {
     "./components/**/*.{js,jsx,ts,tsx}",
   ],
   presets: [require("nativewind/preset")],
+  // Required for the in-app theme setting to override the device on web.
+  // NativeWind's web runtime throws on a manual set while this is "media".
+  darkMode: "class",
   theme: {
     extend: {
       colors: {

@@ -6,21 +6,19 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  useColorScheme as useDeviceColorScheme,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Search, X } from "lucide-react-native";
-import { useSettingsStore } from "@/stores/settingsStore";
+import { useTheme } from "@/hooks/useTheme";
 import { useDictionary } from "@/hooks/useDictionary";
+import { useSettingsStore } from "@/stores/settingsStore";
 import DictionaryResultRow from "@/components/DictionaryResultRow";
 import type { SearchResult } from "@/types/dictionary";
 
 export default function DictionaryScreen() {
   const router = useRouter();
-  const deviceScheme = useDeviceColorScheme();
-  const themeMode = useSettingsStore((s) => s.themeMode);
-  const isDark =
-    themeMode === "dark" || (themeMode === "system" && deviceScheme === "dark");
+  const { isDark } = useTheme();
+  const readingMode = useSettingsStore((s) => s.readingMode);
 
   const {
     query,
@@ -93,7 +91,9 @@ export default function DictionaryScreen() {
             <FlatList
               data={results}
               keyExtractor={(item) => String(item.id)}
-              renderItem={({ item }) => <DictionaryResultRow item={item} />}
+              renderItem={({ item }) => (
+                <DictionaryResultRow item={item} readingMode={readingMode} />
+              )}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingBottom: 100 }}

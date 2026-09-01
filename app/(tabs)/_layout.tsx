@@ -1,15 +1,12 @@
 import { Tabs } from 'expo-router';
 import { Search, GraduationCap, Library, Settings as SettingsIcon } from 'lucide-react-native';
-import { Platform, useColorScheme as useDeviceColorScheme } from 'react-native';
+import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSettingsStore } from '@/stores/settingsStore';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function TabsLayout() {
-  const deviceScheme = useDeviceColorScheme();
-  const themeMode = useSettingsStore((s) => s.themeMode);
+  const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
-
-  const isDark = themeMode === 'dark' || (themeMode === 'system' && deviceScheme === 'dark');
 
   const bottomPadding = Math.max(insets.bottom, Platform.OS === 'web' ? 4 : 8);
 

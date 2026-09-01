@@ -5,11 +5,11 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  useColorScheme as useDeviceColorScheme,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, BookOpen, MessageSquare } from "lucide-react-native";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useTheme } from "@/hooks/useTheme";
 import { useSearchStore } from "@/stores/searchStore";
 import { getEntry, getExamples } from "@/services/dictionary";
 import FuriganaText from "@/components/FuriganaText";
@@ -22,10 +22,8 @@ import type { DictionaryEntry, ExampleSentence } from "@/types/dictionary";
 export default function WordDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const deviceScheme = useDeviceColorScheme();
-  const themeMode = useSettingsStore((s) => s.themeMode);
-  const isDark =
-    themeMode === "dark" || (themeMode === "system" && deviceScheme === "dark");
+  const { isDark } = useTheme();
+  const readingMode = useSettingsStore((s) => s.readingMode);
   const recordSearch = useSearchStore((s) => s.recordSearch);
 
   const [entry, setEntry] = useState<DictionaryEntry | null>(null);
@@ -114,7 +112,11 @@ export default function WordDetailScreen() {
 
         {/* Hero */}
         <View className="px-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">
-          <FuriganaText pairs={furiganaPairs} size="xl" />
+          <FuriganaText
+            pairs={furiganaPairs}
+            size="xl"
+            readingMode={readingMode}
+          />
 
           {/* Alt readings / kanji forms */}
           {entry.readingForms.length > 1 && (
@@ -189,6 +191,7 @@ export default function WordDetailScreen() {
             reading={primaryReading}
             info={entry.wordClass}
             isDark={isDark}
+            readingMode={readingMode}
           />
         )}
 
@@ -239,7 +242,11 @@ export default function WordDetailScreen() {
                 className="mb-4 pb-4 border-b border-zinc-100 dark:border-zinc-800/50 last:border-b-0"
               >
                 <View className="mb-1">
-                  <FuriganaText pairs={ex.furigana} size="sentence" />
+                  <FuriganaText
+                    pairs={ex.furigana}
+                    size="sentence"
+                    readingMode={readingMode}
+                  />
                 </View>
                 <Text
                   className={`text-footnote ${isDark ? "text-zinc-500" : "text-zinc-400"}`}

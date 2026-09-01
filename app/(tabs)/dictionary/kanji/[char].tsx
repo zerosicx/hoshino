@@ -5,11 +5,10 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  useColorScheme as useDeviceColorScheme,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
-import { useSettingsStore } from "@/stores/settingsStore";
+import { useTheme } from "@/hooks/useTheme";
 import { getKanji } from "@/services/dictionary";
 import JlptBadge from "@/components/JlptBadge";
 import type { KanjiEntry } from "@/types/dictionary";
@@ -17,10 +16,7 @@ import type { KanjiEntry } from "@/types/dictionary";
 export default function KanjiDetailScreen() {
   const { char } = useLocalSearchParams<{ char: string }>();
   const router = useRouter();
-  const deviceScheme = useDeviceColorScheme();
-  const themeMode = useSettingsStore((s) => s.themeMode);
-  const isDark =
-    themeMode === "dark" || (themeMode === "system" && deviceScheme === "dark");
+  const { isDark } = useTheme();
 
   const [kanji, setKanji] = useState<KanjiEntry | null>(null);
   const [loading, setLoading] = useState(true);

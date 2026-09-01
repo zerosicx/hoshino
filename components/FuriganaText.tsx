@@ -1,12 +1,14 @@
 import { View, Text } from "react-native";
 import type { FuriganaPair } from "@/utils/furigana";
+import type { ReadingMode } from "@/stores/settingsStore";
+import { kanaToRomaji } from "@/utils/japanese";
 
 type FuriganaSize = "sentence" | "sm" | "default" | "lg" | "xl";
 
 interface FuriganaTextProps {
   pairs: FuriganaPair[];
   size?: FuriganaSize;
-  showReading?: boolean;
+  readingMode?: ReadingMode;
 }
 
 const sizeStyles: Record<
@@ -43,7 +45,7 @@ const sizeStyles: Record<
 export default function FuriganaText({
   pairs,
   size = "default",
-  showReading = true,
+  readingMode = "furigana",
 }: FuriganaTextProps) {
   const s = sizeStyles[size];
   const bold = size !== "sentence";
@@ -52,12 +54,16 @@ export default function FuriganaText({
     <View className="flex-row flex-wrap items-end">
       {pairs.map((pair, i) => (
         <View key={i} className="items-center">
-          {showReading && (
+          {readingMode !== "none" && (
             <Text
               className={`${s.furi} text-accent dark:text-accent-light text-center`}
               style={{ minHeight: s.furiMin }}
             >
-              {pair.reading || " "}
+              {pair.reading
+                ? readingMode === "romaji"
+                  ? kanaToRomaji(pair.reading)
+                  : pair.reading
+                : " "}
             </Text>
           )}
           <Text

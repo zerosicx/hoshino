@@ -2,18 +2,28 @@ import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import type { SearchResult } from "@/types/dictionary";
+import type { ReadingMode } from "@/stores/settingsStore";
+import { kanaToRomaji } from "@/utils/japanese";
 import JlptBadge from "./JlptBadge";
 
 interface DictionaryResultRowProps {
   item: SearchResult;
+  readingMode?: ReadingMode;
 }
 
 export default function DictionaryResultRow({
   item,
+  readingMode = "furigana",
 }: DictionaryResultRowProps) {
   const router = useRouter();
 
   const showKanji = item.kanjiForm !== item.readingForm;
+  // The reading is what tells two spellings apart here, so it stays visible
+  // under "none" — that setting hides ruby text, not this column.
+  const reading =
+    readingMode === "romaji"
+      ? kanaToRomaji(item.readingForm)
+      : item.readingForm;
 
   return (
     <Pressable
@@ -28,7 +38,7 @@ export default function DictionaryResultRow({
           </Text>
           {showKanji && (
             <Text className="text-footnote text-accent dark:text-accent-light">
-              {item.readingForm}
+              {reading}
             </Text>
           )}
         </View>

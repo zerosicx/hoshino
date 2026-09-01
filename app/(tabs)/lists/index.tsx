@@ -1,7 +1,7 @@
-import { View, Text, FlatList, Pressable, useColorScheme as useDeviceColorScheme } from 'react-native';
+import { View, Text, FlatList, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronRight, Bookmark } from 'lucide-react-native';
-import { useSettingsStore } from '@/stores/settingsStore';
+import { useTheme } from '@/hooks/useTheme';
 
 const JLPT_LISTS = [
   { id: '1', name: 'JLPT N5 Vocabulary', count: 634, level: 'N5' },
@@ -18,9 +18,7 @@ const JLPT_LISTS = [
 
 export default function ListsScreen() {
   const router = useRouter();
-  const deviceScheme = useDeviceColorScheme();
-  const themeMode = useSettingsStore((s) => s.themeMode);
-  const isDark = themeMode === 'dark' || (themeMode === 'system' && deviceScheme === 'dark');
+  const { isDark } = useTheme();
 
   return (
     <View className={`flex-1 ${isDark ? 'bg-zinc-950' : 'bg-white'} pt-14`}>
