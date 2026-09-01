@@ -166,9 +166,11 @@ async function initialise(): Promise<void> {
     }
   });
 
-  console.log(
-    `?? [DB] ready in ${Date.now() - started}ms — ${entries} dictionary entries`
-  );
+  if (__DEV__) {
+    console.log(
+      `?? [DB] ready in ${Date.now() - started}ms — ${entries} dictionary entries`
+    );
+  }
 }
 
 /**

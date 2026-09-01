@@ -141,7 +141,7 @@ async function open({
       `vfs: ${sqlite3.capi.sqlite3_js_vfs_list().join(", ")}`
   );
 
-  const cacheKey = await resolveCacheKey(assetUri, assetHash);
+  const cacheKey = resolveCacheKey(assetUri, assetHash);
   if (cacheKey) {
     const pool = await installPool(sqlite3);
     if (pool) {
@@ -157,36 +157,42 @@ async function open({
  * Names the cached copy after something that changes when the dictionary does,
  * so rebuilding it evicts the stale copy instead of serving it forever.
  *
- * Production exports carry the asset's MD5, which is exact. Web dev builds do
- * not, and Metro's dev asset server sends neither ETag nor Last-Modified, so
- * byte length is the only content-derived signal available without downloading
- * the file first. A rebuild that lands on precisely the same size would go
- * unnoticed; if that is ever suspected, clear the OPFS directory below via
- * DevTools > Application > Storage.
+ * Every source here is read from strings the bundler already handed us. An
+ * earlier version asked the dev server for Content-Length over HEAD, which cost
+ * a round trip and tripped a bug in expo-server: it builds a response body for
+ * HEAD as well as GET, then pipes it into a socket Node has already ended,
+ * logging "Cannot pipe to a closed or destroyed stream" on every web reload.
  */
-async function resolveCacheKey(
+function resolveCacheKey(
   assetUri: string,
   assetHash: string | null
-): Promise<string | null> {
-  if (assetHash) {
-    return `hoshino-${assetHash}`;
-  }
+): string | null {
+  const hash = assetHash ?? readHashFromUri(assetUri);
+  if (hash) return `hoshino-${hash}`;
 
-  try {
-    const response = await fetch(assetUri, { method: "HEAD" });
-    const length = response.headers.get("content-length");
-    if (length) {
-      // The length is visible in the cached filename, so it needs no log line.
-      return `hoshino-len${length}`;
-    }
-  } catch (err) {
-    console.warn("?? [DICT] could not read asset length:", err);
-  }
-
+  // Caching still beats a 98MB download per reload, but this build cannot be
+  // told apart from the last one, so a rebuild has to be evicted by hand.
   console.warn(
-    "?? [DICT] cannot identify this dictionary build, so it will not be cached"
+    "?? [DICT] no content hash on this build — caching under a fixed name. " +
+      "After rebuilding the dictionary, clear DevTools > Application > " +
+      `Storage > ${POOL_DIRECTORY} or the stale copy will be served.`
   );
-  return null;
+  return "hoshino-unidentified";
+}
+
+/**
+ * Digs the asset's MD5 out of its URL.
+ *
+ * Metro puts it in a query parameter when serving from the dev server, and in
+ * the filename when exporting, so one of the two forms is present wherever the
+ * `Asset` object itself does not carry the hash.
+ */
+function readHashFromUri(assetUri: string): string | null {
+  const query = /[?&]hash=([0-9a-f]{8,})/i.exec(assetUri);
+  if (query) return query[1];
+
+  const filename = /\.([0-9a-f]{32})\.[a-z0-9]+(?:$|[?#])/i.exec(assetUri);
+  return filename ? filename[1] : null;
 }
 
 /**
