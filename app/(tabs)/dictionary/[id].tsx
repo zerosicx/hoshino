@@ -12,8 +12,11 @@ import { ChevronLeft, BookOpen, MessageSquare } from "lucide-react-native";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useSearchStore } from "@/stores/searchStore";
 import { getEntry, getExamples } from "@/services/dictionary";
-import FuriganaText, { buildFuriganaPairs } from "@/components/FuriganaText";
+import FuriganaText from "@/components/FuriganaText";
 import JlptBadge from "@/components/JlptBadge";
+import ConjugationTable from "@/components/ConjugationTable";
+import WordClassBadges from "@/components/WordClassBadges";
+import { alignFurigana } from "@/utils/furigana";
 import type { DictionaryEntry, ExampleSentence } from "@/types/dictionary";
 
 export default function WordDetailScreen() {
@@ -78,7 +81,7 @@ export default function WordDetailScreen() {
 
   const primaryKanji = entry.kanjiForms[0] ?? entry.readingForms[0] ?? "";
   const primaryReading = entry.readingForms[0] ?? "";
-  const furiganaPairs = buildFuriganaPairs(primaryKanji, primaryReading);
+  const furiganaPairs = alignFurigana(primaryKanji, primaryReading);
 
   // Extract kanji characters for the breakdown section
   const kanjiChars = primaryKanji
@@ -123,7 +126,7 @@ export default function WordDetailScreen() {
           )}
 
           {/* Badges row */}
-          <View className="flex-row items-center gap-2 mt-3">
+          <View className="flex-row flex-wrap items-center gap-2 mt-3">
             <JlptBadge level={entry.jlptLevel} />
             {entry.isCommon && (
               <View className="bg-emerald-500/10 px-2 py-0.5 rounded-full">
@@ -132,17 +135,7 @@ export default function WordDetailScreen() {
                 </Text>
               </View>
             )}
-            {entry.conjugationClass && (
-              <View
-                className={`px-2 py-0.5 rounded-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`}
-              >
-                <Text
-                  className={`text-caption2 font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                >
-                  {entry.conjugationClass}
-                </Text>
-              </View>
-            )}
+            <WordClassBadges info={entry.wordClass} />
           </View>
         </View>
 
@@ -188,6 +181,16 @@ export default function WordDetailScreen() {
             </View>
           ))}
         </View>
+
+        {/* Conjugations */}
+        {entry.wordClass && (
+          <ConjugationTable
+            written={primaryKanji}
+            reading={primaryReading}
+            info={entry.wordClass}
+            isDark={isDark}
+          />
+        )}
 
         {/* Kanji Breakdown */}
         {kanjiChars.length > 0 && (
@@ -235,11 +238,9 @@ export default function WordDetailScreen() {
                 key={ex.id}
                 className="mb-4 pb-4 border-b border-zinc-100 dark:border-zinc-800/50 last:border-b-0"
               >
-                <Text
-                  className={`text-subheadline ${isDark ? "text-zinc-200" : "text-zinc-800"} mb-1`}
-                >
-                  {ex.japanese}
-                </Text>
+                <View className="mb-1">
+                  <FuriganaText pairs={ex.furigana} size="sentence" />
+                </View>
                 <Text
                   className={`text-footnote ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
                 >

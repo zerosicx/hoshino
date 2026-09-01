@@ -1,3 +1,6 @@
+import type { FuriganaPair } from "@/utils/furigana";
+import type { WordClassInfo } from "@/utils/wordClass";
+
 export interface Sense {
   glosses: string[];
   pos: string[];
@@ -14,6 +17,8 @@ export interface DictionaryEntry {
   isCommon: boolean;
   conjugationClass: string | null;
   tags: string[];
+  /** Derived from the part-of-speech tags on `senses`, not from a column. */
+  wordClass: WordClassInfo | null;
 }
 
 export interface KanjiEntry {
@@ -39,6 +44,8 @@ export interface ExampleSentence {
   japanese: string;
   english: string;
   tokens: ExampleToken[];
+  /** The sentence split for display, with readings over the kanji it knows. */
+  furigana: FuriganaPair[];
 }
 
 export interface SearchResult {

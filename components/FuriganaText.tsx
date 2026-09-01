@@ -1,11 +1,7 @@
 import { View, Text } from "react-native";
+import type { FuriganaPair } from "@/utils/furigana";
 
-type FuriganaSize = "sm" | "default" | "lg" | "xl";
-
-interface FuriganaPair {
-  base: string;
-  reading: string;
-}
+type FuriganaSize = "sentence" | "sm" | "default" | "lg" | "xl";
 
 interface FuriganaTextProps {
   pairs: FuriganaPair[];
@@ -17,6 +13,11 @@ const sizeStyles: Record<
   FuriganaSize,
   { base: string; furi: string; furiMin: number }
 > = {
+  sentence: {
+    base: "text-body",
+    furi: "text-[10px] leading-[12px]",
+    furiMin: 12,
+  },
   sm: {
     base: "text-kanji-md",
     furi: "text-[9px] leading-[11px]",
@@ -45,6 +46,7 @@ export default function FuriganaText({
   showReading = true,
 }: FuriganaTextProps) {
   const s = sizeStyles[size];
+  const bold = size !== "sentence";
 
   return (
     <View className="flex-row flex-wrap items-end">
@@ -59,7 +61,7 @@ export default function FuriganaText({
             </Text>
           )}
           <Text
-            className={`${s.base} font-bold text-zinc-900 dark:text-zinc-50`}
+            className={`${s.base} ${bold ? "font-bold" : ""} text-zinc-900 dark:text-zinc-50`}
           >
             {pair.base}
           </Text>
@@ -67,26 +69,4 @@ export default function FuriganaText({
       ))}
     </View>
   );
-}
-
-/**
- * Build furigana pairs from a kanji string and its reading.
- * For simple cases: each kanji character gets the full reading,
- * kana characters pass through with empty reading.
- */
-export function buildFuriganaPairs(
-  kanjiForm: string,
-  reading: string
-): FuriganaPair[] {
-  if (!kanjiForm || kanjiForm === reading) {
-    return reading.split("").map((ch) => ({ base: ch, reading: "" }));
-  }
-
-  const hasKanji = /[\u4E00-\u9FFF]/.test(kanjiForm);
-  if (!hasKanji) {
-    return kanjiForm.split("").map((ch) => ({ base: ch, reading: "" }));
-  }
-
-  // Simple approach: show full reading above the kanji form as one group
-  return [{ base: kanjiForm, reading }];
 }

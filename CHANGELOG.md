@@ -4,6 +4,43 @@ Notable changes to Hoshino, newest first.
 
 ## Unreleased
 
+### Conjugation tables, word class, and furigana on every example
+
+Word detail now shows a full conjugation table. For 食べる that means 食べた,
+食べない, 食べなかった, 食べます, 食べました, 食べませんでした, 食べよう,
+食べられる, 食べられない and 食べようとした, grouped as plain, polite, te-form
+and conditional, potential, passive and causative, volitional and imperative,
+and desire. Verbs, i-adjectives and na-adjectives are all covered, including
+する, 来る, the 行く te-form exception, and the いい/よい split.
+
+The hero now says what kind of word it is: transitivity, and the verb class
+under both names a textbook might use — "Ichidan verb · ru-verb". Godan and
+u-verb are the same fact, so they share one badge rather than looking like two.
+
+**None of this needed the database rebuild the roadmap assumed.** The part-of-
+speech tags on `senses` already hold `Ichidan verb` and `transitive verb`, so
+`utils/wordClass.ts` reads them at runtime. `entries.conjugation_class` is
+still null on all 217,783 rows — `detectConjugationClass` looks up JMdict short
+codes like `v5r`, but `fast-xml-parser` expands the XML entities before the
+build script sees them, so the lookup never matches. That column is now simply
+unused rather than blocking.
+
+Conjugation rules only ever rewrite the okurigana at the end of a word, which
+is always kana. The same rule therefore applies unchanged to the kanji
+spelling and to the reading, so each form carries both and the reading can be
+shown alongside it.
+
+**Example sentences now carry furigana without expanding anything.** Tatoeba's
+token data records the dictionary form of each word, not how it is inflected in
+the sentence, so matching whole words only reached 78% of kanji. Matching kanji
+runs instead — 戻る tells you 戻 is もど, which is all 戻ります needs — reaches
+98.7%, with 97.1% of sentences fully annotated. Kanji with no known reading are
+left bare rather than guessed.
+
+`utils/furigana.ts` also replaces the placeholder alignment that put one
+reading over a whole word: 食べる now renders 食(た)べる rather than
+食べる(たべる).
+
 ### Search finds conjugated verbs, kana and romaji — and ranks the right word first
 
 Measured against a 45-query benchmark whose expected answers were taken from

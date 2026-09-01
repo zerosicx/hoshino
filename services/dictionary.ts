@@ -5,6 +5,8 @@ import {
   rankEntries,
 } from "./searchQuery";
 import { parseJsonArray, parseSenses } from "@/utils/entryJson";
+import { annotateSentence, buildReadingIndex } from "@/utils/furigana";
+import { classifySenses } from "@/utils/wordClass";
 import type {
   DictionaryEntry,
   ExampleSentence,
@@ -74,15 +76,17 @@ function parseTokens(raw: string | null): ExampleToken[] {
 }
 
 function rawToEntry(row: RawEntry): DictionaryEntry {
+  const senses = parseSenses(row.senses);
   return {
     id: row.id,
     kanjiForms: parseJsonArray(row.kanji_forms),
     readingForms: parseJsonArray(row.reading_forms),
-    senses: parseSenses(row.senses),
+    senses,
     jlptLevel: row.jlpt_level,
     isCommon: row.is_common === 1,
     conjugationClass: row.conjugation_class,
     tags: parseJsonArray(row.tags),
+    wordClass: classifySenses(senses),
   };
 }
 
@@ -123,6 +127,7 @@ function rawToExample(row: RawExample): ExampleSentence {
     japanese: row.japanese,
     english: row.english,
     tokens: parseTokens(row.tokens),
+    furigana: [],
   };
 }
 
@@ -178,7 +183,66 @@ export async function getExamples(
      LIMIT ?`,
     [entryId, limit]
   );
-  return rows.map(rawToExample);
+
+  const examples = rows.map(rawToExample);
+
+  // Every word used across these sentences, fetched once rather than per token.
+  const referenced = new Set<number>([entryId]);
+  for (const example of examples) {
+    for (const token of example.tokens) {
+      if (token.entryId != null) referenced.add(token.entryId);
+    }
+  }
+
+  const spellings = await getSpellings(db, [...referenced]);
+  for (const example of examples) {
+    example.furigana = annotateSentence(
+      example.japanese,
+      buildReadingIndex(
+        example.tokens.flatMap((t) =>
+          t.entryId != null ? (spellings.get(t.entryId) ?? []) : []
+        )
+      )
+    );
+  }
+
+  return examples;
+}
+
+/**
+ * Written/reading pairs for each entry, used to work out how the kanji in an
+ * example sentence are read. A word contributes every spelling it has, since
+ * the sentence may use any of them.
+ */
+async function getSpellings(
+  db: ReturnType<typeof getDictDb>,
+  ids: number[]
+): Promise<Map<number, { written: string; reading: string }[]>> {
+  const out = new Map<number, { written: string; reading: string }[]>();
+  if (ids.length === 0) return out;
+
+  const placeholders = ids.map(() => "?").join(",");
+  const rows = await db.getAllAsync<{
+    id: number;
+    kanji_forms: string | null;
+    reading_forms: string | null;
+  }>(
+    `SELECT id, kanji_forms, reading_forms FROM entries WHERE id IN (${placeholders})`,
+    ids
+  );
+
+  for (const row of rows) {
+    const readings = parseJsonArray(row.reading_forms);
+    if (readings.length === 0) continue;
+    out.set(
+      row.id,
+      parseJsonArray(row.kanji_forms).map((written) => ({
+        written,
+        reading: readings[0],
+      }))
+    );
+  }
+  return out;
 }
 
 export async function recordSearch(entryId: number): Promise<void> {

@@ -53,20 +53,16 @@ Three things stand between the dictionary being *functional* and being *good*.
 - [ ] **`conjugation_class` is empty for all 217,783 rows.** `detectConjugationClass`
       looks up JMdict short codes (`v5r`, `adj-i`), but `fast-xml-parser`
       expands the XML entities first, so the value it actually receives is
-      `Godan verb with 'ru' ending` and the lookup never hits. Must be fixed
-      before the conjugation table below can be built.
+      `Godan verb with 'ru' ending` and the lookup never hits. Not urgent:
+      `utils/wordClass.ts` reads the expanded strings off `senses` at runtime,
+      so nothing is blocked on it. Worth fixing to drop a dead column.
 - [ ] **Native cold-start copy.** `importDatabaseFromAssetAsync` runs with
       `forceOverwrite: true`, re-copying 98MB on every launch. Needs a stored
       build version compared against the asset's, so it copies only when the
       dictionary actually changes — dropping the flag alone would strand users
       on a stale dictionary after an app update.
-- [ ] **`utils/conjugation.ts`** — generate conjugations from POS tag +
-      dictionary form: godan (all variants), ichidan, i-adjective; dictionary,
-      masu, te, ta, nai, potential, passive, causative, conditional and
-      volitional, plain and polite. Blocked on `conjugation_class` above.
-      `utils/deinflect.ts` already encodes the reverse mapping and its kana-row
-      table can be reused.
-- [ ] **`components/ConjugationTable.tsx`** — render those forms on word detail.
+- [x] **`utils/conjugation.ts`** and **`components/ConjugationTable.tsx`** —
+      done; see `CHANGELOG.md`.
 
 ---
 
@@ -76,9 +72,9 @@ Deferred deliberately; the screens work without them.
 
 - [ ] `components/FeaturedWord.tsx` — word of the day, a random common entry
       seeded by date
-- [ ] `utils/furigana.ts` — furigana alignment from JMdict kanji + reading
-      pairs. `FuriganaText` renders ruby correctly but takes pre-aligned pairs,
-      so alignment is not yet derived from raw entries.
+- [x] `utils/furigana.ts` — done. Alignment plus sentence annotation; 98.7% of
+      kanji in example sentences get a reading. The remaining 1.3% are left
+      bare on purpose, since a wrong reading is worse than none.
 - [ ] Extract `SearchBar`, `RecentChip` and `WordDetail` from the screens. The
       search input and recent-search row are currently inline in
       `dictionary/index.tsx`; `WordDetail` needs extracting before the flashcard
