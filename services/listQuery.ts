@@ -108,6 +108,10 @@ export const ADD_ITEM_SQL = `
   VALUES (?, ?, ?)
 `;
 
+export const REMOVE_ITEM_SQL = `
+  DELETE FROM list_items WHERE list_id = ? AND entry_id = ?
+`;
+
 export const SET_STARRED_SQL = `
   UPDATE lists SET starred = ? WHERE id = ?
 `;

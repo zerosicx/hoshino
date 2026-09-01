@@ -6,10 +6,24 @@
  * in the reading must belong to the kanji between them.
  */
 
+import { isKanaOnly, kanaToRomaji } from "./japanese";
+
 export interface FuriganaPair {
   base: string;
   /** Empty for kana, which need no annotation. */
   reading: string;
+}
+
+/**
+ * The line shown above one part of a word, or "" when there is nothing to show.
+ *
+ * Kana carries no reading of its own because a reader of Japanese does not need
+ * one. Someone reading romaji does: きれい is as opaque to them as 綺麗, so in
+ * romaji mode the kana is transliterated too.
+ */
+export function rubyText(pair: FuriganaPair, romaji: boolean): string {
+  if (pair.reading) return romaji ? kanaToRomaji(pair.reading) : pair.reading;
+  return romaji && isKanaOnly(pair.base) ? kanaToRomaji(pair.base) : "";
 }
 
 const KANJI = /[\u4E00-\u9FFF\u3005]/;

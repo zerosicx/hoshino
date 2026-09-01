@@ -22,11 +22,15 @@ export function toKatakana(text: string): string {
   );
 }
 
+/** The prolonged sound mark, which is kana but sits outside both blocks. */
+const LONG_MARK = 0x30fc;
+
 function isKana(char: string): boolean {
   const code = char.charCodeAt(0);
   return (
     (code >= HIRAGANA_START && code <= HIRAGANA_END) ||
-    (code >= KATAKANA_START && code <= KATAKANA_END)
+    (code >= KATAKANA_START && code <= KATAKANA_END) ||
+    code === LONG_MARK
   );
 }
 

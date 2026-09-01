@@ -128,16 +128,19 @@ Deferred deliberately; the screens work without them.
 - [x] `app/(tabs)/lists/jlpt.tsx` — the ten preloaded lists, star to pin
 - [x] `app/(tabs)/lists/[id].tsx` — words, or a kanji grid for JLPT kanji lists
 - [x] `components/BottomDrawer.tsx`, `CreateListDrawer.tsx`,
-      `AddToListDrawer.tsx`, `ListRow.tsx`, `SwipeToAdd.tsx`, `Toast.tsx`
+      `AddToListDrawer.tsx`, `ListRow.tsx`, `SwipeAction.tsx`, `Toast.tsx`
 - [x] Plus button on word detail, swipe-to-add on search results, Lists tab
       re-enabled
+- [x] Removing a word: tap a ticked list in the picker, or swipe a list entry
+      left
 
 ### Deferred from Stage 3
 
 - [ ] **No way to delete or rename a list.** A list created by accident is
       permanent, and a typo in its name cannot be fixed. Needs a decision on the
       gesture — swipe on the row, or an edit mode.
-- [ ] **No way to remove a word from a list.** Same shape of problem as above.
+- [ ] **No undo on removing a word.** The toast reports the removal but cannot
+      reverse it; the word has to be searched for and added again.
 - [ ] **Kanji cannot go into a custom list.** `list_items.entry_id` is an
       integer pointing at `entries`, and kanji are keyed by character in a
       separate table. The JLPT kanji lists sidestep this by being query-backed.

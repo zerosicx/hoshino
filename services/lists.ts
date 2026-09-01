@@ -7,6 +7,7 @@ import {
   LIST_ITEM_IDS_SQL,
   LISTS_CONTAINING_SQL,
   MOST_RECENT_LIST_SQL,
+  REMOVE_ITEM_SQL,
   SET_STARRED_SQL,
   customListsSql,
   jlptListsSql,
@@ -99,6 +100,13 @@ export async function addToList(
     entryId,
     new Date().toISOString(),
   ]);
+}
+
+export async function removeFromList(
+  listId: number,
+  entryId: number
+): Promise<void> {
+  await getUserDb().runAsync(REMOVE_ITEM_SQL, [listId, entryId]);
 }
 
 /** Which lists already hold this word, so the detail screen can show state. */

@@ -35,7 +35,7 @@ export default function WordDetailScreen() {
   const [examples, setExamples] = useState<ExampleSentence[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const { add } = useAddToList();
+  const { add, remove } = useAddToList();
   const createList = useCreateList();
   const [picking, setPicking] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -103,9 +103,20 @@ export default function WordDetailScreen() {
     setPicking(true);
   };
 
+  // Tapping a list the word is already in takes it out again, so the same row
+  // both adds and undoes — there is nowhere else to remove a word from a list.
   const pickList = async (list: ListSummary) => {
     setPicking(false);
-    await add(entry.id, primaryKanji, list);
+
+    const held = containing.includes(list.id);
+    const ok = held
+      ? await remove(entry.id, primaryKanji, list)
+      : await add(entry.id, primaryKanji, list);
+    if (!ok) return;
+
+    setContaining((ids) =>
+      held ? ids.filter((id) => id !== list.id) : [...ids, list.id]
+    );
   };
 
   const createAndAdd = async (name: string) => {

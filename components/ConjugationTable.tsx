@@ -87,7 +87,12 @@ function FormCell({
   isDark: boolean;
   readingMode: ReadingMode;
 }) {
-  const showReading = readingMode !== "none" && form.reading !== form.written;
+  // A kana form repeats the written word, so it is normally hidden. Its romaji
+  // does not repeat it, and is the only readable line for a romaji reader.
+  const showReading =
+    readingMode === "romaji"
+      ? Boolean(form.reading)
+      : readingMode !== "none" && form.reading !== form.written;
 
   return (
     <View className="w-1/2 px-1 mb-2">

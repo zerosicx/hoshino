@@ -57,6 +57,9 @@ export default function AddToListDrawer({
               <Pressable
                 key={list.id}
                 onPress={() => onPick(list)}
+                accessibilityLabel={
+                  has ? `Remove from ${list.name}` : `Add to ${list.name}`
+                }
                 className={`flex-row items-center justify-between py-3 border-b ${divider}`}
               >
                 <View className="flex-1 mr-3">

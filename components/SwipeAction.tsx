@@ -8,40 +8,47 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { Plus } from "lucide-react-native";
+import { Minus, Plus } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
 
-/** How far the row must travel before releasing it counts as an add. */
+/** How far the row must travel before releasing it counts as a trigger. */
 const TRIGGER = 80;
 
-interface SwipeToAddProps {
-  onAdd: () => void;
+type SwipeActionKind = "add" | "remove";
+
+interface SwipeActionProps {
+  action: SwipeActionKind;
+  onTrigger: () => void;
   children: ReactNode;
 }
 
-/**
- * Drags a row rightwards to reveal a plus, adding on release.
- *
- * The gesture only claims a drag that is clearly horizontal, so scrolling the
- * results list still works normally.
- */
-export default function SwipeToAdd({ onAdd, children }: SwipeToAddProps) {
+export default function SwipeAction({
+  action,
+  onTrigger,
+  children,
+}: SwipeActionProps) {
   const offset = useSharedValue(0);
   const { isDark } = useTheme();
 
+  // Adding pulls the row right, removing pulls it left, which keeps the two
+  // gestures from being mistaken for one another.
+  const adding = action === "add";
+  const direction = adding ? 1 : -1;
+
   const pan = Gesture.Pan()
-    .activeOffsetX(14)
+    .activeOffsetX(14 * direction)
     .failOffsetY([-10, 10])
     .onUpdate((e) => {
-      offset.value = Math.min(Math.max(e.translationX, 0), TRIGGER * 1.35);
+      const travelled = e.translationX * direction;
+      offset.value = Math.min(Math.max(travelled, 0), TRIGGER * 1.35);
     })
     .onEnd(() => {
-      if (offset.value >= TRIGGER) runOnJS(onAdd)();
+      if (offset.value >= TRIGGER) runOnJS(onTrigger)();
       offset.value = withSpring(0, { damping: 22, stiffness: 240 });
     });
 
   const rowStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: offset.value }],
+    transform: [{ translateX: offset.value * direction }],
   }));
 
   const iconStyle = useAnimatedStyle(() => ({
@@ -56,15 +63,23 @@ export default function SwipeToAdd({ onAdd, children }: SwipeToAddProps) {
       <Animated.View
         style={iconStyle}
         pointerEvents="none"
-        className="absolute left-2 top-0 bottom-0 justify-center"
+        className={`absolute ${adding ? "left-2" : "right-2"} top-0 bottom-0 justify-center`}
       >
-        <View className="w-9 h-9 rounded-full bg-accent items-center justify-center">
-          <Plus size={18} color="#FFFFFF" />
+        <View
+          className={`w-9 h-9 rounded-full items-center justify-center ${
+            adding ? "bg-accent" : "bg-red-600"
+          }`}
+        >
+          {adding ? (
+            <Plus size={18} color="#FFFFFF" />
+          ) : (
+            <Minus size={18} color="#FFFFFF" />
+          )}
         </View>
       </Animated.View>
 
       <GestureDetector gesture={pan}>
-        {/* Opaque so the plus stays hidden until the row moves off it. */}
+        {/* Opaque so the icon stays hidden until the row moves off it. */}
         <Animated.View
           style={rowStyle}
           className={isDark ? "bg-zinc-950" : "bg-white"}

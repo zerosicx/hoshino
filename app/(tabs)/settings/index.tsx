@@ -1,4 +1,5 @@
 import { View, Text, Pressable, ScrollView } from 'react-native';
+import Constants from 'expo-constants';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useTheme } from '@/hooks/useTheme';
 import { Sun, Moon, Monitor, ShieldCheck } from 'lucide-react-native';
@@ -63,7 +64,7 @@ export default function SettingsScreen() {
             onSelect={() => setReadingMode('furigana')}
           />
           <ReadingOption
-            label="Romaji (Romaji)"
+            label="Romaji (English)"
             active={readingMode === 'romaji'}
             isDark={isDark}
             onSelect={() => setReadingMode('romaji')}
@@ -86,8 +87,11 @@ export default function SettingsScreen() {
       </View>
 
       {/* Footer */}
+      <Text className={`text-center text-xs ${isDark ? 'text-zinc-600' : 'text-zinc-400'} mb-1`}>
+        Hoshino v{Constants.expoConfig?.version ?? '0.1.0'} by Hoshi
+      </Text>
       <Text className={`text-center text-xs ${isDark ? 'text-zinc-600' : 'text-zinc-400'} mb-12`}>
-        Hoshino v1.0.0 • Offline-First Japanese Dictionary
+        Offline-First Japanese Dictionary
       </Text>
     </ScrollView>
   );

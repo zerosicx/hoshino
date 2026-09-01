@@ -11,7 +11,9 @@ import { ChevronLeft } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { getList, getListEntries, getListKanji } from "@/services/lists";
+import { useAddToList } from "@/hooks/useLists";
 import DictionaryResultRow from "@/components/DictionaryResultRow";
+import SwipeAction from "@/components/SwipeAction";
 import type { ListSummary } from "@/types/lists";
 import type { KanjiEntry, SearchResult } from "@/types/dictionary";
 
@@ -20,6 +22,7 @@ export default function ListDetailScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const readingMode = useSettingsStore((s) => s.readingMode);
+  const { remove } = useAddToList();
 
   const [list, setList] = useState<ListSummary | null>(null);
   const [entries, setEntries] = useState<SearchResult[]>([]);
@@ -47,6 +50,19 @@ export default function ListDetailScreen() {
       reload();
     }, [reload])
   );
+
+  // A JLPT list is defined by the dictionary's own jlpt_level rather than by
+  // rows anyone can delete, so there is nothing to remove a word from.
+  const removable = list?.type === "custom" || list?.type === "system";
+
+  const removeEntry = async (item: SearchResult) => {
+    if (!list) return;
+
+    const word = item.kanjiForm || item.readingForm;
+    if (!(await remove(item.id, word, list))) return;
+
+    setEntries((current) => current.filter((e) => e.id !== item.id));
+  };
 
   const header = (
     <View className="px-4 pb-3">
@@ -139,9 +155,18 @@ export default function ListDetailScreen() {
               Nothing here yet. Add words from a search result or a word page.
             </Text>
           }
-          renderItem={({ item }) => (
-            <DictionaryResultRow item={item} readingMode={readingMode} />
-          )}
+          renderItem={({ item }) =>
+            removable ? (
+              <SwipeAction
+                action="remove"
+                onTrigger={() => removeEntry(item)}
+              >
+                <DictionaryResultRow item={item} readingMode={readingMode} />
+              </SwipeAction>
+            ) : (
+              <DictionaryResultRow item={item} readingMode={readingMode} />
+            )
+          }
         />
       )}
     </View>

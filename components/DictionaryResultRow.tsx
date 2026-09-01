@@ -17,13 +17,17 @@ export default function DictionaryResultRow({
 }: DictionaryResultRowProps) {
   const router = useRouter();
 
-  const showKanji = item.kanjiForm !== item.readingForm;
+  const romaji = readingMode === "romaji";
   // The reading is what tells two spellings apart here, so it stays visible
   // under "none" — that setting hides ruby text, not this column.
-  const reading =
-    readingMode === "romaji"
-      ? kanaToRomaji(item.readingForm)
-      : item.readingForm;
+  const reading = romaji ? kanaToRomaji(item.readingForm) : item.readingForm;
+
+  // A kana word normally repeats itself here, so the column is hidden. In
+  // romaji mode it does not repeat: きれい reads "kirei", which is the whole
+  // point of the setting for someone who cannot read kana yet.
+  const showReading = romaji
+    ? Boolean(item.readingForm)
+    : item.kanjiForm !== item.readingForm;
 
   return (
     <Pressable
@@ -36,7 +40,7 @@ export default function DictionaryResultRow({
           <Text className="text-body font-semibold text-zinc-900 dark:text-zinc-50">
             {item.kanjiForm}
           </Text>
-          {showKanji && (
+          {showReading && (
             <Text className="text-footnote text-accent dark:text-accent-light">
               {reading}
             </Text>

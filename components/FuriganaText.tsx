@@ -1,7 +1,6 @@
 import { View, Text } from "react-native";
-import type { FuriganaPair } from "@/utils/furigana";
+import { rubyText, type FuriganaPair } from "@/utils/furigana";
 import type { ReadingMode } from "@/stores/settingsStore";
-import { kanaToRomaji } from "@/utils/japanese";
 
 type FuriganaSize = "sentence" | "sm" | "default" | "lg" | "xl";
 
@@ -59,11 +58,7 @@ export default function FuriganaText({
               className={`${s.furi} text-accent dark:text-accent-light text-center`}
               style={{ minHeight: s.furiMin }}
             >
-              {pair.reading
-                ? readingMode === "romaji"
-                  ? kanaToRomaji(pair.reading)
-                  : pair.reading
-                : " "}
+              {rubyText(pair, readingMode === "romaji") || " "}
             </Text>
           )}
           <Text

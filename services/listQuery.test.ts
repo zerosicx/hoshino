@@ -4,6 +4,7 @@ import { USER_SCHEMA, BUILT_IN_LISTS, MIGRATIONS } from "@/services/schema";
 import {
   LIST_ITEM_IDS_SQL,
   MOST_RECENT_LIST_SQL,
+  REMOVE_ITEM_SQL,
   customListsSql,
   jlptListsSql,
   visibleListsSql,
@@ -248,5 +249,71 @@ describe("list items", () => {
       .map((r) => (r as { entry_id: number }).entry_id);
 
     expect(ids).toEqual([20, 30, 10]);
+  });
+});
+
+describe("removing an item", () => {
+  function itemIds(listId: number): number[] {
+    return db
+      .prepare(LIST_ITEM_IDS_SQL)
+      .all(listId)
+      .map((r) => (r as { entry_id: number }).entry_id);
+  }
+
+  it("takes the word out of that list only", () => {
+    const verbs = createList("Verbs", EPOCH);
+    const food = createList("Food", EPOCH);
+    addItem(verbs, 10, EPOCH);
+    addItem(verbs, 20, EPOCH);
+    addItem(food, 10, EPOCH);
+
+    db.prepare(REMOVE_ITEM_SQL).run(verbs, 10);
+
+    expect(itemIds(verbs)).toEqual([20]);
+    // The same word in another list is untouched.
+    expect(itemIds(food)).toEqual([10]);
+  });
+
+  it("does nothing when the word is not in the list", () => {
+    const verbs = createList("Verbs", EPOCH);
+    addItem(verbs, 10, EPOCH);
+
+    const info = db.prepare(REMOVE_ITEM_SQL).run(verbs, 999);
+
+    expect(info.changes).toBe(0);
+    expect(itemIds(verbs)).toEqual([10]);
+  });
+
+  it("lets the word be added back afterwards", () => {
+    const verbs = createList("Verbs", EPOCH);
+    addItem(verbs, 10, EPOCH);
+    db.prepare(REMOVE_ITEM_SQL).run(verbs, 10);
+    addItem(verbs, 10, "2024-08-01T00:00:00.000Z");
+
+    expect(itemIds(verbs)).toEqual([10]);
+  });
+
+  it("drops the list back down the recency order", () => {
+    // Recency is derived from the newest item, so removing the only recent
+    // word must move the list below one that still has an older word.
+    seedBuiltIns();
+    const verbs = createList("Verbs", EPOCH);
+    const food = createList("Food", EPOCH);
+    addItem(verbs, 1, "2024-01-01T00:00:00.000Z");
+    addItem(food, 2, "2024-06-01T00:00:00.000Z");
+
+    expect(visibleNames().slice(0, 3)).toEqual([
+      "Searched Terms",
+      "Food",
+      "Verbs",
+    ]);
+
+    db.prepare(REMOVE_ITEM_SQL).run(food, 2);
+
+    expect(visibleNames().slice(0, 3)).toEqual([
+      "Searched Terms",
+      "Verbs",
+      "Food",
+    ]);
   });
 });

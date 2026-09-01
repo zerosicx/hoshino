@@ -3,6 +3,7 @@ import {
   alignFurigana,
   annotateSentence,
   kanjiRunReadings,
+  rubyText,
 } from "@/utils/furigana";
 
 describe("alignFurigana", () => {
@@ -63,6 +64,39 @@ describe("alignFurigana", () => {
 
   it("returns nothing for an empty word", () => {
     expect(alignFurigana("", "")).toEqual([]);
+  });
+});
+
+describe("rubyText", () => {
+  it("shows the kana reading over kanji", () => {
+    expect(rubyText({ base: "食", reading: "た" }, false)).toBe("た");
+  });
+
+  it("transliterates that reading in romaji mode", () => {
+    expect(rubyText({ base: "食", reading: "た" }, true)).toBe("ta");
+  });
+
+  it("leaves kana bare for a reader of Japanese", () => {
+    expect(rubyText({ base: "べる", reading: "" }, false)).toBe("");
+  });
+
+  // A beginner on romaji cannot read きれい any more than 綺麗.
+  it.each([
+    ["べる", "beru"],
+    ["きれい", "kirei"],
+    ["コーヒー", "koohii"],
+  ])("transliterates bare kana '%s' in romaji mode", (base, expected) => {
+    expect(rubyText({ base, reading: "" }, true)).toBe(expected);
+  });
+
+  it("leaves unreadable kanji bare rather than echoing it", () => {
+    // An unannotated kanji run has no reading to show, and repeating the kanji
+    // above itself would be noise.
+    expect(rubyText({ base: "曜", reading: "" }, true)).toBe("");
+  });
+
+  it("leaves punctuation alone", () => {
+    expect(rubyText({ base: "、", reading: "" }, true)).toBe("");
   });
 });
 

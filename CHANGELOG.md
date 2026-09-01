@@ -4,6 +4,34 @@ Notable changes to Hoshino, newest first.
 
 ## Unreleased
 
+### Removing words from lists
+
+Words could go into a list but never come out. Two ways out now, both mirroring
+how they got in: tapping an already-ticked list in the picker takes the word out
+again, and swiping a list entry left reveals a red minus that removes it. JLPT
+lists are excluded, since they are defined by the dictionary's `jlpt_level`
+rather than by rows anyone can delete.
+
+`SwipeToAdd` became `SwipeAction`, which takes an `action` of `"add"` or
+`"remove"` and derives its direction, icon and colour from that — adding pulls
+right, removing pulls left, so neither gesture can be mistaken for the other.
+
+### Romaji mode now covers kana
+
+Romaji mode only transliterated the readings above kanji. Kana was left as kana,
+which misses the point of the setting: a beginner who picked romaji cannot read
+きれい any more than 綺麗. Kana is now transliterated wherever a reading would
+normally appear — the ruby line, the search result row and the conjugation
+table, each of which had independently hidden the reading when it merely
+repeated the written word.
+
+The setting reads "Romaji (English)" rather than the tautological
+"Romaji (Romaji)".
+
+Fixing this surfaced a latent bug: `isKanaOnly` rejected the prolonged sound
+mark ー, so コーヒー did not count as kana. It counts now, which also means
+katakana words with a long vowel finally get their kana search variants.
+
 ### Dictionary rebuild: frequency ranking and mid-word kanji search
 
 Three changes that each needed the bundled database regenerated, landed in one

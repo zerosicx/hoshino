@@ -14,7 +14,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useDictionary } from "@/hooks/useDictionary";
 import { useSettingsStore } from "@/stores/settingsStore";
 import DictionaryResultRow from "@/components/DictionaryResultRow";
-import SwipeToAdd from "@/components/SwipeToAdd";
+import SwipeAction from "@/components/SwipeAction";
 import CreateListDrawer from "@/components/CreateListDrawer";
 import { useAddToList, useCreateList } from "@/hooks/useLists";
 import type { SearchResult } from "@/types/dictionary";
@@ -117,9 +117,9 @@ export default function DictionaryScreen() {
               data={results}
               keyExtractor={(item) => String(item.id)}
               renderItem={({ item }) => (
-                <SwipeToAdd onAdd={() => swipeAdd(item)}>
+                <SwipeAction action="add" onTrigger={() => swipeAdd(item)}>
                   <DictionaryResultRow item={item} readingMode={readingMode} />
-                </SwipeToAdd>
+                </SwipeAction>
               )}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"

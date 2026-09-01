@@ -304,7 +304,7 @@ hoshino/
 │   ├── BottomDrawer.tsx          # Slide-up panel shell used by the drawers
 │   ├── CreateListDrawer.tsx      # Name a new list
 │   ├── AddToListDrawer.tsx       # Pick a list for a word, or make one
-│   ├── SwipeToAdd.tsx            # Swipe a search result right to add it
+│   ├── SwipeAction.tsx          # Swipe a row right to add it, left to remove it
 │   ├── Toast.tsx                 # Bottom toast, mounted once at the root
 │   ├── RecentChip.tsx            # Recently searched word chip
 │   └── FeaturedWord.tsx          # Word of the Day / recommended word card

@@ -5,6 +5,7 @@ import {
   createList,
   getMostRecentList,
   getVisibleLists,
+  removeFromList,
 } from "@/services/lists";
 import { useToastStore } from "@/stores/toastStore";
 import type { ListSummary } from "@/types/lists";
@@ -34,10 +35,10 @@ export function useLists() {
 }
 
 /**
- * Adding a word to a list, with the toast that reports how it went.
+ * Moving a word in or out of a list, with the toast that reports how it went.
  *
  * The message names the word and the list either way, so a failure says which
- * add failed rather than just that something did.
+ * one failed rather than just that something did.
  */
 export function useAddToList() {
   const show = useToastStore((s) => s.show);
@@ -70,7 +71,24 @@ export function useAddToList() {
     [add]
   );
 
-  return { add, addToMostRecent };
+  const remove = useCallback(
+    async (entryId: number, word: string, list: ListSummary) => {
+      try {
+        await removeFromList(list.id, entryId);
+        show(`Removed ${word} from ${list.name}`);
+        return true;
+      } catch {
+        show(
+          `There was a problem removing ${word} from ${list.name}. Try again.`,
+          "error"
+        );
+        return false;
+      }
+    },
+    [show]
+  );
+
+  return { add, addToMostRecent, remove };
 }
 
 export function useCreateList() {
