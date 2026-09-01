@@ -20,7 +20,8 @@ and furigana-annotated examples.
 | 5 — Auth and sync | Not started |
 | 6 — Polish and ship | Settings done; build and store work outstanding |
 
-Study is greyed out in the tab bar until Stage 4 begins.
+Study is hidden from the tab bar until Stage 4 begins. Its routes still exist and
+resolve if navigated to directly — only the tab entry is removed.
 
 Work flows top-down through the dependency chain:
 
