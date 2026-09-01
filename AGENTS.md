@@ -127,7 +127,11 @@ Never reach across layers. Screens don't query SQLite. Components don't import s
 
 Document any deliberate deviations here so future agents don't "fix" them.
 
-- *(None yet — add exceptions as they arise)*
+- **The package name keeps the `zerosicx` handle.** `com.zerosicx.hoshino` is
+  the Android package and iOS bundle id, even though the app credits its
+  developer as "Hoshi". Deliberate, and not to be tidied up: a published package
+  name cannot be changed, and a new one is a different app with no upgrade path
+  for anyone who already installed it.
 
 ---
 
