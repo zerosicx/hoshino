@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Hoshino",
+    "name": "hoshino: jisho",
     "slug": "hoshino",
     "version": "0.1.0",
     "scheme": "hoshino",
@@ -25,7 +25,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0F0F14"
+        "backgroundColor": "#1E3366"
       },
       "package": "com.zerosicx.hoshino"
     },
@@ -47,6 +47,16 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5252a414-2b06-4e25-a716-259ed0dbabc0"
+      }
+    },
+    "owner": "zerosicx",
+    "updates": {
+      "url": "https://u.expo.dev/5252a414-2b06-4e25-a716-259ed0dbabc0"
     }
   }
 }

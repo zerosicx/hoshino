@@ -213,16 +213,42 @@ already built with theme and reading-mode preferences.
       and `Cross-Origin-Embedder-Policy: require-corp` are set by
       `metro.config.js` in dev only. Without them on the host, the user database
       loses `SharedArrayBuffer` and web breaks in production.
-- [ ] **App icons** — 1024×1024 (星 on accent), Android adaptive
-- [ ] **Splash screen** — logo mark on `--bg-primary`
-- [ ] **`eas.json`** — development, preview and production profiles for both
+- [x] **App icons** — 1024×1024 (星 on accent), Android adaptive
+- [x] **Splash screen** — logo mark on `--bg-primary`
+- [x] **`eas.json`** — development, preview and production profiles for both
       platforms
+- [x] **EAS project and updates** — `@zerosicx/hoshino`, updates served from
+      `u.expo.dev`. `preview` builds and the `preview` channel carry the beta.
+- [ ] **Android beta** — APK by internal distribution, no Play Console yet. The
+      first build is queued; installing it is what proves the embedded
+      dictionary opens on a device.
+- [ ] **Prove an over-the-air update lands.** Nothing has been published to the
+      `preview` channel yet, so the update path is configured but unexercised.
+      Worth watching the first one for download size: the dictionary is an
+      update asset, and only its hash keeps it from being re-fetched.
 - [ ] **iOS** — TestFlight via EAS, App Store Connect record
-- [ ] **Android** — internal-track APK via EAS, Play Console record
 - [ ] **Web** — `npx expo export --platform web`, deploy with the headers above
 
 **Checkpoint:** installable from TestFlight and Play internal track; the core
 loop (search → add to list → study → review) works on all three platforms.
+
+### Releasing a beta update
+
+JavaScript and assets ship over the air; anything native needs a build.
+
+```bash
+eas update --branch preview --message "added: study tab"   # JS only, ~1 min
+eas build --profile preview --platform android             # native changes
+```
+
+A build is only needed for a new native dependency, an edit to `plugins`,
+`android` or `ios` in `app.json`, an icon or display-name change, an SDK bump,
+or a dictionary rebuild. The `fingerprint` runtime version enforces this without
+being asked: native changes produce a different fingerprint, so an incompatible
+update is never offered to an older build.
+
+`eas-cli` must be 23.x or newer. 7.6.0 was installed globally and predates
+fingerprint runtime versions by about two years; `eas.json` now sets that floor.
 
 ---
 

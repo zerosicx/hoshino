@@ -4,6 +4,57 @@ Notable changes to Hoshino, newest first.
 
 ## Unreleased
 
+### Beta distribution over EAS
+
+The app is registered as `@zerosicx/hoshino` and builds an internal-distribution
+APK from the `preview` profile — a link testers install from directly, with no
+Play Console and no Apple developer account in the way.
+
+Updates are served from `u.expo.dev`, so a JavaScript change reaches testers
+with `eas update` in about a minute and applies on their next launch, with
+nothing to uninstall. Native changes still need a build, and `runtimeVersion`
+uses the `fingerprint` policy to keep the two apart: a native change alters the
+fingerprint, so an update built against different native code is never offered
+to a build that could not run it. Stage 4 is pure JavaScript, which is why the
+Study tab can ship to the beta over the air.
+
+`preview` gained `autoIncrement`, without which every beta build would be
+versionCode 1 and Android would refuse to install one over another.
+
+The globally installed `eas-cli` was 7.6.0, roughly two years older than Expo
+SDK 54 and predating fingerprint runtime versions entirely. Upgraded to 23.2.0,
+and `eas.json` now refuses anything below that rather than letting a stale CLI
+produce a subtly wrong build.
+
+One thing to watch on the first update: `assets/hoshino.db` is an update asset,
+and only its unchanged hash stops testers re-downloading 101MB. Dictionary
+rebuilds should ship as a build, not an update.
+
+### Renamed to "hoshino: jisho", credited to zerosicx
+
+The display name is now `hoshino: jisho` and the settings footer credits
+`zerosicx` rather than the earlier anonymous "Hoshi". The Android package and
+iOS bundle id stay `com.zerosicx.hoshino`, which is unrelated and unchangeable
+once published — `AGENTS.md` records the distinction so it is not "tidied up"
+later.
+
+Neither the name nor the icon can travel over the air. Both are compiled into
+the APK's manifest and resources, so they only appear in a new build.
+
+### App icon and splash
+
+The icon slots in `app.json` had always pointed at 1×1 placeholder pixels, so
+every build shipped a blank tile. They now hold the 星 mark in gold on navy.
+
+Each platform wants the artwork framed differently. iOS forbids transparency and
+applies its own squircle, so `icon.png` is cropped inside the source's rounded
+corners and runs edge to edge in navy. Android masks the foreground to an
+arbitrary shape, so `adaptive-icon.png` keeps the mark inside the centre 66%
+safe zone and lets `adaptiveIcon.backgroundColor`, now the same `#1E3366` as the
+artwork, fill the rest seamlessly. The splash pads the mark inside a larger
+transparent canvas so `resizeMode: "contain"` does not blow it up to the full
+screen width.
+
 ### Removing words from lists
 
 Words could go into a list but never come out. Two ways out now, both mirroring

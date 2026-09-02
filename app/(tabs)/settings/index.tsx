@@ -88,7 +88,7 @@ export default function SettingsScreen() {
 
       {/* Footer */}
       <Text className={`text-center text-xs ${isDark ? 'text-zinc-600' : 'text-zinc-400'} mb-1`}>
-        Hoshino v{Constants.expoConfig?.version ?? '0.1.0'} by Hoshi
+        Hoshino v{Constants.expoConfig?.version ?? '0.1.0'} by zerosicx
       </Text>
       <Text className={`text-center text-xs ${isDark ? 'text-zinc-600' : 'text-zinc-400'} mb-12`}>
         Offline-First Japanese Dictionary
