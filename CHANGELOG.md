@@ -4,6 +4,32 @@ Notable changes to Hoshino, newest first.
 
 ## Unreleased
 
+### Components can be tested
+
+Nothing rendered a component, so every UI fault had to be found by tapping
+around a build — which is how light mode shipped white text on Android, and how
+the current round of beta bugs was found. `@testing-library/react-native` now
+renders them under `jest-expo`.
+
+That means two test runners, deliberately. Vitest keeps `*.test.ts`: the pure
+functions and the SQL suites, which run in Node against `better-sqlite3` and
+finish in about a second. Migrating them to Jest would cost that speed for
+nothing, since none of them render anything. Jest takes `*.test.tsx` and the
+React Native transform pipeline that rendering needs. The split is by file
+extension so neither runner can collect the other's files, and `npm test` runs
+both.
+
+`jest-expo`'s `transformIgnorePatterns` stops at React Native and Expo, which is
+not enough here: every `className` in the app resolves through NativeWind and
+its `react-native-css-interop` runtime, both shipped as untranspiled source. The
+icon, SVG, Reanimated, gesture-handler and worklets packages are added for the
+same reason. Gesture-handler, Reanimated and AsyncStorage use the Jest mocks
+their own maintainers ship rather than hand-written stand-ins that would drift.
+
+A render is still not a device. These tests catch wiring, conditional rendering,
+handlers and theme-class logic; they draw nothing, so layout and colour faults
+survive them.
+
 ### Beta distribution over EAS
 
 The app is registered as `@zerosicx/hoshino` and builds an internal-distribution

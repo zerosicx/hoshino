@@ -37,8 +37,8 @@ database.ts → root layout → tab bar                        ✅
 
 ## How quality is checked
 
-`npm test` runs Vitest. Two suites measure behaviour rather than assert on
-mocks, and both open the real `assets/hoshino.db`:
+`npm test` runs Vitest and then Jest. Two suites measure behaviour rather than
+assert on mocks, and both open the real `assets/hoshino.db`:
 
 - **Search ranking** — `tests/benchmark.ts`, 45 queries whose expected answers
   came from jisho.org, currently 45/45. `services/searchRobustness.test.ts`
@@ -50,10 +50,14 @@ Neither can run against a small fixture: BM25 scores depend on corpus-wide
 statistics, so a cut-down database ranks differently. Both suites skip rather
 than fail when the database is absent.
 
-**Nothing renders a component.** The suite covers pure functions and database
-queries only, so anything that goes wrong in layout or colour has to be caught
-by eye — which is how light mode shipped rendering white text on Android. Check
-a real device after any theme or typography change.
+Components render under Jest, split from Vitest by file extension: Vitest owns
+`*.test.ts`, Jest owns `*.test.tsx`. Run the fast half alone with
+`npm run test:components`.
+
+**A render is not a device.** The Jest half catches wiring, conditional
+rendering, handlers and theme-class logic, but it draws nothing — so a layout or
+colour fault still passes. That is how light mode shipped rendering white text
+on Android. Check a real device after any theme or typography change.
 
 ---
 
