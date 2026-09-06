@@ -213,6 +213,11 @@ already built with theme and reading-mode preferences.
 
 - [ ] Extend settings — card direction, daily new-card limit per list, reset SRS
       progress for a list
+- [ ] **Tab bar on detail pages.** Word and kanji detail live in the root stack
+      so that back always returns to the previous screen, which hides the tab
+      bar while reading a word. Accepted for the beta; the tab bar should be
+      visible on every screen so the app can be navigated with the least
+      friction. See `BUG_TRIAGE.md`, Decision 1.
 - [ ] **COOP/COEP on production web.** `Cross-Origin-Opener-Policy: same-origin`
       and `Cross-Origin-Embedder-Policy: require-corp` are set by
       `metro.config.js` in dev only. Without them on the host, the user database

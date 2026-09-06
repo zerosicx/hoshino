@@ -31,6 +31,7 @@ Keep implementations simple and readable.
 | `DESIGN_SYSTEM.md` | Colour, spacing, typography and component tokens. Follow exactly. |
 | `ARCHITECTURE.md` | System and data-layer structure. |
 | `SRD.md` | Product requirements. |
+| `BUG_TRIAGE.md` | Root-caused beta bugs for the current version, in execution order, with status. Read before fixing a bug; mark Landed / ✅ as items progress. |
 
 ---
 
