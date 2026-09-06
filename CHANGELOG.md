@@ -1,416 +1,63 @@
 # Changelog
 
-Notable changes to Hoshino, newest first.
-
-## Unreleased
-
-### Components can be tested
-
-Nothing rendered a component, so every UI fault had to be found by tapping
-around a build — which is how light mode shipped white text on Android, and how
-the current round of beta bugs was found. `@testing-library/react-native` now
-renders them under `jest-expo`.
-
-That means two test runners, deliberately. Vitest keeps `*.test.ts`: the pure
-functions and the SQL suites, which run in Node against `better-sqlite3` and
-finish in about a second. Migrating them to Jest would cost that speed for
-nothing, since none of them render anything. Jest takes `*.test.tsx` and the
-React Native transform pipeline that rendering needs. The split is by file
-extension so neither runner can collect the other's files, and `npm test` runs
-both.
-
-`jest-expo`'s `transformIgnorePatterns` stops at React Native and Expo, which is
-not enough here: every `className` in the app resolves through NativeWind and
-its `react-native-css-interop` runtime, both shipped as untranspiled source. The
-icon, SVG, Reanimated, gesture-handler and worklets packages are added for the
-same reason. Gesture-handler, Reanimated and AsyncStorage use the Jest mocks
-their own maintainers ship rather than hand-written stand-ins that would drift.
-
-A render is still not a device. These tests catch wiring, conditional rendering,
-handlers and theme-class logic; they draw nothing, so layout and colour faults
-survive them.
-
-### Beta distribution over EAS
-
-The app is registered as `@zerosicx/hoshino` and builds an internal-distribution
-APK from the `preview` profile — a link testers install from directly, with no
-Play Console and no Apple developer account in the way.
-
-Updates are served from `u.expo.dev`, so a JavaScript change reaches testers
-with `eas update` in about a minute and applies on their next launch, with
-nothing to uninstall. Native changes still need a build, and `runtimeVersion`
-uses the `fingerprint` policy to keep the two apart: a native change alters the
-fingerprint, so an update built against different native code is never offered
-to a build that could not run it. Stage 4 is pure JavaScript, which is why the
-Study tab can ship to the beta over the air.
-
-`preview` gained `autoIncrement`, without which every beta build would be
-versionCode 1 and Android would refuse to install one over another.
-
-The globally installed `eas-cli` was 7.6.0, roughly two years older than Expo
-SDK 54 and predating fingerprint runtime versions entirely. Upgraded to 23.2.0,
-and `eas.json` now refuses anything below that rather than letting a stale CLI
-produce a subtly wrong build.
-
-One thing to watch on the first update: `assets/hoshino.db` is an update asset,
-and only its unchanged hash stops testers re-downloading 101MB. Dictionary
-rebuilds should ship as a build, not an update.
-
-### Renamed to "hoshino: jisho", credited to zerosicx
-
-The display name is now `hoshino: jisho` and the settings footer credits
-`zerosicx` rather than the earlier anonymous "Hoshi". The Android package and
-iOS bundle id stay `com.zerosicx.hoshino`, which is unrelated and unchangeable
-once published — `AGENTS.md` records the distinction so it is not "tidied up"
-later.
-
-Neither the name nor the icon can travel over the air. Both are compiled into
-the APK's manifest and resources, so they only appear in a new build.
-
-### App icon and splash
-
-The icon slots in `app.json` had always pointed at 1×1 placeholder pixels, so
-every build shipped a blank tile. They now hold the 星 mark in gold on navy.
-
-Each platform wants the artwork framed differently. iOS forbids transparency and
-applies its own squircle, so `icon.png` is cropped inside the source's rounded
-corners and runs edge to edge in navy. Android masks the foreground to an
-arbitrary shape, so `adaptive-icon.png` keeps the mark inside the centre 66%
-safe zone and lets `adaptiveIcon.backgroundColor`, now the same `#1E3366` as the
-artwork, fill the rest seamlessly. The splash pads the mark inside a larger
-transparent canvas so `resizeMode: "contain"` does not blow it up to the full
-screen width.
-
-### Removing words from lists
-
-Words could go into a list but never come out. Two ways out now, both mirroring
-how they got in: tapping an already-ticked list in the picker takes the word out
-again, and swiping a list entry left reveals a red minus that removes it. JLPT
-lists are excluded, since they are defined by the dictionary's `jlpt_level`
-rather than by rows anyone can delete.
-
-`SwipeToAdd` became `SwipeAction`, which takes an `action` of `"add"` or
-`"remove"` and derives its direction, icon and colour from that — adding pulls
-right, removing pulls left, so neither gesture can be mistaken for the other.
-
-### Romaji mode now covers kana
-
-Romaji mode only transliterated the readings above kanji. Kana was left as kana,
-which misses the point of the setting: a beginner who picked romaji cannot read
-きれい any more than 綺麗. Kana is now transliterated wherever a reading would
-normally appear — the ruby line, the search result row and the conjugation
-table, each of which had independently hidden the reading when it merely
-repeated the written word.
-
-The setting reads "Romaji (English)" rather than the tautological
-"Romaji (Romaji)".
-
-Fixing this surfaced a latent bug: `isKanaOnly` rejected the prolonged sound
-mark ー, so コーヒー did not count as kana. It counts now, which also means
-katakana words with a long vowel finally get their kana search variants.
-
-### Dictionary rebuild: frequency ranking and mid-word kanji search
-
-Three changes that each needed the bundled database regenerated, landed in one
-rebuild so the download only changes once. 98MB → 101MB.
-
-**Frequency ranking.** Entries now carry `frequency_rank`, JMdict's `nfNN` band.
-The plan was to weight it heavily as the main tie-breaker; measuring it said
-otherwise. `nfNN` is *newspaper* frequency, and everyday vocabulary often has no
-band at all — 本 and 行く carry only `ichi1`, while 書物 and 行う score nf14 and
-nf01. Treating absent as "least frequent" handed 60 points to newspaper words
-and none to the words a learner actually wants, which cost two benchmark cases.
-Absent now scores as average, and the signal is worth 12 points against
-`is_common`'s 50, so it breaks ties without deciding results.
-
-**Mid-word kanji search.** 曜 could reach 曜日 but never 水曜日, because
-`entries_fts` treats a whole Japanese word as one token and matches prefixes.
-The planned fix was a trigram index; it cannot work here, as FTS5's trigram
-tokenizer ignores queries shorter than three characters and these queries are
-one and two. Each kanji instead stores its 50 most frequent words, about 3MB
-against 19MB to index all 502k (kanji, word) pairs. Searching 曜 now returns
-曜日 first and 火曜日, 金曜日, 月曜日, 水曜日 behind it.
-
-Words starting with the query still outrank words merely containing it, so a
-kanji with many compounds of its own buries the mid-word matches: 64 words begin
-with 階, which puts 二階 at position 65.
-
-**`conjugation_class` dropped.** Null on all 217,783 rows and read by nothing;
-`utils/wordClass.ts` derives the class from sense tags at runtime.
-
-### The dictionary is no longer copied on every launch
-
-`importDatabaseFromAssetAsync` ran with `forceOverwrite: true`, so all 98MB was
-copied out of the app bundle every cold start. It cost seconds of startup and a
-second 98MB on disk, for a file that only changes when the app is updated.
-
-The copy now happens on first launch and after a dictionary rebuild, keyed on
-the asset's MD5. The marker is written only once the schema check has passed, so
-an interrupted copy or a file deleted underneath the app is re-imported next
-launch rather than trusted forever. A build whose hash cannot be read copies, on
-the grounds that slow beats stale.
-
-### Lists
-
-Words can now be collected into lists. The plus button on a word page opens a
-picker showing your lists most-recently-added-to first, with a New list option
-that creates one and adds the word in a single step. On a search result, a
-rightward swipe reveals a plus and drops the word into whichever list you used
-last; if you have no lists yet, the swipe opens the creation drawer instead of
-failing. Every add reports itself with a toast naming both the word and the
-list, and says the same on failure so it is clear which add did not happen.
-
-The main Lists screen shows starred lists first, then Searched Terms, then the
-rest by how recently they were added to. "Recently edited" is derived at read
-time from the newest item's timestamp, falling back to the creation date for an
-empty list, so it cannot fall out of step with the items the way a stored
-`updated_at` could.
-
-The ten JLPT lists live behind a JLPT section rather than filling the main
-screen, and starring one pins it alongside your own lists. They store no rows in
-`list_items`: their contents come from `jlpt_level`, which is already on both
-`entries` and `kanji`. That keeps ~9,700 rows out of the user database and means
-the kanji lists work despite `list_items` holding entry ids, which kanji do not
-have.
-
-The item counts shown for those lists are now read from the database. The
-previous screen hardcoded them, and while the five vocabulary figures were
-right, every kanji figure was wrong — N5 claimed 180 against an actual 79, and
-N1 claimed 847 against an actual 1,232.
-
-`lists` gained a `starred` column. Because `CREATE TABLE IF NOT EXISTS` leaves
-an existing database alone, a migration step adds the column to user databases
-an earlier build already created. The schema moved to `services/schema.ts` so
-tests can build the same tables in plain SQLite, which is what lets the ordering
-rules be tested against real queries rather than a reimplementation of them.
-
-### The theme setting now actually changes the theme
-
-Picking Light while the device was in Dark produced white Japanese text on a
-white background. It was only visible on Android because that device was the
-one set to dark at the OS level; the iOS simulator happened to agree with the
-app, which hid the bug.
-
-The app had two independent ideas of "dark". Every screen computed its own
-`isDark` from the settings store, and used it for inline colours and for
-conditional class strings. NativeWind resolved every `dark:` class from its own
-colour scheme, which follows the device unless told otherwise, and nothing ever
-told it. So the screen background came out light while `dark:text-zinc-50` on
-the furigana stayed near-white.
-
-`hooks/useTheme.ts` now pushes the setting into NativeWind and reads the
-resolved answer back, so the two cannot drift apart. The seven screens that
-each repeated the same two-line computation now call the hook instead.
-
-`tailwind.config.js` also sets `darkMode: "class"`. NativeWind's web runtime
-throws outright on a manual colour-scheme change while dark mode is `"media"`,
-which is the default, so web would have broken the moment the fix worked
-everywhere else.
-
-### Romaji reading mode
-
-`readingMode` was saved and had a settings toggle, but nothing read it —
-furigana showed in kana no matter which option was picked. Readings above kanji
-now follow the setting, in the hero, in example sentences and in the
-conjugation table.
-
-`kanaToRomaji` in `utils/japanese.ts` does the conversion in Hepburn: 食(た),
-きって → kitte, まっちゃ → matcha, しんゆう → shin'yuu, コーヒー → koohii.
-Search result rows follow the setting too. Their reading stays visible under
-"none" though, because there it is the thing telling two spellings apart rather
-than a ruby gloss.
-
-### Dependency ranges match what is installed
-
-`expo` was declared as `~54.0.0` and `expo-router` as `~6.0.23` while
-`node_modules` held 54.0.37 and 6.0.24, which is what produced the version
-warning on every `expo start`. `expo install --check` tightened the ranges; no
-package actually changed version.
-
-### Conjugation tables, word class, and furigana on every example
-
-Word detail now shows a full conjugation table. For 食べる that means 食べた,
-食べない, 食べなかった, 食べます, 食べました, 食べませんでした, 食べよう,
-食べられる, 食べられない and 食べようとした, grouped as plain, polite, te-form
-and conditional, potential, passive and causative, volitional and imperative,
-and desire. Verbs, i-adjectives and na-adjectives are all covered, including
-する, 来る, the 行く te-form exception, and the いい/よい split.
-
-The hero now says what kind of word it is: transitivity, and the verb class
-under both names a textbook might use — "Ichidan verb · ru-verb". Godan and
-u-verb are the same fact, so they share one badge rather than looking like two.
-
-**None of this needed the database rebuild the roadmap assumed.** The part-of-
-speech tags on `senses` already hold `Ichidan verb` and `transitive verb`, so
-`utils/wordClass.ts` reads them at runtime. `entries.conjugation_class` is
-still null on all 217,783 rows — `detectConjugationClass` looks up JMdict short
-codes like `v5r`, but `fast-xml-parser` expands the XML entities before the
-build script sees them, so the lookup never matches. That column is now simply
-unused rather than blocking.
-
-Conjugation rules only ever rewrite the okurigana at the end of a word, which
-is always kana. The same rule therefore applies unchanged to the kanji
-spelling and to the reading, so each form carries both and the reading can be
-shown alongside it.
-
-**Example sentences now carry furigana without expanding anything.** Tatoeba's
-token data records the dictionary form of each word, not how it is inflected in
-the sentence, so matching whole words only reached 78% of kanji. Matching kanji
-runs instead — 戻る tells you 戻 is もど, which is all 戻ります needs — reaches
-98.7%, with 97.1% of sentences fully annotated. Kanji with no known reading are
-left bare rather than guessed.
-
-`utils/furigana.ts` also replaces the placeholder alignment that put one
-reading over a whole word: 食べる now renders 食(た)べる rather than
-食べる(たべる).
-
-### Search finds conjugated verbs, kana and romaji — and ranks the right word first
-
-Measured against a 45-query benchmark whose expected answers were taken from
-jisho.org, search went from **16/45 to 45/45** correct top results.
-
-Two separate faults were doing the damage.
-
-**Nothing distinguished an exact match from an incidental one.** Everything went
-into one pool ordered by `rank - (is_common * 15) - jlptBonus`, where `rank` is
-FTS5's BM25 score. BM25 divides by document length, and in a dictionary the
-indexed document is the word's full set of meanings — so the more useful a word
-is, the more senses it has, and the harder BM25 punishes it. Searching 水
-returned 水曜日 ("Wednesday", one sense, 103 characters) above 水 ("water", five
-senses, 565 characters). Searching `eat` put the honorific 召し上がる above 食べる,
-losing by 0.18 of a point.
-
-Ranking is now banded, in `services/searchQuery.ts`: an exact form match scores
-above any gloss match, a gloss match scores by which sense and which gloss it
-landed in, and `is_common` and `jlpt_level` only break ties inside a band. They
-can no longer promote an unrelated entry over a real match.
-
-**Conjugated input returned nothing at all.** 食べます, 食べた, 見ました and 買わない
-each returned zero results, because the default `unicode61` tokenizer makes a
-whole Japanese word a single token and matching was prefix-anchored, so any
-change to the tail of a word stopped matching. `utils/deinflect.ts` now maps a
-conjugated form back to candidate dictionary forms. The rules are deliberately
-over-generous — 飲み yields both 飲みる and 飲む — because the dictionary itself is
-the filter, which keeps the rule table small enough to read.
-
-Also new: katakana input folds to hiragana (タベル finds 食べる), and romaji
-converts before matching (`taberu`, `tabemasu`, `arigatou`). Romaji is Hepburn
-only; accepting wapuro spellings like `ti` is what makes jisho.org answer `time`
-with 血眼 (ちめ, "bloodshot eyes").
-
-The slowest query in the suite runs in under 4ms.
-
-### Tests
-
-Vitest, run with `npm test`. The ranking benchmark opens `assets/hoshino.db`
-directly through `better-sqlite3` rather than booting Expo, and skips when the
-database is absent. It has to use the real 217k-entry dictionary: BM25 scores
-depend on corpus-wide statistics, so a small fixture would rank differently and
-prove nothing.
-
-`services/searchRobustness.test.ts` holds a second set of queries that were
-never used for tuning, so the benchmark score can be checked for overfitting.
-
-### Dictionary now works on web
-
-The dictionary could not be opened on web at all. Every query failed with
-`SQLITE_CANTOPEN` (error 14). There were two independent causes, and because
-each one masked the other, fixing either alone still failed — with a different
-error, which made every partial fix look like a wrong turn.
-
-**FTS5 was missing from expo-sqlite's WebAssembly build.** Its compile options
-list only `ENABLE_BATCH_ATOMIC_WRITE`, `ENABLE_PREUPDATE_HOOK` and
-`ENABLE_SESSION`, and the binary contains no fts5 symbols. A SQLite build
-without that module cannot read a schema declaring
-`CREATE VIRTUAL TABLE ... USING fts5`, so no amount of tuning file size, OPFS
-state or available memory would ever have helped. Web now serves the dictionary
-from `@sqlite.org/sqlite-wasm`, which ships FTS5 plus the unicode61, trigram,
-porter and ascii tokenizers. Native is untouched — expo-sqlite compiles FTS5 in
-there via `SQLITE_ENABLE_FTS5`.
-
-**The database was built in WAL mode.** WAL is recorded in the file header and
-requires a real file plus shared memory, which no browser VFS provides.
-`scripts/build-dictionary.ts` now finalises with `journal_mode = DELETE`, and a
-runtime guard rejects a WAL image with an actionable message instead of an
-opaque error code.
-
-Both failures surfaced at the *first query* rather than at open, because SQLite
-opens files lazily. That is why every step of initialisation reported success
-right up to the failure, and why step-by-step timing revealed nothing.
-
-### Dictionary cached in OPFS, off the main thread
-
-sqlite runs in a dedicated worker (`services/dictionaryWorker.ts`) so the
-dictionary can be cached in an OPFS pool. That VFS is built on
-`createSyncAccessHandle()`, which the spec only exposes inside a dedicated
-worker — on the main thread it throws.
-
-Three benefits follow: the 98MB file is downloaded once per browser rather than
-on every load; reading through a VFS keeps it out of the WASM heap, since SQLite
-pages in only what a query touches; and FTS5 searches no longer block the main
-thread.
-
-The cache is keyed by the asset's MD5 where the bundler provides it, so
-rebuilding the dictionary evicts stale copies automatically. Web dev builds have
-no asset hash and Metro's dev server sends neither ETag nor Last-Modified, so
-they fall back to keying on byte length. A rebuild landing on exactly the same
-size would go unnoticed there; clear `/hoshino-dictionary` in DevTools >
-Application > Storage if ever suspected.
-
-If OPFS is unavailable — an unsupported browser, or a second tab, which cannot
-share the pool's exclusive file handles — it falls back to an in-memory copy and
-still works.
-
-### Bundled database halved: 198MB to 98MB
-
-- `entries_fts` is now contentless, since the source columns already live in
-  `entries`
-- example sentences capped at five per entry, shortest first; Tatoeba links
-  common words to hundreds, but the UI only ever shows a handful
-- dropped a redundant index on `entry_examples`
-
-### Search accuracy
-
-Rewrote FTS5 matching to be column-aware and language-aware, and added a
-composite ranking that weights `rank` against `is_common` and `jlpt_level`, so
-everyday words outrank obscure ones. Ranking is still known to be weak — see
-`ROADMAP.md`.
-
-### Fixed
-
-- `metro.config.js` assigned `config.server` instead of extending it, silently
-  dropping six Expo and Metro defaults including `unstable_serverRoot`, the
-  value worker bundle URLs are resolved against
-- Metro's `blockList` regex `/\/scripts\/.*/` matched any path containing
-  `scripts/`, which broke `react-native-reanimated` on native; now scoped to the
-  project root
-- tab bar was clipped on web and ignored the iOS home indicator; the app is now
-  wrapped in `SafeAreaProvider` with padding derived from the real insets
-- `getDatabase()` is guarded by a shared promise, so React's dev-mode double
-  invocation of effects no longer starts the dictionary download twice
-- `import.meta.url` cannot be used to locate the worker: `babel-preset-expo`
-  rewrites it to a lookup backed by `document.currentScript`, which is null
-  outside synchronous script evaluation. Uses `window.location.href` instead.
-- the worker defines `globalThis.__ExpoImportMetaRegistry` itself, since Expo
-  installs it from the app entry's polyfills, which a worker bundle never runs
-
-### Changed
-
-- Study and Lists tabs greyed out and non-navigable while the dictionary is the
-  focus
-- `lucide-react-native` upgraded to `^1.37.0` for React 19 support
-- dropped the temporary startup diagnostics and OPFS pool inspection used to
-  chase error 14; initialisation now logs one summary line, and failures are
-  attributed to the step that produced them
-
-### Known issues
-
-- Metro's dev server logs `Cannot pipe to a closed or destroyed stream` on first
-  run. This is an unpatched bug in `expo-server@1.0.6`, whose `respond()` pipes
-  to the socket without checking the client is still connected. Upstream fixes
-  exist (expo/expo#43305, expo/expo#48660) but are not in this version. Dev-only
-  and harmless.
-- Native re-copies the 98MB dictionary on every cold start, because
-  `importDatabaseFromAssetAsync` is called with `forceOverwrite: true`. Removing
-  it naively would leave a stale dictionary after an app update, so it needs a
-  version check.
+What the app does at each version, newest first.
+
+## Format
+
+Git history documents individual changes; this file does not. A line is earned
+here only by something that changes what the app does for the person using it.
+Refactors, tests, tooling and dependency bumps live in commits alone.
+
+A version keeps accumulating lines until the version number changes, so a fix
+made after release is added to the version it was released in.
+
+```
+## v<major>.<minor>.<patch> <Adjective> <Noun>
+
+Last updated: DD/MM/YY
+Created: DD/MM/YY
+
+Changelog:
+- [FEATURE] A capability the app did not have before.
+- [BUG FIX] What was broken, and what it does now.
+- [UPDATED] How an existing feature changed.
+```
+
+Every version carries a two-word name — an adjective and a noun, picked at
+random — so a build can be referred to by something more memorable than a number.
+
+Rules for the lines:
+
+- One line each, high level, in plain language.
+- Describe the app, never the code. No file names, function names, library names
+  or internal reasoning; that is what commits and `ARCHITECTURE.md` are for.
+- `Created` is the date the version was first released, and never changes.
+- `Last updated` is the date the most recent line was added.
+- Only the three tags above. If something fits none of them, it does not belong.
+
+---
+
+## v0.1.0 Happy Fruit
+
+Last updated: 06/09/26
+Created: 03/09/26
+
+Changelog:
+
+- [FEATURE] Full Japanese-English dictionary covering 217,000 words and 13,000 kanji, working entirely offline with no account required.
+- [FEATURE] Search by kanji, kana, romaji or English and get the word you meant first.
+- [FEATURE] Search recognises conjugated verbs and adjectives, so an inflected form finds its dictionary entry.
+- [FEATURE] Word pages show meanings, part of speech, JLPT level and how common the word is.
+- [FEATURE] Full conjugation tables for verbs and both kinds of adjective, covering plain, polite, te-form, potential, passive, causative, volitional, imperative and conditional forms.
+- [FEATURE] Example sentences for a word, with readings shown above the kanji.
+- [FEATURE] Kanji pages show meanings, on and kun readings, stroke count, JLPT level and the most common words using that character.
+- [FEATURE] Ten built-in JLPT lists covering the vocabulary and kanji for levels N5 to N1.
+- [FEATURE] A Searched Terms list that collects every word looked up, counting how often each one was needed.
+- [FEATURE] Custom lists you can create, name and fill with words.
+- [FEATURE] Add a word to a list from its page, or by swiping it right in the search results.
+- [FEATURE] Remove a word from a list by swiping it left, or by tapping the list again in the picker.
+- [FEATURE] Star a list to pin it to the top of the Lists screen.
+- [FEATURE] Choose a light, dark, or device-matching theme.
+- [FEATURE] Choose whether readings appear as furigana or romaji throughout the app.
+- [FEATURE] Runs on Android, iOS and the web from one app.
+- [FEATURE] Android beta installs directly from a link and updates itself over the air.

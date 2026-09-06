@@ -27,10 +27,49 @@ Keep implementations simple and readable.
 | File | Purpose |
 |---|---|
 | `ROADMAP.md` | What is built, what is next, and known issues. Read before starting a feature; update when a stage item lands. |
-| `CHANGELOG.md` | Record of shipped changes and why. Add an entry for anything user-visible or architectural. |
+| `CHANGELOG.md` | What the app does at each version. User-facing only — see "Changelog Format" below before adding a line. |
 | `DESIGN_SYSTEM.md` | Colour, spacing, typography and component tokens. Follow exactly. |
 | `ARCHITECTURE.md` | System and data-layer structure. |
 | `SRD.md` | Product requirements. |
+
+---
+
+## Changelog Format
+
+`CHANGELOG.md` is not a record of work done. Git history already documents every
+change, and it does it better. The changelog answers one question only: what can
+someone do with this version of the app that they could not do before?
+
+So a line is earned only by something the user can see or use. Refactors, tests,
+tooling, dependency bumps, database rebuilds and internal rewrites get a commit
+and nothing more — however much effort they took.
+
+One section per version, newest first:
+
+```
+## v<major>.<minor>.<patch> <Adjective> <Noun>
+
+Last updated: DD/MM/YY
+Created: DD/MM/YY
+
+Changelog:
+- [FEATURE] A capability the app did not have before.
+- [BUG FIX] What was broken, and what it does now.
+- [UPDATED] How an existing feature changed.
+```
+
+Rules:
+
+- Only those three tags. If something fits none of them, it does not belong.
+- One line per entry, high level, in plain language.
+- Describe the app, never the code. No file names, function names, library names
+  or internal reasoning — that is what commits and `ARCHITECTURE.md` are for.
+- Every version gets a two-word name: an adjective and a noun, picked at random.
+- `Created` is the release date of that version and never changes. Update
+  `Last updated` whenever a line is added.
+- **Never open a new version section on your own.** A version stays current, and
+  keeps accumulating lines, until Hannah says to change it. A fix shipped after
+  release is added to the version it was released in.
 
 ---
 
