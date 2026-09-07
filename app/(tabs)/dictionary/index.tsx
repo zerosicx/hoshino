@@ -118,7 +118,11 @@ export default function DictionaryScreen() {
               keyExtractor={(item) => String(item.id)}
               renderItem={({ item }) => (
                 <SwipeAction action="add" onTrigger={() => swipeAdd(item)}>
-                  <DictionaryResultRow item={item} readingMode={readingMode} />
+                  <DictionaryResultRow
+                    item={item}
+                    readingMode={readingMode}
+                    onPress={() => router.push(`/word/${item.id}`)}
+                  />
                 </SwipeAction>
               )}
               showsVerticalScrollIndicator={false}
@@ -147,7 +151,7 @@ export default function DictionaryScreen() {
                     key={item.id}
                     item={item}
                     isDark={isDark}
-                    onPress={() => router.push(`/dictionary/${item.id}`)}
+                    onPress={() => router.push(`/word/${item.id}`)}
                   />
                 ))}
               </ScrollView>

@@ -15,3 +15,10 @@ jest.mock("react-native-reanimated", () =>
 jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
+
+// Metro injects the compiled CSS, which carries tailwind.config's
+// `darkMode: "class"`. Nothing compiles CSS here, so without this flag
+// `useTheme` throws the moment it sets the colour scheme.
+require("react-native-css-interop").StyleSheet.registerCompiled({
+  flags: { darkMode: "class" },
+});

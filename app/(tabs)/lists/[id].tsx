@@ -128,7 +128,7 @@ export default function ListDetailScreen() {
           contentContainerStyle={{ paddingBottom: 100 }}
           renderItem={({ item }) => (
             <Pressable
-              onPress={() => router.push(`/dictionary/kanji/${item.character}`)}
+              onPress={() => router.push(`/kanji/${item.character}`)}
               className={`flex-1 m-1 aspect-square items-center justify-center rounded-md border ${
                 isDark
                   ? "border-zinc-800 bg-zinc-900"
@@ -155,18 +155,25 @@ export default function ListDetailScreen() {
               Nothing here yet. Add words from a search result or a word page.
             </Text>
           }
-          renderItem={({ item }) =>
-            removable ? (
+          renderItem={({ item }) => {
+            const row = (
+              <DictionaryResultRow
+                item={item}
+                readingMode={readingMode}
+                onPress={() => router.push(`/word/${item.id}`)}
+              />
+            );
+            return removable ? (
               <SwipeAction
                 action="remove"
                 onTrigger={() => removeEntry(item)}
               >
-                <DictionaryResultRow item={item} readingMode={readingMode} />
+                {row}
               </SwipeAction>
             ) : (
-              <DictionaryResultRow item={item} readingMode={readingMode} />
-            )
-          }
+              row
+            );
+          }}
         />
       )}
     </View>

@@ -120,16 +120,19 @@ hoshino/
 ├── app/                          # Expo Router file-based routes
 │   ├── (tabs)/                   # Tab navigator (Dictionary, Study, Lists)
 │   │   ├── dictionary/
-│   │   │   ├── index.tsx         # Search screen
-│   │   │   ├── [id].tsx          # Word detail screen
-│   │   │   └── kanji/[char].tsx  # Kanji detail screen
+│   │   │   ├── _layout.tsx       # Stack
+│   │   │   └── index.tsx         # Search screen
 │   │   ├── study/
+│   │   │   ├── _layout.tsx       # Stack
 │   │   │   ├── index.tsx         # Study landing (stats, due CTA, active lists)
 │   │   │   └── session.tsx       # Flashcard session
 │   │   ├── lists/
+│   │   │   ├── _layout.tsx       # Stack
 │   │   │   ├── index.tsx         # All lists
 │   │   │   └── [id].tsx          # List detail / items
 │   │   └── _layout.tsx
+│   ├── word/[id].tsx             # Word detail screen (root stack, over the tabs)
+│   ├── kanji/[char].tsx          # Kanji detail screen (root stack, over the tabs)
 │   └── _layout.tsx
 ├── components/                   # Shared UI components
 ├── services/                     # Business logic (dictionary, srs, lists, stats, database)

@@ -297,7 +297,7 @@ export default function WordDetailScreen() {
               {kanjiChars.map((char) => (
                 <Pressable
                   key={char}
-                  onPress={() => router.push(`/dictionary/kanji/${char}`)}
+                  onPress={() => router.push(`/kanji/${char}`)}
                   className={`w-12 h-12 items-center justify-center rounded-md border ${isDark ? "border-zinc-700 bg-zinc-900" : "border-zinc-200 bg-zinc-50"} active:bg-accent/10`}
                 >
                   <Text

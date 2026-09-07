@@ -1,5 +1,4 @@
 import { View, Text, Pressable } from "react-native";
-import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import type { SearchResult } from "@/types/dictionary";
 import type { ReadingMode } from "@/stores/settingsStore";
@@ -9,14 +8,14 @@ import JlptBadge from "./JlptBadge";
 interface DictionaryResultRowProps {
   item: SearchResult;
   readingMode?: ReadingMode;
+  onPress: () => void;
 }
 
 export default function DictionaryResultRow({
   item,
   readingMode = "furigana",
+  onPress,
 }: DictionaryResultRowProps) {
-  const router = useRouter();
-
   const romaji = readingMode === "romaji";
   // The reading is what tells two spellings apart here, so it stays visible
   // under "none" — that setting hides ruby text, not this column.
@@ -31,7 +30,7 @@ export default function DictionaryResultRow({
 
   return (
     <Pressable
-      onPress={() => router.push(`/dictionary/${item.id}`)}
+      onPress={onPress}
       className="flex-row items-center py-3 border-b border-zinc-200 dark:border-zinc-800 active:bg-accent/5"
     >
       <View className="flex-1 mr-3">

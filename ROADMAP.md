@@ -63,6 +63,13 @@ on Android. Check a real device after any theme or typography change.
 
 ## Now
 
+### Beta bug fixes — Milestone 1 awaiting Hannah's device test
+
+The navigation restructure (B1, B2, B8, B10, B12) has landed but is untested
+on hardware. **Before anything else, Hannah runs the "After Milestone 1" steps
+in `BUG_TRIAGE.md` on the S25 Ultra and the iOS simulator, then marks each row
+✅.** Milestone 2 (three parallel workstreams) does not start until that is done.
+
 ### The database rebuild — done
 
 All three landed in one rebuild. The database is 101MB, up from 98MB.

@@ -17,18 +17,18 @@ investigators reached this independently from different bugs.
 
 | ID | Report | Verdict | Workstream | Status |
 |---|---|---|---|---|
-| B1 | Back goes to Dictionary root | Bug — navigator architecture | A | Open |
-| B2 | Tab bar hard to see | Bug — content abuts the system bar | A | Open |
+| B1 | Back goes to Dictionary root | Bug — navigator architecture | A | Landed |
+| B2 | Tab bar hard to see | Bug — content abuts the system bar | A | Landed |
 | B3 | Starred JLPT list shows 0 items | Bug — proven in SQL | B | Open |
 | B4 | Create-list drawer under keyboard | Bug — one line | D | Open |
 | B5 | Examples too far apart | Bug — unsupported NativeWind variant | C | Open |
 | B6 | Furigana misaligned on hero | Bug — proven on 980 real words | C | Open |
 | B7 | Black-and-white redesign | **Dropped from scope** — see below | — | — |
-| B8 | Random crash opening JLPT pages | Bug — symptom of B1's root cause | A + B | Open |
+| B8 | Random crash opening JLPT pages | Bug — symptom of B1's root cause | A + B | Landed (A) |
 | B9 | Startup loading state | **Deferred** — see below | — | — |
-| B10 | Kanji page keeps scrolling | Bug — symptom of B1's root cause | A | Open |
+| B10 | Kanji page keeps scrolling | Bug — symptom of B1's root cause | A | Landed |
 | B11 | Kanji as rows, not grid | Bug — flex behaviour | B | Open |
-| B12 | Old list state flashes | Bug — symptom of B1's root cause | A | Open |
+| B12 | Old list state flashes | Bug — symptom of B1's root cause | A | Landed |
 
 ---
 
@@ -60,11 +60,11 @@ Two milestones. Each ends in a build Hannah tests with the short steps under
 
 | ID | Bug | Root cause | Solution | Status |
 |---|---|---|---|---|
-| B1 | Back goes to Dictionary root from every page | No stack exists; `back()` hits `TabRouter` history whose `firstRoute` default is always Dictionary | Per-tab `Stack` layouts for tab-internal screens; word and kanji detail moved to the root stack | Open |
-| B12 | Old list flashes before new one loads | `lists/[id]` is one permanently mounted instance; `loading` only starts `true` on first mount | Fixed by the restructure — each push is a fresh instance. No hook or store change | Open |
-| B10 | Kanji page reopens mid-scroll | Same instance reused when revisiting the *same* kanji; its `ScrollView` keeps its offset. Layout is clean | Fixed by the restructure. No layout change | Open |
-| B8 | Crash opening JLPT pages (trigger half) | Reused `lists/[id]` swaps `FlatList numColumns` 5 ↔ undefined when the list type changes; RN 0.81 throws. Never on the first list after cold start — matching the report | Restructure removes the reuse; B11 (Milestone 2) removes `numColumns` entirely | Open |
-| B2 | Tab bar hard to see | `paddingBottom = max(inset, 8)` uses the system bar's height *as* the padding, so labels sit directly on the 3-button bar with no gap | `paddingBottom = inset + 8`; drop the fixed `height` so a scaled label cannot clip | Open |
+| B1 | Back goes to Dictionary root from every page | No stack exists; `back()` hits `TabRouter` history whose `firstRoute` default is always Dictionary | Per-tab `Stack` layouts for tab-internal screens; word and kanji detail moved to the root stack | Landed |
+| B12 | Old list flashes before new one loads | `lists/[id]` is one permanently mounted instance; `loading` only starts `true` on first mount | Fixed by the restructure — each push is a fresh instance. No hook or store change | Landed |
+| B10 | Kanji page reopens mid-scroll | Same instance reused when revisiting the *same* kanji; its `ScrollView` keeps its offset. Layout is clean | Fixed by the restructure. No layout change | Landed |
+| B8 | Crash opening JLPT pages (trigger half) | Reused `lists/[id]` swaps `FlatList numColumns` 5 ↔ undefined when the list type changes; RN 0.81 throws. Never on the first list after cold start — matching the report | Restructure removes the reuse; B11 (Milestone 2) removes `numColumns` entirely | Landed |
+| B2 | Tab bar hard to see | `paddingBottom = max(inset, 8)` uses the system bar's height *as* the padding, so labels sit directly on the 3-button bar with no gap | `paddingBottom = inset + 8`; drop the fixed `height` so a scaled label cannot clip | Landed |
 
 **Why this goes first and alone.** It changes how every screen mounts, and four
 bugs hinge on it. If anything regresses, it was this and nothing else.

@@ -8,7 +8,10 @@
  * extension means neither runner can pick up the other's files.
  */
 
-const { transformIgnorePatterns } = require("jest-expo/jest-preset");
+const { transform, transformIgnorePatterns } = require("jest-expo/jest-preset");
+
+// jest-expo's Babel rule matches `.js`/`.ts` only; lucide ships `.mjs`.
+const { ["\\.[jt]sx?$"]: babel, ...otherTransforms } = transform;
 
 /**
  * Packages shipped as untranspiled source, which Babel therefore has to see.
@@ -32,6 +35,7 @@ module.exports = {
   preset: "jest-expo",
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
   testMatch: ["**/*.test.tsx"],
+  transform: { ...otherTransforms, "\\.m?[jt]sx?$": babel },
   transformIgnorePatterns: [
     transformIgnorePatterns[0].replace(
       "|native-base))",

@@ -8,7 +8,8 @@ export default function TabsLayout() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'web' ? 4 : 8);
+  // Breathing room on top of the system bar, not in place of it.
+  const bottomPadding = Platform.OS === 'web' ? 4 : insets.bottom + 8;
 
   return (
     <Tabs
@@ -18,7 +19,6 @@ export default function TabsLayout() {
           backgroundColor: isDark ? '#09090B' : '#FFFFFF',
           borderTopColor: isDark ? '#27272A' : '#E4E4E7',
           borderTopWidth: 1,
-          height: 56 + bottomPadding,
           paddingBottom: bottomPadding,
           paddingTop: 6,
         },
@@ -31,14 +31,14 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="dictionary/index"
+        name="dictionary"
         options={{
           title: 'Dictionary',
           tabBarIcon: ({ color, size }) => <Search color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="lists/index"
+        name="lists"
         options={{
           title: 'Lists',
           tabBarIcon: ({ color, size }) => <Library color={color} size={size} />,
@@ -51,39 +51,9 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />,
         }}
       />
-      <Tabs.Screen
-        name="dictionary/[id]"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="dictionary/kanji/[char]"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="lists/[id]"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="lists/jlpt"
-        options={{
-          href: null,
-        }}
-      />
       {/* Hidden until Stage 4. The routes still work if navigated to directly. */}
       <Tabs.Screen
-        name="study/index"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="study/session"
+        name="study"
         options={{
           href: null,
         }}

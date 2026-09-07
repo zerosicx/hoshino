@@ -278,18 +278,21 @@ Rather than downloading data on first launch, the processed SQLite DB ships with
 hoshino/
 ├── app/                          # Expo Router file-based routes
 │   ├── (tabs)/                   # Tab navigator (3 tabs: Dictionary, Study, Lists)
-│   │   ├── dictionary/           # Search & word detail
-│   │   │   ├── index.tsx         # Search screen (recommended word, recent chips, results)
-│   │   │   ├── [id].tsx          # Word detail screen (meanings, examples, conjugations)
-│   │   │   └── kanji/[char].tsx  # Kanji detail screen
+│   │   ├── dictionary/           # Search
+│   │   │   ├── _layout.tsx       # Stack
+│   │   │   └── index.tsx         # Search screen (recommended word, recent chips, results)
 │   │   ├── study/                # Study tab
+│   │   │   ├── _layout.tsx       # Stack
 │   │   │   ├── index.tsx         # Study landing (stats banner, due CTA, active lists)
 │   │   │   └── session.tsx       # Flashcard session (card, rating bar, progress)
 │   │   ├── lists/                # Browse catalogue of all available lists
+│   │   │   ├── _layout.tsx       # Stack
 │   │   │   ├── index.tsx         # All lists (JLPT, Searched Terms, custom)
 │   │   │   └── [id].tsx          # List detail / items
 │   │   └── _layout.tsx           # Tab bar layout
-│   └── _layout.tsx               # Root layout
+│   ├── word/[id].tsx             # Word detail screen (meanings, examples, conjugations)
+│   ├── kanji/[char].tsx          # Kanji detail screen
+│   └── _layout.tsx               # Root layout (Stack: tabs, word, kanji)
 ├── components/                   # Shared UI
 │   ├── FuriganaText.tsx          # Kanji with furigana overlay (column-flex approach)
 │   ├── FlashCard.tsx             # Flippable card with gestures

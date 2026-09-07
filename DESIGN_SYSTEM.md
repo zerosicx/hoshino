@@ -339,7 +339,6 @@ Fixed to bottom, 84px total height (56px tabs + 28px safe area). Three tabs: Dic
 ```
 Tab: Dictionary
   └─ Search Home (recommended word, recent searches, results)
-      └─ Word Detail (push, back → search)
 
 Tab: Study
   └─ Study Landing (stats, due CTA, active lists)
@@ -347,12 +346,21 @@ Tab: Study
 
 Tab: Lists
   └─ Browse Catalogue (all available lists by JLPT level)
-      └─ List Detail (push, back → catalogue) [future]
+      ├─ JLPT (push, back → catalogue)
+      └─ List Detail (push, back → catalogue)
+
+Over the tabs (root stack, reachable from any surface):
+  Word Detail  (push, back → whatever pushed it)
+    └─ Kanji Detail (push, back → word detail)
 ```
+
+Word and kanji detail are pushed over the whole tab bar, so back always
+returns to the exact screen they were opened from. The tab bar is hidden while
+a detail page is open — an accepted limitation for now.
 
 ### 10.3 Navigation Patterns
 
-- **Tab switches** replace the view entirely, preserving no sub-view state
+- **Tab switches** keep each tab's own stack; returning to a tab shows where you left it
 - **Push transitions** (detail, session) overlay the parent and show a back/close button
 - **X (close)** returns to the parent tab landing, not the previous tab
 - **"Browse All"** on Study landing navigates to the Lists tab

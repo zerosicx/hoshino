@@ -61,3 +61,8 @@ Changelog:
 - [FEATURE] Choose whether readings appear as furigana or romaji throughout the app.
 - [FEATURE] Runs on Android, iOS and the web from one app.
 - [FEATURE] Android beta installs directly from a link and updates itself over the air.
+- [BUG FIX] Going back from a word, kanji or list page now returns to the screen you came from, instead of the Dictionary home.
+- [BUG FIX] Opening a list no longer briefly shows the previous list's words.
+- [BUG FIX] Reopening a kanji page starts at the top rather than where you last scrolled to.
+- [BUG FIX] Tab bar labels now sit clear of the system navigation bar and the home indicator.
+- [UPDATED] Word and kanji pages open full-screen over the tabs; the tab bar is hidden while reading one.
