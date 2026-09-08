@@ -4,12 +4,18 @@ import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/useTheme';
 
+/** Room for the icon, the label and the padding above them. */
+export const TAB_BAR_CONTENT_HEIGHT = 56;
+/** Breathing room between the labels and the system bar. */
+export const TAB_BAR_GAP = 8;
+
 export default function TabsLayout() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  // Breathing room on top of the system bar, not in place of it.
-  const bottomPadding = Platform.OS === 'web' ? 4 : insets.bottom + 8;
+  // React Navigation fixes the bar at 49 + inset unless a height is given, so
+  // padding added without one is taken out of the icon and label.
+  const bottomPadding = Platform.OS === 'web' ? 4 : insets.bottom + TAB_BAR_GAP;
 
   return (
     <Tabs
@@ -19,6 +25,7 @@ export default function TabsLayout() {
           backgroundColor: isDark ? '#09090B' : '#FFFFFF',
           borderTopColor: isDark ? '#27272A' : '#E4E4E7',
           borderTopWidth: 1,
+          height: TAB_BAR_CONTENT_HEIGHT + bottomPadding,
           paddingBottom: bottomPadding,
           paddingTop: 6,
         },

@@ -6,7 +6,7 @@ import { renderRouter, screen, act, fireEvent } from "expo-router/testing-librar
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BottomTabBar } from "@react-navigation/bottom-tabs";
 import type { NavigationState, PartialState } from "@react-navigation/native";
-import TabsLayout from "@/app/(tabs)/_layout";
+import TabsLayout, { TAB_BAR_CONTENT_HEIGHT, TAB_BAR_GAP } from "@/app/(tabs)/_layout";
 import * as DictionaryLayout from "@/app/(tabs)/dictionary/_layout";
 import * as ListsLayout from "@/app/(tabs)/lists/_layout";
 import * as StudyLayout from "@/app/(tabs)/study/_layout";
@@ -158,11 +158,13 @@ describe("navigation", () => {
 });
 
 describe("tab bar", () => {
-  it("clears the system bar by 8 and sizes from its content", () => {
+  // React Navigation sizes the bar at 49 + inset unless told otherwise, so any
+  // padding we add without a matching height is taken out of the icon and label.
+  it("clears the system bar and keeps the full content height above the padding", () => {
     open("/dictionary");
     const { descriptors, state } = screen.UNSAFE_getByType(BottomTabBar).props;
     const style = StyleSheet.flatten(descriptors[state.routes[0].key].options.tabBarStyle);
-    expect(style.paddingBottom).toBe(insets.bottom + 8);
-    expect(style.height).toBeUndefined();
+    expect(style.paddingBottom).toBe(insets.bottom + TAB_BAR_GAP);
+    expect(style.height).toBe(TAB_BAR_CONTENT_HEIGHT + style.paddingBottom);
   });
 });
