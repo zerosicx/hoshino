@@ -1,9 +1,43 @@
 /**
- * SQL for the Lists tab.
+ * SQL and row mapping for the Lists tab.
  *
  * Kept free of any database import so the queries can be run against a plain
  * SQLite file in tests. `services/lists.ts` executes them.
  */
+
+import type { JlptCounts, ListSummary, ListType } from "@/types/lists";
+
+export interface ListRow {
+  id: number;
+  name: string;
+  type: string;
+  jlpt_level: number | null;
+  starred: number;
+  created_at: string;
+  item_count: number;
+  last_activity: string;
+}
+
+/**
+ * A JLPT list has no rows in `list_items` — it is defined by the dictionary's
+ * own `jlpt_level` — so its count has to come from the dictionary too.
+ */
+export function toSummary(row: ListRow, jlpt: JlptCounts): ListSummary {
+  const level = row.jlpt_level;
+  let itemCount = row.item_count;
+  if (level !== null && row.type === "jlpt_vocab") itemCount = jlpt.vocab[level] ?? 0;
+  if (level !== null && row.type === "jlpt_kanji") itemCount = jlpt.kanji[level] ?? 0;
+
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type as ListType,
+    jlptLevel: level,
+    starred: row.starred === 1,
+    itemCount,
+    lastActivity: row.last_activity,
+  };
+}
 
 /**
  * When a list was last touched.

@@ -7,8 +7,10 @@ import {
   REMOVE_ITEM_SQL,
   customListsSql,
   jlptListsSql,
+  toSummary,
   visibleListsSql,
 } from "@/services/listQuery";
+import type { ListRow } from "@/services/listQuery";
 
 let db: Database.Database;
 
@@ -200,6 +202,42 @@ describe("the JLPT section", () => {
     star(n5.id);
 
     expect(db.prepare(jlptListsSql()).all()).toHaveLength(10);
+  });
+});
+
+describe("list summaries", () => {
+  // Real N5 counts from the bundled dictionary.
+  const counts = { vocab: { 5: 634 }, kanji: { 5: 79 } };
+
+  it("counts a JLPT list from the dictionary, not from list_items", () => {
+    seedBuiltIns();
+    const vocab = db
+      .prepare("SELECT id FROM lists WHERE name = 'JLPT N5 Vocabulary'")
+      .get() as { id: number };
+    const kanji = db
+      .prepare("SELECT id FROM lists WHERE name = 'JLPT N5 Kanji'")
+      .get() as { id: number };
+    star(vocab.id);
+    star(kanji.id);
+
+    const rows = db.prepare(visibleListsSql()).all() as ListRow[];
+    const summaries = rows.map((r) => toSummary(r, counts));
+
+    expect(summaries.find((s) => s.name === "JLPT N5 Vocabulary")?.itemCount).toBe(634);
+    expect(summaries.find((s) => s.name === "JLPT N5 Kanji")?.itemCount).toBe(79);
+  });
+
+  it("keeps the stored count for a custom list", () => {
+    seedBuiltIns();
+    const verbs = createList("Verbs", EPOCH);
+    addItem(verbs, 1, EPOCH);
+    addItem(verbs, 2, EPOCH);
+
+    const rows = db.prepare(visibleListsSql()).all() as ListRow[];
+    const summary = toSummary(rows.find((r) => r.name === "Verbs")!, counts);
+
+    expect(summary.itemCount).toBe(2);
+    expect(summary.starred).toBe(false);
   });
 });
 

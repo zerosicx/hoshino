@@ -1,5 +1,10 @@
 import { getUserDb } from "./database";
-import { getEntriesByIds, getJlptEntries, getJlptKanji } from "./dictionary";
+import {
+  getEntriesByIds,
+  getJlptCounts,
+  getJlptEntries,
+  getJlptKanji,
+} from "./dictionary";
 import {
   ADD_ITEM_SQL,
   CREATE_LIST_SQL,
@@ -11,55 +16,48 @@ import {
   SET_STARRED_SQL,
   customListsSql,
   jlptListsSql,
+  toSummary,
   visibleListsSql,
 } from "./listQuery";
-import type { ListSummary, ListType } from "@/types/lists";
+import type { ListRow } from "./listQuery";
+import type { JlptCounts, ListSummary } from "@/types/lists";
 import type { SearchResult } from "@/types/dictionary";
 
-interface ListRow {
-  id: number;
-  name: string;
-  type: string;
-  jlpt_level: number | null;
-  starred: number;
-  created_at: string;
-  item_count: number;
-  last_activity: string;
+// The dictionary is read-only, so the counts cannot change while the app runs.
+let jlptCounts: Promise<JlptCounts> | undefined;
+
+function loadJlptCounts(): Promise<JlptCounts> {
+  jlptCounts ??= getJlptCounts().catch((err) => {
+    jlptCounts = undefined;
+    throw err;
+  });
+  return jlptCounts;
 }
 
-function toSummary(row: ListRow): ListSummary {
-  return {
-    id: row.id,
-    name: row.name,
-    type: row.type as ListType,
-    jlptLevel: row.jlpt_level,
-    starred: row.starred === 1,
-    itemCount: row.item_count,
-    lastActivity: row.last_activity,
-  };
+async function summarise(rows: ListRow[]): Promise<ListSummary[]> {
+  const counts = await loadJlptCounts();
+  return rows.map((row) => toSummary(row, counts));
 }
 
 /** Lists for the main screen: starred first, then Searched Terms, then recent. */
 export async function getVisibleLists(): Promise<ListSummary[]> {
-  const rows = await getUserDb().getAllAsync<ListRow>(visibleListsSql());
-  return rows.map(toSummary);
+  return summarise(await getUserDb().getAllAsync<ListRow>(visibleListsSql()));
 }
 
 /** The ten preloaded JLPT lists, for the nested section. */
 export async function getJlptLists(): Promise<ListSummary[]> {
-  const rows = await getUserDb().getAllAsync<ListRow>(jlptListsSql());
-  return rows.map(toSummary);
+  return summarise(await getUserDb().getAllAsync<ListRow>(jlptListsSql()));
 }
 
 /** Lists a word can be added to, most recently added-to first. */
 export async function getCustomLists(): Promise<ListSummary[]> {
-  const rows = await getUserDb().getAllAsync<ListRow>(customListsSql());
-  return rows.map(toSummary);
+  return summarise(await getUserDb().getAllAsync<ListRow>(customListsSql()));
 }
 
 export async function getList(id: number): Promise<ListSummary | null> {
   const row = await getUserDb().getFirstAsync<ListRow>(LIST_BY_ID_SQL, [id]);
-  return row ? toSummary(row) : null;
+  if (!row) return null;
+  return (await summarise([row]))[0];
 }
 
 /**
@@ -70,7 +68,8 @@ export async function getList(id: number): Promise<ListSummary | null> {
  */
 export async function getMostRecentList(): Promise<ListSummary | null> {
   const row = await getUserDb().getFirstAsync<ListRow>(MOST_RECENT_LIST_SQL);
-  return row ? toSummary(row) : null;
+  if (!row) return null;
+  return (await summarise([row]))[0];
 }
 
 export async function createList(name: string): Promise<ListSummary> {

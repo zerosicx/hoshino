@@ -4,23 +4,17 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { getJlptLists, setStarred } from "@/services/lists";
-import { getJlptCounts } from "@/services/dictionary";
 import ListRow from "@/components/ListRow";
 import type { ListSummary } from "@/types/lists";
-
-type Counts = { vocab: Record<number, number>; kanji: Record<number, number> };
 
 export default function JlptListsScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const [lists, setLists] = useState<ListSummary[]>([]);
-  const [counts, setCounts] = useState<Counts | null>(null);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
-    const [rows, totals] = await Promise.all([getJlptLists(), getJlptCounts()]);
-    setLists(rows);
-    setCounts(totals);
+    setLists(await getJlptLists());
     setLoading(false);
   }, []);
 
@@ -29,12 +23,6 @@ export default function JlptListsScreen() {
       reload();
     }, [reload])
   );
-
-  const countFor = (list: ListSummary) => {
-    if (!counts || list.jlptLevel === null) return 0;
-    const table = list.type === "jlpt_kanji" ? counts.kanji : counts.vocab;
-    return table[list.jlptLevel] ?? 0;
-  };
 
   return (
     <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"} pt-14`}>
@@ -79,7 +67,6 @@ export default function JlptListsScreen() {
           renderItem={({ item }) => (
             <ListRow
               list={item}
-              count={countFor(item)}
               onPress={() => router.push(`/lists/${item.id}`)}
               onToggleStar={async () => {
                 await setStarred(item.id, !item.starred);

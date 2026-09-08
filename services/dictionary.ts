@@ -15,6 +15,7 @@ import type {
   KanjiEntry,
   SearchResult,
 } from "@/types/dictionary";
+import type { JlptCounts } from "@/types/lists";
 
 // Raw row shapes from SQLite (JSON columns are strings)
 
@@ -333,10 +334,7 @@ export async function getJlptKanji(level: number): Promise<KanjiEntry[]> {
  * Read rather than hardcoded: the counts previously written into the Lists
  * screen were right for vocabulary and wrong for every kanji level.
  */
-export async function getJlptCounts(): Promise<{
-  vocab: Record<number, number>;
-  kanji: Record<number, number>;
-}> {
+export async function getJlptCounts(): Promise<JlptCounts> {
   const db = getDictDb();
   const read = async (table: string) => {
     const rows = await db.getAllAsync<{ jlpt_level: number; n: number }>(

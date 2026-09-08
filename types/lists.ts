@@ -10,3 +10,9 @@ export interface ListSummary {
   /** Newest item's timestamp, or the creation date for an empty list. */
   lastActivity: string;
 }
+
+/** Words and kanji per JLPT level, keyed by level (5 = N5). */
+export interface JlptCounts {
+  vocab: Record<number, number>;
+  kanji: Record<number, number>;
+}

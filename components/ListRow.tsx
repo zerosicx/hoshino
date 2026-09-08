@@ -5,20 +5,13 @@ import type { ListSummary } from "@/types/lists";
 
 interface ListRowProps {
   list: ListSummary;
-  /** JLPT lists count words in the dictionary, not rows in list_items. */
-  count?: number;
   onPress: () => void;
   onToggleStar?: () => void;
 }
 
-export default function ListRow({
-  list,
-  count,
-  onPress,
-  onToggleStar,
-}: ListRowProps) {
+export default function ListRow({ list, onPress, onToggleStar }: ListRowProps) {
   const { isDark } = useTheme();
-  const total = count ?? list.itemCount;
+  const total = list.itemCount;
   const unit = list.type === "jlpt_kanji" ? "kanji" : "words";
 
   return (
