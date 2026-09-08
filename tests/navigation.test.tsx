@@ -5,8 +5,11 @@ import type { Href } from "expo-router";
 import { renderRouter, screen, act, fireEvent } from "expo-router/testing-library";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BottomTabBar } from "@react-navigation/bottom-tabs";
+import { useTheme as useNavigationTheme } from "@react-navigation/native";
 import type { NavigationState, PartialState } from "@react-navigation/native";
 import TabsLayout, { TAB_BAR_CONTENT_HEIGHT, TAB_BAR_GAP } from "@/app/(tabs)/_layout";
+import NavigationThemeProvider from "@/components/NavigationThemeProvider";
+import { useSettingsStore } from "@/stores/settingsStore";
 import * as DictionaryLayout from "@/app/(tabs)/dictionary/_layout";
 import * as ListsLayout from "@/app/(tabs)/lists/_layout";
 import * as StudyLayout from "@/app/(tabs)/study/_layout";
@@ -19,6 +22,9 @@ import Index from "@/app/index";
  */
 const Screen = () => <Text>screen</Text>;
 
+/** Reports the colour the navigator paints underneath it. */
+const Surface = () => <Text>{useNavigationTheme().colors.background}</Text>;
+
 // A 3-button Android bar reports ~48dp; the S25 Ultra is the reporting device.
 const insets = { top: 0, left: 0, right: 0, bottom: 48 };
 
@@ -27,7 +33,9 @@ function RootLayout() {
     <SafeAreaProvider
       initialMetrics={{ frame: { x: 0, y: 0, width: 400, height: 800 }, insets }}
     >
-      <Stack screenOptions={{ headerShown: false }} />
+      <NavigationThemeProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </NavigationThemeProvider>
     </SafeAreaProvider>
   );
 }
@@ -37,7 +45,7 @@ const routes = {
   index: Index,
   "(tabs)/_layout": TabsLayout,
   "(tabs)/dictionary/_layout": DictionaryLayout,
-  "(tabs)/dictionary/index": Screen,
+  "(tabs)/dictionary/index": Surface,
   "(tabs)/lists/_layout": ListsLayout,
   "(tabs)/lists/index": Screen,
   "(tabs)/lists/[id]": Screen,
@@ -154,6 +162,30 @@ describe("navigation", () => {
     fireEvent.press(screen.getByText("Lists"));
     expect(screen).toHavePathname("/lists/5");
     expect(listsStack()).toEqual(["index", "[id]"]);
+  });
+});
+
+// Expo Router otherwise paints every navigator with React Navigation's light
+// theme, whose #F2F2F2 showed through as a flash on each transition.
+describe("navigator surface", () => {
+  // Block bodies: the persisted store's setState returns a promise, and an
+  // expression-bodied callback would turn act() async and skip the flush.
+  const setTheme = (themeMode: "system" | "dark") =>
+    act(() => {
+      useSettingsStore.setState({ themeMode });
+    });
+
+  afterEach(() => setTheme("system"));
+
+  it("matches the app background in light mode", () => {
+    open("/dictionary");
+    expect(screen.getByText("#FFFFFF")).toBeTruthy();
+  });
+
+  it("matches the app background in dark mode", () => {
+    open("/dictionary");
+    setTheme("dark");
+    expect(screen.getByText("#09090B")).toBeTruthy();
   });
 });
 

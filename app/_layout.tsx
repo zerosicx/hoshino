@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { getDatabase } from '@/services/database';
 import { useTheme } from '@/hooks/useTheme';
+import NavigationThemeProvider from '@/components/NavigationThemeProvider';
 import Toast from '@/components/Toast';
 import '../global.css';
 
@@ -53,7 +54,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <Stack screenOptions={{ headerShown: false }} />
+        <NavigationThemeProvider>
+          <Stack screenOptions={{ headerShown: false }} />
+        </NavigationThemeProvider>
         <Toast />
         <StatusBar style="auto" />
       </SafeAreaProvider>
