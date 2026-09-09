@@ -69,3 +69,4 @@ Changelog:
 - [BUG FIX] Moving between screens no longer flashes a light frame or a loading spinner; each page arrives with its frame already drawn.
 - [UPDATED] Word and kanji pages open full-screen over the tabs; the tab bar is hidden while reading one.
 - [UPDATED] Pages slide in from the right on Android as they do on iOS.
+- [UPDATED] New app icon: a gold star on navy, with 日本語 and 辞書.
