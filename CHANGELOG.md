@@ -39,7 +39,7 @@ Rules for the lines:
 
 ## v0.1.0 Happy Fruit
 
-Last updated: 08/09/26
+Last updated: 09/09/26
 Created: 03/09/26
 
 Changelog:
@@ -69,3 +69,4 @@ Changelog:
 - [BUG FIX] Moving between screens no longer flashes a light frame or a loading spinner; each page arrives with its frame already drawn.
 - [UPDATED] Word and kanji pages open full-screen over the tabs; the tab bar is hidden while reading one.
 - [UPDATED] Pages slide in from the right on Android as they do on iOS.
+- [BUG FIX] On iOS, a page no longer turns blank as it slides away when you go back.

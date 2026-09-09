@@ -30,6 +30,7 @@ investigators reached this independently from different bugs.
 | B11 | Kanji as rows, not grid | Bug — flex behaviour | B | Open |
 | B12 | Old list state flashes | Bug — symptom of B1's root cause | A | Landed |
 | B13 | Every transition flashes | Bug — found testing M1; three causes | A′ | Landed |
+| B14 | iOS: popped page goes white as it slides out | Regression from B13(c); iOS-only | A′ | Landed |
 
 ---
 
@@ -79,6 +80,7 @@ things. Fixed before Milestone 2 because they set the feel of every screen.
 |---|---|---|---|---|
 | B2 | Tab bar labels cut in half | M1 removed our `height` but React Navigation then sizes the bar at `49 + inset` regardless, so our `inset + 8` padding was taken out of the 49 — 35dp for a 24dp icon and a label | Explicit `height = 56 + paddingBottom`. Padding is added *on top of* the content, never out of it | Landed |
 | B3 | Started JLPT list shows "0 words" | As below — pulled forward because Hannah hit it | Service fills `itemCount` for JLPT rows; `count` prop and `jlpt.tsx` override deleted | Landed |
+| B14 | iOS: popped page turns white as it slides away | (c) below asked iOS for `slide_from_right`, which it already does natively; naming it swaps UIKit's transition for react-native-screens' custom animator, which loses the popped screen's content | Animation chosen per platform: Android `slide_from_right`, iOS/web `default` | Landed |
 | B13 | Flash on every push and pop | Three stacked causes: (a) Expo Router gives every navigator React Navigation's *light* theme, so `#F2F2F2` shows under each screen until its own background paints — a bright frame in dark mode; (b) detail screens rendered a centred spinner then swapped to content, which M1's fresh-mount-per-visit made visible on every navigation; (c) Android's default stack animation is the short system activity transition, which exposes the first paint | (a) `NavigationThemeProvider` with the app's surface colours around the root stack; (b) detail screens paint their frame — background and Back — on the first frame and fill the body in, no spinner; (c) `slide_from_right` on every stack via one shared `stackScreenOptions` | Landed |
 
 ### Milestone 2 — Parallel sweep (Workstreams B, C, D — three agents, disjoint files)
@@ -193,6 +195,8 @@ Each step is one thing to tap and one thing to look for.
 | B13 | Dark mode: Lists → JLPT → N1 Kanji → any kanji → back → back → back | No light frame at any point |
 | B13 | Any list, word or kanji page | Back button is there immediately; no centred spinner; content fills in under it |
 | B13 | Push and pop anywhere on Android | Screen slides in from the right and out to the right, every time |
+| B14 | iOS simulator: open a word, then a kanji from it; back, back | Each page slides away with its content still on it — never a blank white page |
+| B14 | iOS simulator: swipe from the left edge on a word page | Interactive back gesture works and follows the finger |
 
 **After Milestone 2**
 
@@ -356,9 +360,32 @@ text on `loading`.
 
 **(c) The transition itself.** Android's `default` native-stack animation is
 the system activity transition, which is short and lets the incoming screen's
-first paint show. `constants/navigation.ts` exports one `stackScreenOptions`
-with `animation: 'slide_from_right'`, used by the root stack and all three tab
-stacks, so iOS and Android push the same way.
+first paint show. `constants/navigation.ts` exports one `stackScreenOptions`,
+used by the root stack and all three tab stacks.
+
+**Correction after iOS testing (B14).** The first pass set
+`animation: 'slide_from_right'` on *both* platforms, and on the iOS simulator
+every pop then showed a blank white page sliding away. iOS already slides from
+the right natively; naming the animation is not a no-op there:
+
+```525:528:node_modules/react-native-screens/ios/RNSScreenStackAnimator.mm
++ (BOOL)isCustomAnimation:(RNSScreenStackAnimation)animation
+{
+  return (animation != RNSScreenStackAnimationFlip && animation != RNSScreenStackAnimationDefault);
+}
+```
+
+Anything but `default`/`flip` swaps UIKit's `UINavigationController` transition
+for react-native-screens' own `RNSScreenStackAnimator`. On a JS-initiated pop,
+React unmounts the screen's content before the animation runs; RNS covers that
+by snapshotting the view at unmount (`RNSScreenStack.mm`
+`unmountChildComponentView` → `setViewToSnapshot`), and under the native
+transition that snapshot is what slides out. Under the custom animator the
+content is lost and the bare screen background slides out instead. The
+animation is now chosen per platform — `stackAnimation('android')` is
+`slide_from_right`, everything else is `default` — so iOS keeps UIKit's
+transition and its interactive swipe-back, and Android keeps the deliberate
+slide that (c) was for.
 
 ### B4 — Drawer under the keyboard
 

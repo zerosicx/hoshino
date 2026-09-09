@@ -1,12 +1,23 @@
 import type { ComponentProps } from "react";
+import { Platform } from "react-native";
 import type { Stack } from "expo-router";
 
+type StackOptions = ComponentProps<typeof Stack>["screenOptions"];
+type StackAnimation = "default" | "slide_from_right";
+
 /**
- * Shared by every stack. Screens draw their own headers, and the push slides
- * in from the right on both platforms: Android's default is the system
- * activity transition, short enough to expose the incoming screen's first paint.
+ * Android's default stack animation is the short system activity transition,
+ * which exposes the incoming screen's first paint, so it gets a deliberate
+ * slide. iOS already slides natively; naming the animation there would swap
+ * UIKit's transition for react-native-screens' custom animator, which drops the
+ * popped screen's content and shows a blank page as it slides out.
  */
-export const stackScreenOptions: ComponentProps<typeof Stack>["screenOptions"] = {
+export function stackAnimation(os: typeof Platform.OS): StackAnimation {
+  return os === "android" ? "slide_from_right" : "default";
+}
+
+/** Shared by every stack. Screens draw their own headers. */
+export const stackScreenOptions: StackOptions = {
   headerShown: false,
-  animation: "slide_from_right",
+  animation: stackAnimation(Platform.OS),
 };
