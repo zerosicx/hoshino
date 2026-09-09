@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { stackScreenOptions } from '@/constants/navigation';
 import { getDatabase } from '@/services/database';
 import { useTheme } from '@/hooks/useTheme';
 import NavigationThemeProvider from '@/components/NavigationThemeProvider';
@@ -55,7 +56,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <NavigationThemeProvider>
-          <Stack screenOptions={{ headerShown: false }} />
+          <Stack screenOptions={stackScreenOptions} />
         </NavigationThemeProvider>
         <Toast />
         <StatusBar style="auto" />

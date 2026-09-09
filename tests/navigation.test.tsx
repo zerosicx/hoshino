@@ -5,10 +5,12 @@ import type { Href } from "expo-router";
 import { renderRouter, screen, act, fireEvent } from "expo-router/testing-library";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BottomTabBar } from "@react-navigation/bottom-tabs";
+import { NativeStackView } from "@react-navigation/native-stack";
 import { useTheme as useNavigationTheme } from "@react-navigation/native";
 import type { NavigationState, PartialState } from "@react-navigation/native";
 import TabsLayout, { TAB_BAR_CONTENT_HEIGHT, TAB_BAR_GAP } from "@/app/(tabs)/_layout";
 import NavigationThemeProvider from "@/components/NavigationThemeProvider";
+import { stackScreenOptions } from "@/constants/navigation";
 import { useSettingsStore } from "@/stores/settingsStore";
 import * as DictionaryLayout from "@/app/(tabs)/dictionary/_layout";
 import * as ListsLayout from "@/app/(tabs)/lists/_layout";
@@ -34,7 +36,7 @@ function RootLayout() {
       initialMetrics={{ frame: { x: 0, y: 0, width: 400, height: 800 }, insets }}
     >
       <NavigationThemeProvider>
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack screenOptions={stackScreenOptions} />
       </NavigationThemeProvider>
     </SafeAreaProvider>
   );
@@ -186,6 +188,22 @@ describe("navigator surface", () => {
     open("/dictionary");
     setTheme("dark");
     expect(screen.getByText("#09090B")).toBeTruthy();
+  });
+});
+
+// Android's default is the system activity transition, which is short enough
+// to expose the incoming screen's first paint. One deliberate push everywhere.
+describe("stack transitions", () => {
+  it("slide in from the right on every stack", () => {
+    open("/lists");
+    push("/lists/5");
+    push("/word/1");
+
+    for (const stack of screen.UNSAFE_getAllByType(NativeStackView)) {
+      const { descriptors, state } = stack.props;
+      const { options } = descriptors[state.routes[state.index].key];
+      expect(options.animation).toBe("slide_from_right");
+    }
   });
 });
 
