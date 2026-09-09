@@ -63,15 +63,23 @@ on Android. Check a real device after any theme or typography change.
 
 ## Now
 
-### Beta bug fixes — Milestone 1′ awaiting Hannah's device test
+### Beta bug fixes — Milestones 1 and 1′ verified on the S25; Milestone 2 next
 
-Milestone 1 (the navigation restructure) is on the S25: back navigation is
-confirmed ✅. Testing it surfaced three more things, fixed as Milestone 1′ —
-tab bar labels clipped, JLPT lists reading "0 words" on the Lists screen, and
-a flash on every transition (three causes; see B13 in `BUG_TRIAGE.md`).
-**Before anything else, Hannah runs the "After Milestone 1′" steps in
-`BUG_TRIAGE.md` in both themes, then marks each row ✅.** Milestone 2 does not
-start until the app feels right; B3 has already left it.
+Milestone 1 (the navigation restructure) and 1′ (tab bar height, JLPT counts,
+the three-cause transition flash) are confirmed on the S25 in a development
+build ✅. The one thing that looked like a regression — the popped page
+sliding away white — turned out to be an Expo Go artefact (B14 in
+`BUG_TRIAGE.md`) and does not exist in a real build.
+
+**Parked, not forgotten:** the push into a word or kanji page is not perfectly
+smooth on the S25 — the perf monitor shows a dip and "2+ stutters" on
+navigation, in a dev build on an adaptive-refresh screen. The likely cause is
+the page body (hundreds of furigana and conjugation views) mounting mid-slide;
+the candidate fix is to hold the body and the search-history write until the
+navigator's `transitionEnd`. Judge it again on a release build before spending
+on it.
+
+Next: Milestone 2 — B4, B5, B6, B11 and B8's layout half, in parallel.
 
 ### The database rebuild — done
 
@@ -253,22 +261,29 @@ loop (search → add to list → study → review) works on all three platforms.
 
 ### Running locally
 
-The dev loop is Expo Go pinned to SDK 54. The store version only ever carries
-the newest SDK, so it stops opening this project every time Expo ships; the
-SDK 54 build stays downloadable from expo.dev/go and the project has no custom
-native code that would rule it out.
+Two loops, one per platform.
 
-```bash
-npx expo start --go      # press i for the simulator, scan for the S25
-```
+- **S25 Ultra — a development build, not Expo Go.** Expo Go's own build of
+  react-native-screens shows Android transition faults that a project build
+  does not have (B14), so it cannot be trusted to judge how the app feels.
+  Build the dev client once with `eas build --profile development --platform
+  android`, install the APK from the build page (it replaces the beta — same
+  package name, same signing key), then:
 
-`--go` is required: `expo-dev-client` is installed, so without the flag
-`expo start` targets a dev build that does not exist.
+  ```bash
+  npx expo start          # open the hoshino: jisho dev launcher on the phone
+  ```
 
-- **iOS simulator** — Expo CLI installs the matching Expo Go itself.
-- **S25 Ultra** — sideload the SDK 54 APK from expo.dev/go after uninstalling
-  the store copy (Android will not downgrade in place), and switch off
-  auto-update for it in the Play Store.
+  Rebuild it only when native code changes — a new library, an SDK bump, an
+  icon or splash change.
+
+- **iOS simulator — Expo Go pinned to SDK 54.** Expo CLI installs the matching
+  Expo Go itself; the store version carries only the newest SDK.
+
+  ```bash
+  npx expo start --go     # press i
+  ```
+
 - **Local native builds** (`npx expo run:ios`) need the simulator runtime that
   matches the installed Xcode; `xcodebuild -downloadPlatform iOS` fetches it.
   There is no Android toolchain on this machine, so Android native builds go
