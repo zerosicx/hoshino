@@ -17,9 +17,9 @@ investigators reached this independently from different bugs.
 
 | ID | Report | Verdict | Workstream | Status |
 |---|---|---|---|---|
-| B1 | Back goes to Dictionary root | Bug — navigator architecture | A | Landed |
-| B2 | Tab bar hard to see | Bug — content abuts the system bar | A | Landed |
-| B3 | Starred JLPT list shows 0 items | Bug — proven in SQL | B | Open |
+| B1 | Back goes to Dictionary root | Bug — navigator architecture | A | ✅ |
+| B2 | Tab bar hard to see | Bug — content abuts the system bar | A | Landed (second pass) |
+| B3 | Starred JLPT list shows 0 items | Bug — proven in SQL | A′ | Landed |
 | B4 | Create-list drawer under keyboard | Bug — one line | D | Open |
 | B5 | Examples too far apart | Bug — unsupported NativeWind variant | C | Open |
 | B6 | Furigana misaligned on hero | Bug — proven on 980 real words | C | Open |
@@ -29,6 +29,7 @@ investigators reached this independently from different bugs.
 | B10 | Kanji page keeps scrolling | Bug — symptom of B1's root cause | A | Landed |
 | B11 | Kanji as rows, not grid | Bug — flex behaviour | B | Open |
 | B12 | Old list state flashes | Bug — symptom of B1's root cause | A | Landed |
+| B13 | Every transition flashes | Bug — found testing M1; three causes | A′ | Landed |
 
 ---
 
@@ -64,10 +65,21 @@ Two milestones. Each ends in a build Hannah tests with the short steps under
 | B12 | Old list flashes before new one loads | `lists/[id]` is one permanently mounted instance; `loading` only starts `true` on first mount | Fixed by the restructure — each push is a fresh instance. No hook or store change | Landed |
 | B10 | Kanji page reopens mid-scroll | Same instance reused when revisiting the *same* kanji; its `ScrollView` keeps its offset. Layout is clean | Fixed by the restructure. No layout change | Landed |
 | B8 | Crash opening JLPT pages (trigger half) | Reused `lists/[id]` swaps `FlatList numColumns` 5 ↔ undefined when the list type changes; RN 0.81 throws. Never on the first list after cold start — matching the report | Restructure removes the reuse; B11 (Milestone 2) removes `numColumns` entirely | Landed |
-| B2 | Tab bar hard to see | `paddingBottom = max(inset, 8)` uses the system bar's height *as* the padding, so labels sit directly on the 3-button bar with no gap | `paddingBottom = inset + 8`; drop the fixed `height` so a scaled label cannot clip | Landed |
+| B2 | Tab bar hard to see | `paddingBottom = max(inset, 8)` uses the system bar's height *as* the padding, so labels sit directly on the 3-button bar with no gap | `paddingBottom = inset + 8`; drop the fixed `height` so a scaled label cannot clip — *dropping the height was wrong; reversed in Milestone 1′* | Landed |
 
 **Why this goes first and alone.** It changes how every screen mounts, and four
 bugs hinge on it. If anything regresses, it was this and nothing else.
+
+### Milestone 1′ — What device testing of M1 turned up (one agent, one commit each)
+
+Hannah's first pass on the S25 (Expo Go, SDK 54) confirmed B1 and found three
+things. Fixed before Milestone 2 because they set the feel of every screen.
+
+| ID | Bug | Root cause | Solution | Status |
+|---|---|---|---|---|
+| B2 | Tab bar labels cut in half | M1 removed our `height` but React Navigation then sizes the bar at `49 + inset` regardless, so our `inset + 8` padding was taken out of the 49 — 35dp for a 24dp icon and a label | Explicit `height = 56 + paddingBottom`. Padding is added *on top of* the content, never out of it | Landed |
+| B3 | Started JLPT list shows "0 words" | As below — pulled forward because Hannah hit it | Service fills `itemCount` for JLPT rows; `count` prop and `jlpt.tsx` override deleted | Landed |
+| B13 | Flash on every push and pop | Three stacked causes: (a) Expo Router gives every navigator React Navigation's *light* theme, so `#F2F2F2` shows under each screen until its own background paints — a bright frame in dark mode; (b) detail screens rendered a centred spinner then swapped to content, which M1's fresh-mount-per-visit made visible on every navigation; (c) Android's default stack animation is the short system activity transition, which exposes the first paint | (a) `NavigationThemeProvider` with the app's surface colours around the root stack; (b) detail screens paint their frame — background and Back — on the first frame and fill the body in, no spinner; (c) `slide_from_right` on every stack via one shared `stackScreenOptions` | Landed |
 
 ### Milestone 2 — Parallel sweep (Workstreams B, C, D — three agents, disjoint files)
 
@@ -75,7 +87,7 @@ bugs hinge on it. If anything regresses, it was this and nothing else.
 
 | ID | Bug | Root cause | Solution | Status |
 |---|---|---|---|---|
-| B3 | Starred JLPT list shows 0 items | `item_count` counts `list_items` rows, which JLPT lists never have by design. The JLPT page hides this with a per-screen override; the main Lists screen does not | Fill `itemCount` for JLPT rows in the service layer from the existing `getJlptCounts()`. Delete the per-screen workaround | Open |
+| B3 | Starred JLPT list shows 0 items | Pulled forward into Milestone 1′ | — | Landed |
 | B11 | Kanji cells grow on a short last row | Each cell is `flex-1` in a 5-column row; 1232 mod 5 = 2, so the last two share the full width. Bordered cards also contradict the design system's flat rows | New `KanjiResultRow` mirroring `DictionaryResultRow`; single-column `FlatList`. Also closes B8 permanently | Open |
 | B8 | Crash (fix half) | See Milestone 1 | With B11 landed there is no `numColumns` to change | Open |
 
@@ -172,11 +184,20 @@ Each step is one thing to tap and one thing to look for.
 | B2 | Look at the tab bar on the S25 and the iOS simulator | Clear gap between the labels and the system buttons / home indicator |
 | — | On a word page, tap the Dictionary tab area — there is none | Confirms the accepted limitation looks acceptable |
 
+**After Milestone 1′** (Expo Go, both themes)
+
+| Bug | Steps | Pass when |
+|---|---|---|
+| B2 | Look at the tab bar, light and dark | Whole labels visible, clear gap above the 3-button bar |
+| B3 | Lists → JLPT → star N5 Vocabulary → back | Main Lists row says 634 words, same as the JLPT screen |
+| B13 | Dark mode: Lists → JLPT → N1 Kanji → any kanji → back → back → back | No light frame at any point |
+| B13 | Any list, word or kanji page | Back button is there immediately; no centred spinner; content fills in under it |
+| B13 | Push and pop anywhere on Android | Screen slides in from the right and out to the right, every time |
+
 **After Milestone 2**
 
 | Bug | Steps | Pass when |
 |---|---|---|
-| B3 | Lists → JLPT → star N5 Kanji → back | Starred row says 79 kanji, not 0 |
 | B11 | Lists → JLPT → N1 Kanji | Rows, all the same height, scroll to the bottom |
 | B6 | Search 痛い, 可愛い, 五つ, 言い訳, 疑う | Reading sits over the kanji only; い / つ / け have nothing above them |
 | B6 | Settings → Romaji, repeat | Same alignment with romaji |
@@ -254,9 +275,33 @@ earlier "tiny inset" hypothesis would have applied to a gesture-nav Samsung
 with the hint bar off; it does not apply to this device.
 
 Fix: `paddingBottom = insets.bottom + 8` (web keeps 4, it has no inset).
-Remove the fixed `height: 56` so the bar sizes from its content and a scaled
-label cannot clip. React Navigation's own default is `49 + insets.bottom`; our
-`tabBarStyle` overrides it entirely, so we own the maths.
+
+**Correction after device testing.** The first pass also removed the fixed
+`height` on the claim that "our `tabBarStyle` overrides React Navigation
+entirely, so we own the maths." That was wrong. `tabBarStyle` is spread last,
+but the bar's *height* is computed separately:
+
+```140:150:node_modules/@react-navigation/bottom-tabs/src/views/BottomTabBar.tsx
+  if (typeof customHeight === 'number') {
+    return customHeight;
+  }
+
+  const inset = insets[tabBarPosition === 'top' ? 'top' : 'bottom'];
+
+  if (isCompact({ state, descriptors, dimensions })) {
+    return TABBAR_HEIGHT_UIKIT_COMPACT + inset;
+  }
+
+  return TABBAR_HEIGHT_UIKIT + inset;
+```
+
+With no height of our own the bar was `49 + 48 = 97dp`, our padding was
+`48 + 8 + 6 = 62dp`, and the icon and label had 35dp — so the label was cut in
+half. More padding would have made it worse. The fix is the opposite of the
+first pass: `height = TAB_BAR_CONTENT_HEIGHT (56) + paddingBottom`, so padding
+is added on top of the content instead of eating into it. Both constants are
+exported from the layout and asserted by the Jest test, so the relationship
+cannot silently break again.
 
 ### B3 — Starred JLPT list shows 0
 
@@ -281,6 +326,39 @@ files (and on web the dictionary is a WASM worker). It belongs in
 expo-sqlite — that file's stated purpose. Then delete the workaround in
 `jlpt.tsx` and the `count` prop on `ListRow`. Real counts from the database:
 vocab 634 / 602 / 1613 / 1682 / 3014; kanji 79 / 166 / 367 / 367 / 1232.
+
+### B13 — Every transition flashes
+
+Reported by Hannah after testing M1: "extremely clear and noticeable" flashing
+between lists, back, and detail pages. Three independent causes, all fixed.
+
+**(a) The navigator's own colour.** Expo Router's container defaults to
+React Navigation's light theme and nothing in the app overrode it:
+
+```33:33:node_modules/expo-router/build/fork/NavigationContainer.js
+function NavigationContainerInner({ direction = react_native_1.I18nManager.getConstants().isRTL ? 'rtl' : 'ltr', theme = native_1.DefaultTheme, linking, fallback = null, documentTitle, onReady, onStateChange, ...rest }, ref) {
+```
+
+So every stack card and tab scene was `#F2F2F2` until the screen's own
+`bg-zinc-950` / `bg-white` View painted over it. In dark mode that is a bright
+frame on every push and pop. `components/NavigationThemeProvider.tsx` wraps
+the root stack in a theme whose `background` and `card` are the app's surface
+tokens, following `isDark` from `useTheme`. One place, all navigators.
+
+**(b) Spinner then content.** `lists/[id]`, `word/[id]` and `kanji/[char]`
+each returned a centred `ActivityIndicator` while loading, then swapped to the
+full layout. Before M1 the reused screen instance hid this on revisits; after
+M1 every push is a fresh mount, so the swap showed on every navigation. Local
+SQLite reads finish in tens of milliseconds — too fast for a spinner to be
+anything but a flash. Each screen now paints its frame (background, Back,
+title once known) immediately and gates only the body and the empty / not-found
+text on `loading`.
+
+**(c) The transition itself.** Android's `default` native-stack animation is
+the system activity transition, which is short and lets the incoming screen's
+first paint show. `constants/navigation.ts` exports one `stackScreenOptions`
+with `animation: 'slide_from_right'`, used by the root stack and all three tab
+stacks, so iOS and Android push the same way.
 
 ### B4 — Drawer under the keyboard
 

@@ -63,12 +63,15 @@ on Android. Check a real device after any theme or typography change.
 
 ## Now
 
-### Beta bug fixes — Milestone 1 awaiting Hannah's device test
+### Beta bug fixes — Milestone 1′ awaiting Hannah's device test
 
-The navigation restructure (B1, B2, B8, B10, B12) has landed but is untested
-on hardware. **Before anything else, Hannah runs the "After Milestone 1" steps
-in `BUG_TRIAGE.md` on the S25 Ultra and the iOS simulator, then marks each row
-✅.** Milestone 2 (three parallel workstreams) does not start until that is done.
+Milestone 1 (the navigation restructure) is on the S25: back navigation is
+confirmed ✅. Testing it surfaced three more things, fixed as Milestone 1′ —
+tab bar labels clipped, JLPT lists reading "0 words" on the Lists screen, and
+a flash on every transition (three causes; see B13 in `BUG_TRIAGE.md`).
+**Before anything else, Hannah runs the "After Milestone 1′" steps in
+`BUG_TRIAGE.md` in both themes, then marks each row ✅.** Milestone 2 does not
+start until the app feels right; B3 has already left it.
 
 ### The database rebuild — done
 
@@ -247,6 +250,29 @@ already built with theme and reading-mode preferences.
 
 **Checkpoint:** installable from TestFlight and Play internal track; the core
 loop (search → add to list → study → review) works on all three platforms.
+
+### Running locally
+
+The dev loop is Expo Go pinned to SDK 54. The store version only ever carries
+the newest SDK, so it stops opening this project every time Expo ships; the
+SDK 54 build stays downloadable from expo.dev/go and the project has no custom
+native code that would rule it out.
+
+```bash
+npx expo start --go      # press i for the simulator, scan for the S25
+```
+
+`--go` is required: `expo-dev-client` is installed, so without the flag
+`expo start` targets a dev build that does not exist.
+
+- **iOS simulator** — Expo CLI installs the matching Expo Go itself.
+- **S25 Ultra** — sideload the SDK 54 APK from expo.dev/go after uninstalling
+  the store copy (Android will not downgrade in place), and switch off
+  auto-update for it in the Play Store.
+- **Local native builds** (`npx expo run:ios`) need the simulator runtime that
+  matches the installed Xcode; `xcodebuild -downloadPlatform iOS` fetches it.
+  There is no Android toolchain on this machine, so Android native builds go
+  through EAS.
 
 ### Releasing a beta update
 
