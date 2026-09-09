@@ -1,11 +1,5 @@
 import { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
@@ -64,6 +58,8 @@ export default function ListDetailScreen() {
     setEntries((current) => current.filter((e) => e.id !== item.id));
   };
 
+  // The frame paints on the first frame; the title and body fill in as they
+  // arrive. A local read is too quick for a spinner to be anything but a flash.
   const header = (
     <View className="px-4 pb-3">
       <Pressable
@@ -77,40 +73,35 @@ export default function ListDetailScreen() {
         </Text>
       </Pressable>
 
-      <Text
-        className={`text-title1 font-bold tracking-tight ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
-      >
-        {list?.name ?? ""}
-      </Text>
-      <Text
-        className={`text-footnote mt-1 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-      >
-        {kanji.length || entries.length}{" "}
-        {list?.type === "jlpt_kanji" ? "kanji" : "words"}
-      </Text>
+      {list && (
+        <Text
+          className={`text-title1 font-bold tracking-tight ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
+        >
+          {list.name}
+        </Text>
+      )}
+      {list && !loading && (
+        <Text
+          className={`text-footnote mt-1 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+        >
+          {kanji.length || entries.length}{" "}
+          {list.type === "jlpt_kanji" ? "kanji" : "words"}
+        </Text>
+      )}
     </View>
   );
 
-  if (loading) {
+  if (!loading && !list) {
     return (
-      <View
-        className={`flex-1 items-center justify-center ${isDark ? "bg-zinc-950" : "bg-white"}`}
-      >
-        <ActivityIndicator color={isDark ? "#6366F1" : "#4F46E5"} />
-      </View>
-    );
-  }
-
-  if (!list) {
-    return (
-      <View
-        className={`flex-1 items-center justify-center ${isDark ? "bg-zinc-950" : "bg-white"}`}
-      >
-        <Text
-          className={`text-body ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-        >
-          List not found
-        </Text>
+      <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"} pt-14`}>
+        {header}
+        <View className="flex-1 items-center justify-center">
+          <Text
+            className={`text-body ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+          >
+            List not found
+          </Text>
+        </View>
       </View>
     );
   }
@@ -119,7 +110,7 @@ export default function ListDetailScreen() {
     <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"} pt-14`}>
       {header}
 
-      {list.type === "jlpt_kanji" ? (
+      {loading || !list ? null : list.type === "jlpt_kanji" ? (
         <FlatList
           data={kanji}
           keyExtractor={(item) => item.character}

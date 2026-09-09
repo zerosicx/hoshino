@@ -1,0 +1,127 @@
+import { ActivityIndicator } from "react-native";
+import { renderRouter, screen, act } from "expo-router/testing-library";
+import ListDetail from "@/app/(tabs)/lists/[id]";
+import WordDetail from "@/app/word/[id]";
+import KanjiDetail from "@/app/kanji/[char]";
+import type { DictionaryEntry, KanjiEntry } from "@/types/dictionary";
+import type { ListSummary } from "@/types/lists";
+
+jest.mock("@/services/lists");
+jest.mock("@/services/dictionary");
+
+const lists = jest.requireMock("@/services/lists");
+const dictionary = jest.requireMock("@/services/dictionary");
+
+/** A promise the test resolves by hand, so the loading state can be inspected. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((r) => (resolve = r));
+  return { promise, resolve };
+}
+
+const list: ListSummary = {
+  id: 5,
+  name: "Verbs",
+  type: "custom",
+  jlptLevel: null,
+  starred: false,
+  itemCount: 0,
+  lastActivity: "2024-01-01T00:00:00.000Z",
+};
+
+const entry: DictionaryEntry = {
+  id: 1,
+  kanjiForms: ["食べる"],
+  readingForms: ["たべる"],
+  senses: [{ glosses: ["to eat"], pos: [], misc: [], info: [] }],
+  jlptLevel: 5,
+  isCommon: true,
+  tags: [],
+  wordClass: null,
+};
+
+const kanji: KanjiEntry = {
+  character: "日",
+  meanings: ["day", "sun"],
+  onReadings: [],
+  kunReadings: [],
+  jlptLevel: 5,
+  grade: 1,
+  strokeCount: 4,
+  radicals: [],
+  frequency: 1,
+};
+
+const routes = {
+  "(tabs)/lists/[id]": ListDetail,
+  "word/[id]": WordDetail,
+  "kanji/[char]": KanjiDetail,
+};
+
+// Every detail screen mounts fresh on each visit, so a spinner-then-content
+// swap would show on every navigation. The frame has to paint first and the
+// body fill in underneath it.
+describe("detail screens while loading", () => {
+  afterEach(() => jest.resetAllMocks());
+
+  it("list: shows the frame with no spinner or empty state, then the list", async () => {
+    const pending = deferred<ListSummary>();
+    lists.getList.mockReturnValue(pending.promise);
+    lists.getListEntries.mockResolvedValue([]);
+
+    renderRouter(routes, { initialUrl: "/lists/5" });
+
+    expect(screen.getByText("Back")).toBeTruthy();
+    expect(screen.UNSAFE_queryByType(ActivityIndicator)).toBeNull();
+    expect(screen.queryByText(/Nothing here yet/)).toBeNull();
+    expect(screen.queryByText("List not found")).toBeNull();
+
+    await act(async () => pending.resolve(list));
+
+    expect(screen.getByText("Verbs")).toBeTruthy();
+    expect(screen.getByText(/Nothing here yet/)).toBeTruthy();
+  });
+
+  it("list: says so only once it is known to be missing", async () => {
+    const pending = deferred<ListSummary | null>();
+    lists.getList.mockReturnValue(pending.promise);
+
+    renderRouter(routes, { initialUrl: "/lists/404" });
+    expect(screen.queryByText("List not found")).toBeNull();
+
+    await act(async () => pending.resolve(null));
+    expect(screen.getByText("List not found")).toBeTruthy();
+  });
+
+  it("word: shows the frame with no spinner, then the entry", async () => {
+    const pending = deferred<DictionaryEntry>();
+    dictionary.getEntry.mockReturnValue(pending.promise);
+    dictionary.getExamples.mockResolvedValue([]);
+    dictionary.recordSearch.mockResolvedValue(undefined);
+
+    renderRouter(routes, { initialUrl: "/word/1" });
+
+    expect(screen.getByText("Back")).toBeTruthy();
+    expect(screen.UNSAFE_queryByType(ActivityIndicator)).toBeNull();
+    expect(screen.queryByText("Entry not found")).toBeNull();
+
+    await act(async () => pending.resolve(entry));
+
+    expect(screen.getByText("to eat")).toBeTruthy();
+  });
+
+  it("kanji: shows the frame with no spinner, then the kanji", async () => {
+    const pending = deferred<KanjiEntry>();
+    dictionary.getKanji.mockReturnValue(pending.promise);
+
+    renderRouter(routes, { initialUrl: "/kanji/日" });
+
+    expect(screen.getByText("Back")).toBeTruthy();
+    expect(screen.UNSAFE_queryByType(ActivityIndicator)).toBeNull();
+    expect(screen.queryByText(/not found/)).toBeNull();
+
+    await act(async () => pending.resolve(kanji));
+
+    expect(screen.getByText("day, sun")).toBeTruthy();
+  });
+});

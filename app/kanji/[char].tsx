@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
@@ -31,46 +25,44 @@ export default function KanjiDetailScreen() {
     })();
   }, [char]);
 
-  if (loading) {
-    return (
-      <View
-        className={`flex-1 justify-center items-center ${isDark ? "bg-zinc-950" : "bg-white"}`}
+  // The frame paints on the first frame and the kanji fills in underneath it.
+  // A local read is too quick for a spinner to be anything but a flash.
+  const header = (
+    <View className="px-4 pt-14 pb-2">
+      <Pressable
+        onPress={() => router.back()}
+        className="flex-row items-center mb-4"
+        hitSlop={8}
       >
-        <ActivityIndicator
-          size="large"
+        <ChevronLeft
+          size={20}
           color={isDark ? "#6366F1" : "#4F46E5"}
         />
-      </View>
-    );
-  }
+        <Text className="text-body text-accent dark:text-accent-light ml-1">
+          Back
+        </Text>
+      </Pressable>
+    </View>
+  );
 
   if (!kanji) {
     return (
-      <View
-        className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"} pt-14 px-4`}
-      >
-        <Pressable
-          onPress={() => router.back()}
-          className="flex-row items-center mb-4"
-          hitSlop={8}
-        >
-          <ChevronLeft size={20} color={isDark ? "#6366F1" : "#4F46E5"} />
-          <Text className="text-body text-accent dark:text-accent-light ml-1">
-            Back
-          </Text>
-        </Pressable>
-        <View className="flex-1 justify-center items-center pb-20">
-          <Text
-            className={`text-kanji-xl font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"} mb-4`}
-          >
-            {char}
-          </Text>
-          <Text
-            className={`text-subheadline ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-          >
-            Kanji not found in dictionary
-          </Text>
-        </View>
+      <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"}`}>
+        {header}
+        {!loading && (
+          <View className="flex-1 justify-center items-center pb-20">
+            <Text
+              className={`text-kanji-xl font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"} mb-4`}
+            >
+              {char}
+            </Text>
+            <Text
+              className={`text-subheadline ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+            >
+              Kanji not found in dictionary
+            </Text>
+          </View>
+        )}
       </View>
     );
   }
@@ -82,22 +74,7 @@ export default function KanjiDetailScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="px-4 pt-14 pb-2">
-          <Pressable
-            onPress={() => router.back()}
-            className="flex-row items-center mb-4"
-            hitSlop={8}
-          >
-            <ChevronLeft
-              size={20}
-              color={isDark ? "#6366F1" : "#4F46E5"}
-            />
-            <Text className="text-body text-accent dark:text-accent-light ml-1">
-              Back
-            </Text>
-          </Pressable>
-        </View>
+        {header}
 
         {/* Hero kanji */}
         <View className="items-center px-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">

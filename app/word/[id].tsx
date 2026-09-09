@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, BookOpen, MessageSquare, Plus } from "lucide-react-native";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -62,38 +56,8 @@ export default function WordDetailScreen() {
     })();
   }, [id, recordSearch]);
 
-  if (loading) {
-    return (
-      <View
-        className={`flex-1 justify-center items-center ${isDark ? "bg-zinc-950" : "bg-white"}`}
-      >
-        <ActivityIndicator
-          size="large"
-          color={isDark ? "#6366F1" : "#4F46E5"}
-        />
-      </View>
-    );
-  }
-
-  if (!entry) {
-    return (
-      <View
-        className={`flex-1 justify-center items-center ${isDark ? "bg-zinc-950" : "bg-white"}`}
-      >
-        <Text
-          className={`text-body ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-        >
-          Entry not found
-        </Text>
-      </View>
-    );
-  }
-
-  const primaryKanji = entry.kanjiForms[0] ?? entry.readingForms[0] ?? "";
-  const primaryReading = entry.readingForms[0] ?? "";
-  const furiganaPairs = alignFurigana(primaryKanji, primaryReading);
-
   const openPicker = async () => {
+    if (!entry) return;
     const [custom, alreadyIn] = await Promise.all([
       getCustomLists(),
       getListIdsContaining(entry.id),
@@ -102,6 +66,56 @@ export default function WordDetailScreen() {
     setContaining(alreadyIn);
     setPicking(true);
   };
+
+  // The frame paints on the first frame and the entry fills in underneath it.
+  // A local read is too quick for a spinner to be anything but a flash.
+  const header = (
+    <View className="px-4 pt-14 pb-2 flex-row items-center justify-between mb-4">
+      <Pressable
+        onPress={() => router.back()}
+        className="flex-row items-center"
+        hitSlop={8}
+      >
+        <ChevronLeft
+          size={20}
+          color={isDark ? "#6366F1" : "#4F46E5"}
+        />
+        <Text className="text-body text-accent dark:text-accent-light ml-1">
+          Back
+        </Text>
+      </Pressable>
+
+      <Pressable
+        onPress={openPicker}
+        hitSlop={8}
+        accessibilityLabel="Add to list"
+        className="w-9 h-9 rounded-full bg-accent items-center justify-center"
+      >
+        <Plus size={20} color="#FFFFFF" />
+      </Pressable>
+    </View>
+  );
+
+  if (!entry) {
+    return (
+      <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"}`}>
+        {header}
+        {!loading && (
+          <View className="flex-1 justify-center items-center">
+            <Text
+              className={`text-body ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+            >
+              Entry not found
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  const primaryKanji = entry.kanjiForms[0] ?? entry.readingForms[0] ?? "";
+  const primaryReading = entry.readingForms[0] ?? "";
+  const furiganaPairs = alignFurigana(primaryKanji, primaryReading);
 
   // Tapping a list the word is already in takes it out again, so the same row
   // both adds and undoes — there is nowhere else to remove a word from a list.
@@ -137,31 +151,7 @@ export default function WordDetailScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="px-4 pt-14 pb-2 flex-row items-center justify-between mb-4">
-          <Pressable
-            onPress={() => router.back()}
-            className="flex-row items-center"
-            hitSlop={8}
-          >
-            <ChevronLeft
-              size={20}
-              color={isDark ? "#6366F1" : "#4F46E5"}
-            />
-            <Text className="text-body text-accent dark:text-accent-light ml-1">
-              Back
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={openPicker}
-            hitSlop={8}
-            accessibilityLabel="Add to list"
-            className="w-9 h-9 rounded-full bg-accent items-center justify-center"
-          >
-            <Plus size={20} color="#FFFFFF" />
-          </Pressable>
-        </View>
+        {header}
 
         {/* Hero */}
         <View className="px-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">
