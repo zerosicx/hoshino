@@ -9,8 +9,8 @@ type StackAnimation = "default" | "slide_from_right";
  * Android's default stack animation is the short system activity transition,
  * which exposes the incoming screen's first paint, so it gets a deliberate
  * slide. iOS already slides natively; naming the animation there would swap
- * UIKit's transition for react-native-screens' custom animator, which drops the
- * popped screen's content and shows a blank page as it slides out.
+ * UIKit's transition (and its interactive swipe-back) for react-native-screens'
+ * custom animator for no gain.
  */
 export function stackAnimation(os: typeof Platform.OS): StackAnimation {
   return os === "android" ? "slide_from_right" : "default";

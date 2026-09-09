@@ -30,7 +30,7 @@ investigators reached this independently from different bugs.
 | B11 | Kanji as rows, not grid | Bug — flex behaviour | B | Open |
 | B12 | Old list state flashes | Bug — symptom of B1's root cause | A | Landed |
 | B13 | Every transition flashes | Bug — found testing M1; three causes | A′ | Landed |
-| B14 | iOS: popped page goes white as it slides out | Regression from B13(c); iOS-only | A′ | Landed |
+| B14 | Android: popped page goes white as it slides out | Known react-native-screens fault on the new architecture; reported to reproduce only in Expo Go | A′ | **Verify on a dev build** |
 
 ---
 
@@ -80,7 +80,7 @@ things. Fixed before Milestone 2 because they set the feel of every screen.
 |---|---|---|---|---|
 | B2 | Tab bar labels cut in half | M1 removed our `height` but React Navigation then sizes the bar at `49 + inset` regardless, so our `inset + 8` padding was taken out of the 49 — 35dp for a 24dp icon and a label | Explicit `height = 56 + paddingBottom`. Padding is added *on top of* the content, never out of it | Landed |
 | B3 | Started JLPT list shows "0 words" | As below — pulled forward because Hannah hit it | Service fills `itemCount` for JLPT rows; `count` prop and `jlpt.tsx` override deleted | Landed |
-| B14 | iOS: popped page turns white as it slides away | (c) below asked iOS for `slide_from_right`, which it already does natively; naming it swaps UIKit's transition for react-native-screens' custom animator, which loses the popped screen's content | Animation chosen per platform: Android `slide_from_right`, iOS/web `default` | Landed |
+| B14 | Android: popped page turns white as it slides away | On the new architecture React tears the popped screen's views down leaf-first, before react-native-screens flags the screen as leaving, so the exit animation slides an empty card (react-native-screens #1685, open since 2023). Every report since Jan 2026 says it shows in Expo Go only; dev and production builds are clean | None in code yet. Confirm on a dev-client build of the S25 before choosing between: nothing, a react-native-screens upgrade, or a `fade` exit | Verify |
 | B13 | Flash on every push and pop | Three stacked causes: (a) Expo Router gives every navigator React Navigation's *light* theme, so `#F2F2F2` shows under each screen until its own background paints — a bright frame in dark mode; (b) detail screens rendered a centred spinner then swapped to content, which M1's fresh-mount-per-visit made visible on every navigation; (c) Android's default stack animation is the short system activity transition, which exposes the first paint | (a) `NavigationThemeProvider` with the app's surface colours around the root stack; (b) detail screens paint their frame — background and Back — on the first frame and fill the body in, no spinner; (c) `slide_from_right` on every stack via one shared `stackScreenOptions` | Landed |
 
 ### Milestone 2 — Parallel sweep (Workstreams B, C, D — three agents, disjoint files)
@@ -195,8 +195,8 @@ Each step is one thing to tap and one thing to look for.
 | B13 | Dark mode: Lists → JLPT → N1 Kanji → any kanji → back → back → back | No light frame at any point |
 | B13 | Any list, word or kanji page | Back button is there immediately; no centred spinner; content fills in under it |
 | B13 | Push and pop anywhere on Android | Screen slides in from the right and out to the right, every time |
-| B14 | iOS simulator: open a word, then a kanji from it; back, back | Each page slides away with its content still on it — never a blank white page |
-| B14 | iOS simulator: swipe from the left edge on a word page | Interactive back gesture works and follows the finger |
+| B14 | S25 **dev-client build**, not Expo Go: open a word, then a kanji from it; back, back | Each page slides away with its content still on it — never a blank white page. If it is blank here too, B14 reopens as a code change |
+| — | iOS simulator: swipe from the left edge on a word page | Interactive back gesture works and follows the finger |
 
 **After Milestone 2**
 
@@ -363,10 +363,9 @@ the system activity transition, which is short and lets the incoming screen's
 first paint show. `constants/navigation.ts` exports one `stackScreenOptions`,
 used by the root stack and all three tab stacks.
 
-**Correction after iOS testing (B14).** The first pass set
-`animation: 'slide_from_right'` on *both* platforms, and on the iOS simulator
-every pop then showed a blank white page sliding away. iOS already slides from
-the right natively; naming the animation is not a no-op there:
+**iOS keeps `default`.** The first pass set `animation: 'slide_from_right'`
+on both platforms. iOS already slides from the right natively, and naming the
+animation is not a no-op there:
 
 ```525:528:node_modules/react-native-screens/ios/RNSScreenStackAnimator.mm
 + (BOOL)isCustomAnimation:(RNSScreenStackAnimation)animation
@@ -376,16 +375,59 @@ the right natively; naming the animation is not a no-op there:
 ```
 
 Anything but `default`/`flip` swaps UIKit's `UINavigationController` transition
-for react-native-screens' own `RNSScreenStackAnimator`. On a JS-initiated pop,
-React unmounts the screen's content before the animation runs; RNS covers that
-by snapshotting the view at unmount (`RNSScreenStack.mm`
-`unmountChildComponentView` → `setViewToSnapshot`), and under the native
-transition that snapshot is what slides out. Under the custom animator the
-content is lost and the bare screen background slides out instead. The
-animation is now chosen per platform — `stackAnimation('android')` is
-`slide_from_right`, everything else is `default` — so iOS keeps UIKit's
-transition and its interactive swipe-back, and Android keeps the deliberate
-slide that (c) was for.
+(and its interactive swipe-back) for react-native-screens' own animator, for no
+gain. So `stackAnimation('android')` is `slide_from_right` and everything else
+is `default`. This was first written up as the fix for B14, on the mistaken
+reading that B14 was seen on the iOS simulator. It was not; see below.
+
+### B14 — Android: the popped page slides away white
+
+Reported on the S25 in Expo Go after M1′: going back from a kanji or word page,
+the page turns completely white as it slides out. The push looks right; only
+the pop is affected.
+
+This is react-native-screens #1685 (duplicates: #2459, expo/expo#32425),
+present on the new architecture since Expo 52. The maintainers' own
+diagnosis: Fabric unmounts a removed subtree *leaf-first*, so the popped
+screen's children are gone before the screen itself is removed from the
+stack. react-native-screens keeps a leaving screen painted by calling
+`startViewTransition` on every descendant when it learns the screen is going:
+
+```460:464:node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt
+    fun startRemovalTransition() {
+        if (!isBeingRemoved) {
+            isBeingRemoved = true
+            startTransitionRecursive(this)
+        }
+    }
+```
+
+If that runs after the children have already been detached there is nothing
+left to keep, and the exit animation slides an empty card whose only colour is
+the window background — white. It is a race, and the shipped 4.16.0 has since
+been patched twice upstream for variants of it (#4161, #4444). Android's
+`default` animation has the same fault; it is just a ~150ms fade, so before (c)
+it read as one of the "flashes", not as a white page.
+
+Every report on the thread since January 2026, including one on Expo 57, says
+the same thing: it reproduces in **Expo Go only**, and a development or
+production build of the same project is clean. A plausible mechanism — not
+verified, Expo Go's native build is not inspectable from here — is that the
+early-removal hook (`NativeProxy.notifyScreenRemoved`, fired from the mounting
+thread before the UI-thread teardown) is not wired in Expo Go, so the flag is
+set only at the very end of the batch, after the children are gone. Either
+way, the deployed beta APK never drew this complaint while Expo Go does.
+
+**Decision: verify before touching code.** The APK is what users run, so the
+question is whether the APK has it. One `eas build --profile development
+--platform android` gives a dev client that loads JS from `npx expo start`
+exactly like Expo Go does, but with the project's own native code; it is also
+the right dev loop from here on, since Expo Go is now known to misreport this
+class of behaviour. If the dev build is clean, B14 closes as an Expo Go
+artefact. If it is not, the candidates in order are a react-native-screens
+upgrade past #4161 (native change — a new build, and a compatibility check
+against SDK 54), or falling back to `fade` on Android, which hides the empty
+card rather than fixing it.
 
 ### B4 — Drawer under the keyboard
 

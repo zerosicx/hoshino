@@ -8,8 +8,8 @@ describe("stack animation", () => {
   });
 
   // iOS already slides from the right natively. Asking for it by name swaps
-  // UIKit's transition for react-native-screens' custom animator, which loses
-  // the popped screen's content and shows a blank page during the slide-out.
+  // UIKit's transition, and its interactive swipe-back, for react-native-screens'
+  // custom animator for no gain.
   it("keeps the native transition on iOS", () => {
     expect(stackAnimation("ios")).toBe("default");
   });

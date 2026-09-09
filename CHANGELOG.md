@@ -69,4 +69,3 @@ Changelog:
 - [BUG FIX] Moving between screens no longer flashes a light frame or a loading spinner; each page arrives with its frame already drawn.
 - [UPDATED] Word and kanji pages open full-screen over the tabs; the tab bar is hidden while reading one.
 - [UPDATED] Pages slide in from the right on Android as they do on iOS.
-- [BUG FIX] On iOS, a page no longer turns blank as it slides away when you go back.
