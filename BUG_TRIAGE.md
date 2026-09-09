@@ -30,7 +30,7 @@ investigators reached this independently from different bugs.
 | B11 | Kanji as rows, not grid | Bug — flex behaviour | B | Open |
 | B12 | Old list state flashes | Bug — symptom of B1's root cause | A | Landed |
 | B13 | Every transition flashes | Bug — found testing M1; three causes | A′ | Landed |
-| B14 | Android: popped page goes white as it slides out | Known react-native-screens fault on the new architecture; reported to reproduce only in Expo Go | A′ | **Verify on a dev build** |
+| B14 | Android: popped page goes white as it slides out | Known react-native-screens fault on the new architecture; Expo Go only | A′ | ✅ Not in the dev build — Expo Go artefact, no code change |
 
 ---
 
@@ -80,7 +80,7 @@ things. Fixed before Milestone 2 because they set the feel of every screen.
 |---|---|---|---|---|
 | B2 | Tab bar labels cut in half | M1 removed our `height` but React Navigation then sizes the bar at `49 + inset` regardless, so our `inset + 8` padding was taken out of the 49 — 35dp for a 24dp icon and a label | Explicit `height = 56 + paddingBottom`. Padding is added *on top of* the content, never out of it | Landed |
 | B3 | Started JLPT list shows "0 words" | As below — pulled forward because Hannah hit it | Service fills `itemCount` for JLPT rows; `count` prop and `jlpt.tsx` override deleted | Landed |
-| B14 | Android: popped page turns white as it slides away | On the new architecture React tears the popped screen's views down leaf-first, before react-native-screens flags the screen as leaving, so the exit animation slides an empty card (react-native-screens #1685, open since 2023). Every report since Jan 2026 says it shows in Expo Go only; dev and production builds are clean | None in code yet. Confirm on a dev-client build of the S25 before choosing between: nothing, a react-native-screens upgrade, or a `fade` exit | Verify |
+| B14 | Android: popped page turns white as it slides away | On the new architecture React tears the popped screen's views down leaf-first, before react-native-screens flags the screen as leaving, so the exit animation slides an empty card (react-native-screens #1685, open since 2023). Every report since Jan 2026 says it shows in Expo Go only; dev and production builds are clean | None needed. Confirmed clean on a dev-client build of the S25 (09/09/26); Expo Go is no longer the Android dev loop | ✅ |
 | B13 | Flash on every push and pop | Three stacked causes: (a) Expo Router gives every navigator React Navigation's *light* theme, so `#F2F2F2` shows under each screen until its own background paints — a bright frame in dark mode; (b) detail screens rendered a centred spinner then swapped to content, which M1's fresh-mount-per-visit made visible on every navigation; (c) Android's default stack animation is the short system activity transition, which exposes the first paint | (a) `NavigationThemeProvider` with the app's surface colours around the root stack; (b) detail screens paint their frame — background and Back — on the first frame and fill the body in, no spinner; (c) `slide_from_right` on every stack via one shared `stackScreenOptions` | Landed |
 
 ### Milestone 2 — Parallel sweep (Workstreams B, C, D — three agents, disjoint files)
