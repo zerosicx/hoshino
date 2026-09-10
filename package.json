@@ -33,7 +33,7 @@
     "expo-status-bar": "~3.0.9",
     "expo-updates": "~29.0.20",
     "lucide-react-native": "^1.37.0",
-    "@react-navigation/native": "^7.2.4",
+    "@react-navigation/native": "^7.1.8",
     "nativewind": "^4.1.23",
     "react": "19.1.0",
     "react-dom": "19.1.0",
