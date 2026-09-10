@@ -149,7 +149,7 @@ Deferred deliberately; the screens work without them.
 - [x] `app/(tabs)/lists/index.tsx` — starred, then Searched Terms, then recent
 - [x] `app/(tabs)/lists/jlpt.tsx` — the ten preloaded lists, star to pin
 - [x] `app/(tabs)/lists/[id].tsx` — words, or a kanji grid for JLPT kanji lists
-- [x] `components/BottomDrawer.tsx`, `CreateListDrawer.tsx`,
+- [x] `components/BottomDrawer.tsx`, `CreateListDialog.tsx`,
       `AddToListDrawer.tsx`, `ListRow.tsx`, `SwipeAction.tsx`, `Toast.tsx`
 - [x] Plus button on word detail, swipe-to-add on search results, Lists tab
       re-enabled

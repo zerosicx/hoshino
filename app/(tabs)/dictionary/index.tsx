@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   View,
   Text,
@@ -15,8 +14,7 @@ import { useDictionary } from "@/hooks/useDictionary";
 import { useSettingsStore } from "@/stores/settingsStore";
 import DictionaryResultRow from "@/components/DictionaryResultRow";
 import SwipeAction from "@/components/SwipeAction";
-import CreateListDrawer from "@/components/CreateListDrawer";
-import { useAddToList, useCreateList } from "@/hooks/useLists";
+import { useAddToList } from "@/hooks/useLists";
 import type { SearchResult } from "@/types/dictionary";
 
 export default function DictionaryScreen() {
@@ -24,25 +22,18 @@ export default function DictionaryScreen() {
   const { isDark } = useTheme();
   const readingMode = useSettingsStore((s) => s.readingMode);
 
-  const { add, addToMostRecent } = useAddToList();
-  const createList = useCreateList();
-  // Held while the drawer is open so the word survives the round trip through
-  // list creation, which is what a swipe with no lists yet turns into.
-  const [pendingAdd, setPendingAdd] = useState<SearchResult | null>(null);
+  const { addToMostRecent } = useAddToList();
 
+  // A swipe with no lists yet turns into creating one, with the word going in.
   const swipeAdd = async (item: SearchResult) => {
     const word = item.kanjiForm || item.readingForm;
     const list = await addToMostRecent(item.id, word);
-    if (!list) setPendingAdd(item);
-  };
-
-  const createAndAdd = async (name: string) => {
-    const item = pendingAdd;
-    setPendingAdd(null);
-    if (!item) return;
-
-    const created = await createList(name);
-    if (created) await add(item.id, item.kanjiForm || item.readingForm, created);
+    if (!list) {
+      router.push({
+        pathname: "/create-list",
+        params: { entryId: String(item.id), word },
+      });
+    }
   };
 
   const {
@@ -167,12 +158,6 @@ export default function DictionaryScreen() {
           </View>
         </View>
       )}
-
-      <CreateListDrawer
-        visible={pendingAdd !== null}
-        onClose={() => setPendingAdd(null)}
-        onCreate={createAndAdd}
-      />
     </View>
   );
 }

@@ -292,7 +292,8 @@ hoshino/
 │   │   └── _layout.tsx           # Tab bar layout
 │   ├── word/[id].tsx             # Word detail screen (meanings, examples, conjugations)
 │   ├── kanji/[char].tsx          # Kanji detail screen
-│   └── _layout.tsx               # Root layout (Stack: tabs, word, kanji)
+│   ├── create-list.tsx           # Name a new list; a transparent modal over whatever pushed it
+│   └── _layout.tsx               # Root layout (Stack: tabs, word, kanji, create-list)
 ├── components/                   # Shared UI
 │   ├── FuriganaText.tsx          # Kanji with furigana overlay (column-flex approach)
 │   ├── FlashCard.tsx             # Flippable card with gestures
@@ -305,7 +306,7 @@ hoshino/
 │   ├── ListDuePill.tsx           # Compact pill badge showing due count per list
 │   ├── ListRow.tsx               # List row with star toggle and item count
 │   ├── BottomDrawer.tsx          # Slide-up panel shell used by the drawers
-│   ├── CreateListDrawer.tsx      # Name a new list
+│   ├── CreateListDialog.tsx      # Floating card with the list-name field; rises above the keyboard
 │   ├── AddToListDrawer.tsx       # Pick a list for a word, or make one
 │   ├── SwipeAction.tsx          # Swipe a row right to add it, left to remove it
 │   ├── Toast.tsx                 # Bottom toast, mounted once at the root

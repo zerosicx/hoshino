@@ -11,8 +11,7 @@ import JlptBadge from "@/components/JlptBadge";
 import ConjugationTable from "@/components/ConjugationTable";
 import WordClassBadges from "@/components/WordClassBadges";
 import AddToListDrawer from "@/components/AddToListDrawer";
-import CreateListDrawer from "@/components/CreateListDrawer";
-import { useAddToList, useCreateList } from "@/hooks/useLists";
+import { useAddToList } from "@/hooks/useLists";
 import { getCustomLists, getListIdsContaining } from "@/services/lists";
 import { alignFurigana } from "@/utils/furigana";
 import type { DictionaryEntry, ExampleSentence } from "@/types/dictionary";
@@ -30,9 +29,7 @@ export default function WordDetailScreen() {
   const [loading, setLoading] = useState(true);
 
   const { add, remove } = useAddToList();
-  const createList = useCreateList();
   const [picking, setPicking] = useState(false);
-  const [creating, setCreating] = useState(false);
   const [lists, setLists] = useState<ListSummary[]>([]);
   const [containing, setContaining] = useState<number[]>([]);
 
@@ -131,12 +128,6 @@ export default function WordDetailScreen() {
     setContaining((ids) =>
       held ? ids.filter((id) => id !== list.id) : [...ids, list.id]
     );
-  };
-
-  const createAndAdd = async (name: string) => {
-    setCreating(false);
-    const created = await createList(name);
-    if (created) await add(entry.id, primaryKanji, created);
   };
 
   // Extract kanji characters for the breakdown section
@@ -311,14 +302,11 @@ export default function WordDetailScreen() {
         onPick={pickList}
         onCreateNew={() => {
           setPicking(false);
-          setCreating(true);
+          router.push({
+            pathname: "/create-list",
+            params: { entryId: String(entry.id), word: primaryKanji },
+          });
         }}
-      />
-
-      <CreateListDrawer
-        visible={creating}
-        onClose={() => setCreating(false)}
-        onCreate={createAndAdd}
       />
     </View>
   );

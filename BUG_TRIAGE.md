@@ -20,7 +20,7 @@ investigators reached this independently from different bugs.
 | B1 | Back goes to Dictionary root | Bug — navigator architecture | A | ✅ |
 | B2 | Tab bar hard to see | Bug — content abuts the system bar | A || ✅ |
 | B3 | Starred JLPT list shows 0 items | Bug — proven in SQL | A′ || ✅ |
-| B4 | Create-list drawer under keyboard | Bug — one line | D | Open |
+| B4 | Create-list drawer under keyboard | Bug — one line | D | Landed |
 | B5 | Examples too far apart | Bug — unsupported NativeWind variant | C | Open |
 | B6 | Furigana misaligned on hero | Bug — proven on 980 real words | C | Open |
 | B7 | Black-and-white redesign | **Dropped from scope** — see below | — | — |
@@ -104,7 +104,7 @@ things. Fixed before Milestone 2 because they set the feel of every screen.
 
 | ID | Bug | Root cause | Solution | Status |
 |---|---|---|---|---|
-| B4 | Drawer hidden by keyboard | `KeyboardAvoidingView` gets `behavior={undefined}` on Android, relying on the window resizing. SDK 54 defaults to edge-to-edge, under which the Modal's window is not resized. Same regression fixed upstream in react-native-paper the same way | `behavior="padding"` on both platforms. One line | Open |
+| B4 | Drawer hidden by keyboard | `KeyboardAvoidingView` gets `behavior={undefined}` on Android, relying on the window resizing. SDK 54 defaults to edge-to-edge, under which the Modal's window is not resized. Same regression fixed upstream in react-native-paper the same way. *Device testing of the one-line fix then showed two more Modal-window faults — see the deep dive* | Create-list is no longer a Modal at all: `app/create-list.tsx` is a `transparentModal` route in the root stack rendering `CreateListDialog`, a floating card. `BottomDrawer` keeps `behavior="padding"` for the list picker | Landed |
 
 **Why these run in parallel.** B touches `services/lists.ts`, `listQuery.ts`,
 `lists/*.tsx`, `ListRow.tsx`. C touches `utils/furigana.ts`, `app/word/[id].tsx`
@@ -206,7 +206,9 @@ Each step is one thing to tap and one thing to look for.
 | B6 | Search 痛い, 可愛い, 五つ, 言い訳, 疑う | Reading sits over the kanji only; い / つ / け have nothing above them |
 | B6 | Settings → Romaji, repeat | Same alignment with romaji |
 | B5 | Any word with 3+ examples | Thin divider between examples, roughly half the previous gap |
-| B4 | Lists → + → tap the name field | Field and Create button visible above the keyboard |
+| B4 | Lists → + | Keyboard opens by itself; the card floats in the upper part of the screen, clear of the keyboard, with Cancel and Create visible |
+| B4 | Word page → + → New list; Dictionary → swipe a result right with no custom lists yet | Same card; after Create the word is in the new list and you are back where you started |
+| B4 | Lists → + → hardware back / tap the dimmed area | Card closes, Lists screen unchanged |
 
 ---
 
@@ -445,6 +447,44 @@ hit the identical regression in its Dialog and fixed it identically
 platforms; `padding` measures against the keyboard's `screenY` so it adds ~0
 if the OS ever does resize. Tuning knob if the offset is a few dp out on a
 device: `keyboardVerticalOffset`.
+
+**What device testing added (10/09/26).** The padding fix worked — the drawer
+rose with the keyboard — but exposed two more faults, both from the same root:
+an Android `Modal` is a *separate OS window*. (1) `autoFocus`, and a second
+`focus()` from `Modal.onShow`, both failed to open the keyboard on the first
+open, because the input asks for focus before the dialog window is attached
+and the request is dropped. (2) On first mount the drawer's bottom padding sat
+partly under the 3-button bar: `useSafeAreaInsets` inside the Modal reports
+the *main* window's insets, which do not describe the Modal's window.
+
+Rather than patch a third symptom, create-list left `Modal` altogether.
+`app/create-list.tsx` is a route in the root stack with
+`presentation: "transparentModal"` and a fade (`dialogScreenOptions` in
+`constants/navigation.ts`), so it renders in the main window like every other
+screen: `autoFocus` fires normally, `KeyboardAvoidingView` measures the real
+window, hardware back and a tap on the dim backdrop both pop it, and it covers
+the tab bar because the root stack sits over the tabs. `CreateListDialog` is
+a floating card placed with `flex: 2` above and `flex: 3` below, so it sits
+two-fifths of the way down the free space (lowered from a quarter after
+Hannah found the buttons a stretch one-handed) and rises as the keyboard pads
+the bottom. The three callers — Lists +, the word page's list picker, and the
+dictionary swipe with no lists yet — push `/create-list`, the latter two with
+`entryId` and `word` so the screen adds the word itself and returns.
+`AddToListDrawer` still uses `BottomDrawer`; it has no text field, so only
+fault (2) can reach it — worth watching for, and the same route treatment is
+the fix if it does.
+
+**Gotcha found on the first device run: the app booted straight into the
+dialog.** Listing a screen as a `<Stack.Screen>` child moves it to the front
+of the navigator's route order, and on Android the launch URL arrives through
+a promise that a dev client can resolve to nothing — React Navigation then
+boots on the first route. With `create-list` the only listed child, that was
+the dialog; before, the router's own sort put `index` first, so nobody had
+noticed the mechanism. Fix: `<Stack.Screen name="index" />` is listed first
+in `app/_layout.tsx`, and `tests/createList.test.tsx` asserts
+`routeNames[0] === "index"` on the root stack. `unstable_settings.anchor` was
+rejected: an anchor is also prepended to every deep-linked state, and `index`
+is a `Redirect` that would then fire under any deep link.
 
 ### B5 — Examples too far apart
 

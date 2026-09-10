@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { stackScreenOptions } from '@/constants/navigation';
+import { dialogScreenOptions, stackScreenOptions } from '@/constants/navigation';
 import { getDatabase } from '@/services/database';
 import { useTheme } from '@/hooks/useTheme';
 import NavigationThemeProvider from '@/components/NavigationThemeProvider';
@@ -56,7 +56,12 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <NavigationThemeProvider>
-          <Stack screenOptions={stackScreenOptions} />
+          <Stack screenOptions={stackScreenOptions}>
+            {/* Listed children lead the route order, and with no launch URL
+                (Android dev clients) the first route is the boot screen. */}
+            <Stack.Screen name="index" />
+            <Stack.Screen name="create-list" options={dialogScreenOptions} />
+          </Stack>
         </NavigationThemeProvider>
         <Toast />
         <StatusBar style="auto" />

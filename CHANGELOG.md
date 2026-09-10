@@ -39,7 +39,7 @@ Rules for the lines:
 
 ## v0.1.0 Happy Fruit
 
-Last updated: 09/09/26
+Last updated: 10/09/26
 Created: 03/09/26
 
 Changelog:
@@ -67,6 +67,8 @@ Changelog:
 - [BUG FIX] Tab bar labels now sit clear of the system navigation bar and the home indicator.
 - [BUG FIX] JLPT lists on the Lists screen show their real word and kanji counts instead of 0.
 - [BUG FIX] Moving between screens no longer flashes a light frame or a loading spinner; each page arrives with its frame already drawn.
+- [BUG FIX] Naming a new list no longer hides the field behind the keyboard or the Android navigation bar.
+- [UPDATED] New lists are named in a floating card in the upper part of the screen, with the keyboard opening straight away; it stays clear of the keyboard and closes on Cancel, hardware back, or a tap outside it.
 - [UPDATED] Word and kanji pages open full-screen over the tabs; the tab bar is hidden while reading one.
 - [UPDATED] Pages slide in from the right on Android as they do on iOS.
 - [UPDATED] New app icon: a gold star on navy, with 日本語 and 辞書.

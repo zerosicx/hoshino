@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,27 +8,15 @@ import {
 import { useRouter } from "expo-router";
 import { ChevronRight, GraduationCap, Plus } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
-import { useCreateList, useLists } from "@/hooks/useLists";
+import { useLists } from "@/hooks/useLists";
 import { setStarred } from "@/services/lists";
 import ListRow from "@/components/ListRow";
-import CreateListDrawer from "@/components/CreateListDrawer";
 import type { ListSummary } from "@/types/lists";
 
 export default function ListsScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const { lists, loading, reload } = useLists();
-  const createList = useCreateList();
-  const [creating, setCreating] = useState(false);
-
-  const onCreate = async (name: string) => {
-    const created = await createList(name);
-    setCreating(false);
-    if (created) {
-      await reload();
-      router.push(`/lists/${created.id}`);
-    }
-  };
 
   const toggleStar = async (list: ListSummary) => {
     await setStarred(list.id, !list.starred);
@@ -45,7 +32,7 @@ export default function ListsScreen() {
           Lists
         </Text>
         <Pressable
-          onPress={() => setCreating(true)}
+          onPress={() => router.push("/create-list")}
           hitSlop={8}
           className="w-9 h-9 rounded-full bg-accent items-center justify-center"
         >
@@ -111,12 +98,6 @@ export default function ListsScreen() {
           )}
         />
       )}
-
-      <CreateListDrawer
-        visible={creating}
-        onClose={() => setCreating(false)}
-        onCreate={onCreate}
-      />
     </View>
   );
 }

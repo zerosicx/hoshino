@@ -2,7 +2,6 @@ import { ReactNode } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   Text,
   View,
@@ -49,9 +48,9 @@ export default function BottomDrawer({
           <Pressable className="flex-1" onPress={onClose} />
         </Animated.View>
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
+        {/* Both platforms: under edge-to-edge Android no longer resizes the
+            Modal's window for the keyboard, so the drawer pads itself up. */}
+        <KeyboardAvoidingView behavior="padding">
           <Animated.View
             entering={SlideInDown.duration(220)}
             style={{ paddingBottom: insets.bottom + 16 }}
