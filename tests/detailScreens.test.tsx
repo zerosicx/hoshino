@@ -1,4 +1,4 @@
-import { ActivityIndicator } from "react-native";
+import { ActivityIndicator, FlatList } from "react-native";
 import { renderRouter, screen, act } from "expo-router/testing-library";
 import ListDetail from "@/app/(tabs)/lists/[id]";
 import WordDetail from "@/app/word/[id]";
@@ -91,6 +91,26 @@ describe("detail screens while loading", () => {
 
     await act(async () => pending.resolve(null));
     expect(screen.getByText("List not found")).toBeTruthy();
+  });
+
+  // B11: a 5-column grid made the short last row's cells grow to fill it.
+  // B8: RN throws if a live FlatList's numColumns changes, so no list uses it.
+  it("list: renders a JLPT kanji list as single-column rows", async () => {
+    lists.getList.mockResolvedValue({
+      ...list,
+      id: 3,
+      name: "N5 Kanji",
+      type: "jlpt_kanji",
+      jlptLevel: 5,
+    });
+    lists.getListKanji.mockResolvedValue([kanji]);
+
+    renderRouter(routes, { initialUrl: "/lists/3" });
+    await act(async () => {});
+
+    expect(screen.getByText("日")).toBeTruthy();
+    expect(screen.getByText("day, sun")).toBeTruthy();
+    expect(screen.UNSAFE_getByType(FlatList).props.numColumns).toBeUndefined();
   });
 
   it("word: shows the frame with no spinner, then the entry", async () => {

@@ -24,10 +24,10 @@ investigators reached this independently from different bugs.
 | B5 | Examples too far apart | Bug — unsupported NativeWind variant | C | Open |
 | B6 | Furigana misaligned on hero | Bug — proven on 980 real words | C | Open |
 | B7 | Black-and-white redesign | **Dropped from scope** — see below | — | — |
-| B8 | Random crash opening JLPT pages | Bug — symptom of B1's root cause | A + B | Landed (A) |
+| B8 | Random crash opening JLPT pages | Bug — symptom of B1's root cause | A + B | Landed |
 | B9 | Startup loading state | **Deferred** — see below | — | — |
 | B10 | Kanji page keeps scrolling | Bug — symptom of B1's root cause | A | Landed |
-| B11 | Kanji as rows, not grid | Bug — flex behaviour | B | Open |
+| B11 | Kanji as rows, not grid | Bug — flex behaviour | B | Landed |
 | B12 | Old list state flashes | Bug — symptom of B1's root cause | A | Landed |
 | B13 | Every transition flashes | Bug — found testing M1; three causes | A′ || ✅ |
 | B14 | Android: popped page goes white as it slides out | Known react-native-screens fault on the new architecture; Expo Go only | A′ | ✅ Not in the dev build — Expo Go artefact, no code change |
@@ -90,8 +90,8 @@ things. Fixed before Milestone 2 because they set the feel of every screen.
 | ID | Bug | Root cause | Solution | Status |
 |---|---|---|---|---|
 | B3 | Starred JLPT list shows 0 items | Pulled forward into Milestone 1′ | — || ✅ |
-| B11 | Kanji cells grow on a short last row | Each cell is `flex-1` in a 5-column row; 1232 mod 5 = 2, so the last two share the full width. Bordered cards also contradict the design system's flat rows | New `KanjiResultRow` mirroring `DictionaryResultRow`; single-column `FlatList`. Also closes B8 permanently | Open |
-| B8 | Crash (fix half) | See Milestone 1 | With B11 landed there is no `numColumns` to change | Open |
+| B11 | Kanji cells grow on a short last row | Each cell is `flex-1` in a 5-column row; 1232 mod 5 = 2, so the last two share the full width. Bordered cards also contradict the design system's flat rows | New `KanjiResultRow` mirroring `DictionaryResultRow`; single-column `FlatList`. Also closes B8 permanently | Landed |
+| B8 | Crash (fix half) | See Milestone 1 | With B11 landed there is no `numColumns` to change | Landed |
 
 **Workstream C — Dictionary detail**
 

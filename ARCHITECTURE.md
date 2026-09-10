@@ -305,6 +305,7 @@ hoshino/
 │   ├── DueTodayCard.tsx          # Accent-coloured CTA showing total due cards
 │   ├── ListDuePill.tsx           # Compact pill badge showing due count per list
 │   ├── ListRow.tsx               # List row with star toggle and item count
+│   ├── KanjiResultRow.tsx        # One kanji per row: character, meanings, readings, JLPT
 │   ├── BottomDrawer.tsx          # Slide-up panel shell used by the drawers
 │   ├── CreateListDialog.tsx      # Floating card with the list-name field; rises above the keyboard
 │   ├── AddToListDrawer.tsx       # Pick a list for a word, or make one

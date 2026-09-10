@@ -7,6 +7,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { getList, getListEntries, getListKanji } from "@/services/lists";
 import { useAddToList } from "@/hooks/useLists";
 import DictionaryResultRow from "@/components/DictionaryResultRow";
+import KanjiResultRow from "@/components/KanjiResultRow";
 import SwipeAction from "@/components/SwipeAction";
 import type { ListSummary } from "@/types/lists";
 import type { KanjiEntry, SearchResult } from "@/types/dictionary";
@@ -114,24 +115,13 @@ export default function ListDetailScreen() {
         <FlatList
           data={kanji}
           keyExtractor={(item) => item.character}
-          numColumns={5}
-          columnWrapperStyle={{ paddingHorizontal: 12 }}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          initialNumToRender={15}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
           renderItem={({ item }) => (
-            <Pressable
+            <KanjiResultRow
+              item={item}
               onPress={() => router.push(`/kanji/${item.character}`)}
-              className={`flex-1 m-1 aspect-square items-center justify-center rounded-md border ${
-                isDark
-                  ? "border-zinc-800 bg-zinc-900"
-                  : "border-zinc-200 bg-zinc-50"
-              }`}
-            >
-              <Text
-                className={`text-title2 font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
-              >
-                {item.character}
-              </Text>
-            </Pressable>
+            />
           )}
         />
       ) : (
