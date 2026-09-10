@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, BookOpen, MessageSquare, Plus } from "lucide-react-native";
+import { ChevronLeft, BookOpen, Plus } from "lucide-react-native";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { useSearchStore } from "@/stores/searchStore";
@@ -11,6 +11,7 @@ import JlptBadge from "@/components/JlptBadge";
 import ConjugationTable from "@/components/ConjugationTable";
 import WordClassBadges from "@/components/WordClassBadges";
 import AddToListDrawer from "@/components/AddToListDrawer";
+import ExampleSentences from "@/components/ExampleSentences";
 import { useAddToList } from "@/hooks/useLists";
 import { getCustomLists, getListIdsContaining } from "@/services/lists";
 import { alignFurigana } from "@/utils/furigana";
@@ -218,42 +219,7 @@ export default function WordDetailScreen() {
           ))}
         </View>
 
-        {/* Examples */}
-        {examples.length > 0 && (
-          <View className="px-4 py-5 border-t border-zinc-200 dark:border-zinc-800">
-            <View className="flex-row items-center gap-2 mb-3">
-              <MessageSquare
-                size={18}
-                color={isDark ? "#A1A1AA" : "#71717A"}
-              />
-              <Text
-                className={`text-body font-semibold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
-              >
-                Examples
-              </Text>
-            </View>
-
-            {examples.map((ex) => (
-              <View
-                key={ex.id}
-                className="mb-4 pb-4 border-b border-zinc-100 dark:border-zinc-800/50 last:border-b-0"
-              >
-                <View className="mb-1">
-                  <FuriganaText
-                    pairs={ex.furigana}
-                    size="sentence"
-                    readingMode={readingMode}
-                  />
-                </View>
-                <Text
-                  className={`text-footnote ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                >
-                  {ex.english}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
+        <ExampleSentences examples={examples} readingMode={readingMode} />
 
         {/* Conjugations */}
         {entry.wordClass && (

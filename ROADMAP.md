@@ -63,7 +63,7 @@ on Android. Check a real device after any theme or typography change.
 
 ## Now
 
-### Beta bug fixes — Milestones 1 and 1′ verified on the S25; Milestone 2 next
+### Beta bug fixes — Milestones 1 and 1′ verified on the S25; Milestone 2 landed, awaiting device test
 
 Milestone 1 (the navigation restructure) and 1′ (tab bar height, JLPT counts,
 the three-cause transition flash) are confirmed on the S25 in a development
@@ -79,7 +79,10 @@ the candidate fix is to hold the body and the search-history write until the
 navigator's `transitionEnd`. Judge it again on a release build before spending
 on it.
 
-Next: Milestone 2 — B4, B5, B6, B11 and B8's layout half, in parallel.
+Milestone 2 — B4 (create-list as a floating card), B5 (example dividers), B6
+(furigana anchoring), B11 and B8's layout half (kanji rows) — is landed and in
+the next preview build. Next: Hannah tests it on the S25 against the device
+checklist in `BUG_TRIAGE.md`, then Milestone 3.
 
 ### The database rebuild — done
 

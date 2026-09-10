@@ -299,6 +299,7 @@ hoshino/
 │   ├── FlashCard.tsx             # Flippable card with gestures
 │   ├── WordDetail.tsx            # Full word breakdown
 │   ├── ConjugationTable.tsx      # Verb/adj conjugation display
+│   ├── ExampleSentences.tsx      # Word page examples; divider under every row but the last
 │   ├── SRSRatingBar.tsx          # Again/Hard/Good/Easy buttons with intervals
 │   ├── SearchBar.tsx             # Dictionary search input
 │   ├── StatsBar.tsx              # Study landing stats (streak, accuracy, reviewed today)
