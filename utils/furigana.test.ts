@@ -38,6 +38,30 @@ describe("alignFurigana", () => {
     ]);
   });
 
+  // B6: the okurigana also occurs inside the kanji's own reading, so the first
+  // occurrence is the wrong anchor. A trailing kana run belongs at the end.
+  it.each([
+    ["痛い", "いたい", "痛", "いた", "い"],
+    ["可愛い", "かわいい", "可愛", "かわい", "い"],
+    ["五つ", "いつつ", "五", "いつ", "つ"],
+    ["疑う", "うたがう", "疑", "うたが", "う"],
+  ])("anchors the trailing kana of %s at the end of the reading", (word, reading, kanji, kanjiReading, tail) => {
+    expect(alignFurigana(word, reading)).toEqual([
+      { base: kanji, reading: kanjiReading },
+      { base: tail, reading: "" },
+    ]);
+  });
+
+  // B6: a kanji run reads as at least one kana, so an anchor found at the
+  // cursor itself is inside that run, not after it. 言 is い, not silent.
+  it("never gives a kanji run an empty reading", () => {
+    expect(alignFurigana("言い訳", "いいわけ")).toEqual([
+      { base: "言", reading: "い" },
+      { base: "い", reading: "" },
+      { base: "訳", reading: "わけ" },
+    ]);
+  });
+
   it("keeps an unsplittable compound as one group", () => {
     expect(alignFurigana("水曜日", "すいようび")).toEqual([
       { base: "水曜日", reading: "すいようび" },

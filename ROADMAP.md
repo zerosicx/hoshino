@@ -44,7 +44,7 @@ assert on mocks, and both open the real `assets/hoshino.db`:
   came from jisho.org, currently 45/45. `services/searchRobustness.test.ts`
   holds a second set never used for tuning, to catch overfitting.
 - **Furigana coverage** — the share of kanji in example sentences that get a
-  reading, currently 98.7%.
+  reading, currently 98.8%.
 
 Neither can run against a small fixture: BM25 scores depend on corpus-wide
 statistics, so a cut-down database ranks differently. Both suites skip rather

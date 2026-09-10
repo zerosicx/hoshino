@@ -68,6 +68,7 @@ Changelog:
 - [BUG FIX] JLPT lists on the Lists screen show their real word and kanji counts instead of 0.
 - [BUG FIX] Moving between screens no longer flashes a light frame or a loading spinner; each page arrives with its frame already drawn.
 - [BUG FIX] Naming a new list no longer hides the field behind the keyboard or the Android navigation bar.
+- [BUG FIX] Readings now sit over the right kanji in words like 痛い, 五つ and 言い訳, instead of spanning the whole word or landing on the wrong character.
 - [BUG FIX] Kanji in JLPT lists no longer stretch to odd sizes on the last row.
 - [UPDATED] JLPT kanji lists show one kanji per row with its meanings, readings and level, matching the word lists.
 - [UPDATED] New lists are named in a floating card in the upper part of the screen, with the keyboard opening straight away; it stays clear of the keyboard and closes on Cancel, hardware back, or a tap outside it.

@@ -98,8 +98,18 @@ export function alignFurigana(written: string, reading: string): FuriganaPair[] 
       continue;
     }
 
-    const at = foldedReading.indexOf(fold(next.text), cursor);
-    if (at < 0) return [{ base: written, reading }];
+    // The kana after this run anchors its end. A trailing run can only be the
+    // end of the reading, and any run reads as at least one kana, so the search
+    // starts past the cursor — otherwise 痛い/いたい finds い inside 痛's own
+    // reading and leaves the kanji with nothing.
+    const nextFolded = fold(next.text);
+    const trailing = i + 1 === segments.length - 1;
+    const at = trailing
+      ? foldedReading.endsWith(nextFolded)
+        ? foldedReading.length - nextFolded.length
+        : -1
+      : foldedReading.indexOf(nextFolded, cursor + 1);
+    if (at <= cursor) return [{ base: written, reading }];
 
     pairs.push({ base: segment.text, reading: reading.slice(cursor, at) });
     cursor = at;

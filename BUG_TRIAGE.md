@@ -22,7 +22,7 @@ investigators reached this independently from different bugs.
 | B3 | Starred JLPT list shows 0 items | Bug — proven in SQL | A′ || ✅ |
 | B4 | Create-list drawer under keyboard | Bug — one line | D | Landed |
 | B5 | Examples too far apart | Bug — unsupported NativeWind variant | C | Open |
-| B6 | Furigana misaligned on hero | Bug — proven on 980 real words | C | Open |
+| B6 | Furigana misaligned on hero | Bug — proven on 980 real words | C | Landed |
 | B7 | Black-and-white redesign | **Dropped from scope** — see below | — | — |
 | B8 | Random crash opening JLPT pages | Bug — symptom of B1's root cause | A + B | Landed |
 | B9 | Startup loading state | **Deferred** — see below | — | — |
@@ -97,7 +97,7 @@ things. Fixed before Milestone 2 because they set the feel of every screen.
 
 | ID | Bug | Root cause | Solution | Status |
 |---|---|---|---|---|
-| B6 | Furigana over the wrong kanji | `alignFurigana` anchors each kana run at its *first* occurrence in the reading; when the okurigana also appears inside the kanji's reading the split lands early. 709 words fall back to one reading over the whole word (痛い, 可愛い, 五つ, 疑う); 271 silently attach the reading to the wrong kanji (言い訳) | Two rules, ~8 lines in `utils/furigana.ts`. Prototyped on all 217k entries: wrong-kanji 271 → 0, whole-word fallbacks 709 → 233 (rest unanchorable). Existing tests unchanged | Open |
+| B6 | Furigana over the wrong kanji | `alignFurigana` anchors each kana run at its *first* occurrence in the reading; when the okurigana also appears inside the kanji's reading the split lands early. 709 words fall back to one reading over the whole word (痛い, 可愛い, 五つ, 疑う); 271 silently attach the reading to the wrong kanji (言い訳) | Two rules, ~8 lines in `utils/furigana.ts`. Re-audited on landing over all 176,688 written forms: wrong-kanji 271 → 0; whole-word fallbacks 1345 → 869 counting full-width digits and letters as anchors (what remains is that class — １月, Ｘ線 — unanchorable by nature). All 8 existing tests unchanged; sentence coverage 98.7% → 98.8% | Landed |
 | B5 | Examples too far apart | `last:border-b-0` is unsupported by NativeWind and compiles to an *unconditional* rule, so every divider is removed and each gap is 32px of blank space | Extract `ExampleSentences`; hide the last divider by index; `pb-3 mb-3` for the 25px rhythm of the result rows | Open |
 
 **Workstream D — App shell**
