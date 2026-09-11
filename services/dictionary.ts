@@ -6,7 +6,12 @@ import {
   rankEntries,
 } from "./searchQuery";
 import { parseJsonArray, parseSenses } from "@/utils/entryJson";
-import { annotateSentence, buildReadingIndex } from "@/utils/furigana";
+import {
+  alignFurigana,
+  annotateSentence,
+  buildReadingIndex,
+  splitCompounds,
+} from "@/utils/furigana";
 import { classifySenses } from "@/utils/wordClass";
 import type {
   DictionaryEntry,
@@ -79,15 +84,21 @@ function parseTokens(raw: string | null): ExampleToken[] {
 
 function rawToEntry(row: RawEntry): DictionaryEntry {
   const senses = parseSenses(row.senses);
+  const kanjiForms = parseJsonArray(row.kanji_forms);
+  const readingForms = parseJsonArray(row.reading_forms);
   return {
     id: row.id,
-    kanjiForms: parseJsonArray(row.kanji_forms),
-    readingForms: parseJsonArray(row.reading_forms),
+    kanjiForms,
+    readingForms,
     senses,
     jlptLevel: row.jlpt_level,
     isCommon: row.is_common === 1,
     tags: parseJsonArray(row.tags),
     wordClass: classifySenses(senses),
+    furigana: alignFurigana(
+      kanjiForms[0] ?? readingForms[0] ?? "",
+      readingForms[0] ?? ""
+    ),
   };
 }
 
@@ -166,7 +177,34 @@ export async function getEntry(
     `SELECT * FROM entries WHERE id = ?`,
     [id]
   );
-  return row ? rawToEntry(row) : null;
+  if (!row) return null;
+
+  const entry = rawToEntry(row);
+  entry.furigana = splitCompounds(entry.furigana, await getKanjiReadings(entry));
+  return entry;
+}
+
+/** KANJIDIC on and kun readings for every kanji in the entry's primary form. */
+async function getKanjiReadings(
+  entry: DictionaryEntry
+): Promise<Map<string, string[]>> {
+  const chars = [...new Set(entry.furigana.flatMap((p) => [...p.base]))];
+  if (chars.length === 0) return new Map();
+
+  const db = getDictDb();
+  const rows = await db.getAllAsync<
+    Pick<RawKanji, "character" | "on_readings" | "kun_readings">
+  >(
+    `SELECT character, on_readings, kun_readings FROM kanji
+     WHERE character IN (${chars.map(() => "?").join(",")})`,
+    chars
+  );
+  return new Map(
+    rows.map((r) => [
+      r.character,
+      [...parseJsonArray(r.on_readings), ...parseJsonArray(r.kun_readings)],
+    ])
+  );
 }
 
 export async function getKanji(

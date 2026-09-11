@@ -38,6 +38,10 @@ const entry: DictionaryEntry = {
   isCommon: true,
   tags: [],
   wordClass: null,
+  furigana: [
+    { base: "食", reading: "た" },
+    { base: "べる", reading: "" },
+  ],
 };
 
 const kanji: KanjiEntry = {

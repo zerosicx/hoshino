@@ -14,7 +14,6 @@ import AddToListDrawer from "@/components/AddToListDrawer";
 import ExampleSentences from "@/components/ExampleSentences";
 import { useAddToList } from "@/hooks/useLists";
 import { getCustomLists, getListIdsContaining } from "@/services/lists";
-import { alignFurigana } from "@/utils/furigana";
 import type { DictionaryEntry, ExampleSentence } from "@/types/dictionary";
 import type { ListSummary } from "@/types/lists";
 
@@ -113,7 +112,7 @@ export default function WordDetailScreen() {
 
   const primaryKanji = entry.kanjiForms[0] ?? entry.readingForms[0] ?? "";
   const primaryReading = entry.readingForms[0] ?? "";
-  const furiganaPairs = alignFurigana(primaryKanji, primaryReading);
+  const furiganaPairs = entry.furigana;
 
   // Tapping a list the word is already in takes it out again, so the same row
   // both adds and undoes — there is nowhere else to remove a word from a list.

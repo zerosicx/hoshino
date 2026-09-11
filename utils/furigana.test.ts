@@ -4,6 +4,8 @@ import {
   annotateSentence,
   kanjiRunReadings,
   rubyText,
+  splitCompounds,
+  splitKanjiRun,
 } from "@/utils/furigana";
 
 describe("alignFurigana", () => {
@@ -88,6 +90,93 @@ describe("alignFurigana", () => {
 
   it("returns nothing for an empty word", () => {
     expect(alignFurigana("", "")).toEqual([]);
+  });
+});
+
+// KANJIDIC readings as the dictionary stores them: katakana on, kun with the
+// okurigana after a dot and a hyphen where the kanji is a suffix.
+const readings = new Map<string, string[]>([
+  ["学", ["ガク", "まな.ぶ"]],
+  ["校", ["コウ", "キョウ"]],
+  ["図", ["ズ", "ト", "はか.る"]],
+  ["書", ["ショ", "か.く"]],
+  ["館", ["カン", "やかた"]],
+  ["新", ["シン", "あたら.しい"]],
+  ["聞", ["ブン", "モン", "き.く"]],
+  ["出", ["シュツ", "スイ", "で.る", "だ.す"]],
+  ["発", ["ハツ", "ホツ", "た.つ"]],
+  ["三", ["サン", "み", "み.つ", "みっ.つ"]],
+  ["日", ["ニチ", "ジツ", "ひ", "-び", "-か"]],
+  ["本", ["ホン", "もと"]],
+  ["大", ["ダイ", "タイ", "おお"]],
+  ["人", ["ジン", "ニン", "ひと"]],
+  ["合", ["ゴウ", "あ.う", "あい"]],
+  ["気", ["キ", "ケ"]],
+  ["道", ["ドウ", "みち"]],
+  ["勉", ["ベン"]],
+  ["強", ["キョウ", "つよ.い"]],
+]);
+
+describe("splitKanjiRun", () => {
+  it("gives each kanji its own reading", () => {
+    expect(splitKanjiRun("図書館", "としょかん", readings)).toEqual([
+      "と",
+      "しょ",
+      "かん",
+    ]);
+  });
+
+  it("allows a voiced first consonant after the first kanji", () => {
+    expect(splitKanjiRun("新聞", "しんぶん", readings)).toEqual(["しん", "ぶん"]);
+  });
+
+  it("allows a reading to end in a small tsu before another kanji", () => {
+    expect(splitKanjiRun("学校", "がっこう", readings)).toEqual(["がっ", "こう"]);
+    expect(splitKanjiRun("三日", "みっか", readings)).toEqual(["みっ", "か"]);
+  });
+
+  it("allows both changes in one reading", () => {
+    expect(splitKanjiRun("出発", "しゅっぱつ", readings)).toEqual([
+      "しゅっ",
+      "ぱつ",
+    ]);
+  });
+
+  it("prefers the longest reading when a split is ambiguous", () => {
+    // あ|いき|どう would also fit; あい is the reading anyone would write.
+    expect(splitKanjiRun("合気道", "あいきどう", readings)).toEqual([
+      "あい",
+      "き",
+      "どう",
+    ]);
+  });
+
+  it("refuses rather than guesses when a kanji has no listed reading that fits", () => {
+    expect(splitKanjiRun("大人", "おとな", readings)).toBeNull();
+    // 日 is read に here and nowhere in KANJIDIC.
+    expect(splitKanjiRun("日本", "にほん", readings)).toBeNull();
+  });
+
+  it("refuses when a kanji is unknown", () => {
+    expect(splitKanjiRun("学級", "がっきゅう", readings)).toBeNull();
+  });
+});
+
+describe("splitCompounds", () => {
+  it("splits the multi-kanji pairs and leaves the rest alone", () => {
+    expect(
+      splitCompounds(alignFurigana("勉強する", "べんきょうする"), readings)
+    ).toEqual([
+      { base: "勉", reading: "べん" },
+      { base: "強", reading: "きょう" },
+      { base: "する", reading: "" },
+    ]);
+  });
+
+  it("keeps the whole-run reading when a run cannot be split", () => {
+    expect(splitCompounds(alignFurigana("大人", "おとな"), readings)).toEqual([
+      { base: "大人", reading: "おとな" },
+    ]);
   });
 });
 

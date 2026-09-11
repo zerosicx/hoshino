@@ -121,6 +121,88 @@ export function alignFurigana(written: string, reading: string): FuriganaPair[] 
   return pairs;
 }
 
+/** First-mora voicing a reading takes after another kanji: 新聞 is しん + ぶん. */
+const VOICED: Record<string, string[]> = {
+  か: ["が"], き: ["ぎ"], く: ["ぐ"], け: ["げ"], こ: ["ご"],
+  さ: ["ざ"], し: ["じ"], す: ["ず"], せ: ["ぜ"], そ: ["ぞ"],
+  た: ["だ"], ち: ["ぢ"], つ: ["づ"], て: ["で"], と: ["ど"],
+  は: ["ば", "ぱ"], ひ: ["び", "ぴ"], ふ: ["ぶ", "ぷ"], へ: ["べ", "ぺ"], ほ: ["ぼ", "ぽ"],
+};
+
+/**
+ * The ways one kanji can be read in a given position of a compound: each
+ * listed reading, plus its sound changes. Longest first, so where two splits
+ * both fit the fuller reading wins (合気道 is あい|き|どう, not あ|いき|どう).
+ */
+function readingForms(
+  listed: string[],
+  first: boolean,
+  last: boolean
+): string[] {
+  const forms = new Set<string>();
+  for (const entry of listed) {
+    // KANJIDIC writes kun readings as stem.okurigana and marks affixes with -.
+    const stem = fold(entry).replace(/-/g, "").split(".")[0];
+    if (stem) forms.add(stem);
+  }
+  for (const stem of [...forms]) {
+    if (!first) {
+      for (const voiced of VOICED[stem[0]] ?? []) forms.add(voiced + stem.slice(1));
+    }
+    // A closing つ/ち/く/き doubles into the next kanji: 学校 is がっ + こう.
+    if (!last && /[つちくき]$/.test(stem)) forms.add(stem.slice(0, -1) + "っ");
+  }
+  return [...forms].sort((a, b) => b.length - a.length);
+}
+
+/**
+ * One reading per kanji of a run, using the readings KANJIDIC lists for each,
+ * or null when they do not account for the whole reading. Jukujikun like 大人
+ * and irregulars like 日本's に are refused rather than guessed, and stay as
+ * one reading over the run.
+ */
+export function splitKanjiRun(
+  run: string,
+  reading: string,
+  readings: Map<string, string[]>
+): string[] | null {
+  const chars = [...run];
+  const folded = fold(reading);
+
+  const go = (i: number, at: number): string[] | null => {
+    if (i === chars.length) return at === folded.length ? [] : null;
+    const listed = readings.get(chars[i]);
+    if (!listed) return null;
+    const first = i === 0;
+    const last = i === chars.length - 1;
+    for (const form of readingForms(listed, first, last)) {
+      if (!folded.startsWith(form, at)) continue;
+      const rest = go(i + 1, at + form.length);
+      if (rest) return [reading.slice(at, at + form.length), ...rest];
+    }
+    return null;
+  };
+
+  return go(0, 0);
+}
+
+/**
+ * Splits every multi-kanji pair into one pair per kanji where the readings
+ * allow it. Pairs it cannot split are kept as they are.
+ */
+export function splitCompounds(
+  pairs: FuriganaPair[],
+  readings: Map<string, string[]>
+): FuriganaPair[] {
+  return pairs.flatMap((pair) => {
+    const chars = [...pair.base];
+    if (!pair.reading || chars.length < 2 || !chars.every(isKanji)) return [pair];
+    const parts = splitKanjiRun(pair.base, pair.reading, readings);
+    if (!parts) return [pair];
+    return chars.map((base, i) => ({ base, reading: parts[i] }));
+  });
+}
+
 /**
  * Reading for each kanji run in a word, keyed by the run itself.
  * 食べ物 / たべもの yields { 食: た, 物: もの }.

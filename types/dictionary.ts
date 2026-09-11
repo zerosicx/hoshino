@@ -18,6 +18,8 @@ export interface DictionaryEntry {
   tags: string[];
   /** Derived from the part-of-speech tags on `senses`, not from a column. */
   wordClass: WordClassInfo | null;
+  /** The primary form split for display, one reading per kanji where known. */
+  furigana: FuriganaPair[];
 }
 
 export interface KanjiEntry {
