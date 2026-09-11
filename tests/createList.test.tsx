@@ -10,9 +10,11 @@ import {
   waitFor,
 } from "expo-router/testing-library";
 import { NativeStackView } from "@react-navigation/native-stack";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { dialogScreenOptions, stackScreenOptions } from "@/constants/navigation";
 import CreateList from "@/app/create-list";
 import Index from "@/app/index";
+import TabsLayout from "@/app/(tabs)/_layout";
 import * as ListsLayout from "@/app/(tabs)/lists/_layout";
 import type { ListSummary } from "@/types/lists";
 
@@ -32,27 +34,37 @@ const created: ListSummary = {
 const Screen = () => <Text>screen</Text>;
 
 /**
- * The dialog is the real screen; everything around it is a stub. The Stack's
- * children must match `app/_layout.tsx` exactly: listed screens come first in
- * the route order, and the first route is where a cold start lands.
+ * The dialog and the layouts are the real files, so the router state under
+ * test is the one the app builds; every leaf is a stub. The Stack's children
+ * must match `app/_layout.tsx` exactly: listed screens come first in the route
+ * order, and the first route is where a cold start lands.
  */
 function RootLayout() {
   return (
-    <Stack screenOptions={stackScreenOptions}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="create-list" options={dialogScreenOptions} />
-    </Stack>
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 400, height: 800 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }}
+    >
+      <Stack screenOptions={stackScreenOptions}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="create-list" options={dialogScreenOptions} />
+      </Stack>
+    </SafeAreaProvider>
   );
 }
 
 const routes = {
   _layout: RootLayout,
   index: Index,
-  "(tabs)/_layout": () => <Stack />,
+  "(tabs)/_layout": TabsLayout,
   "(tabs)/dictionary/index": Screen,
   "(tabs)/lists/_layout": ListsLayout,
   "(tabs)/lists/index": Screen,
   "(tabs)/lists/[id]": Screen,
+  "(tabs)/settings/index": Screen,
+  "(tabs)/study/index": Screen,
   "word/[id]": Screen,
   "create-list": CreateList,
 };
@@ -99,6 +111,22 @@ describe("create list", () => {
     await waitFor(() => expect(screen).toHavePathname("/lists/7"));
     expect(lists.createList).toHaveBeenCalledWith("Verbs");
     expect(lists.addToList).not.toHaveBeenCalled();
+  });
+
+  // Closing the dialog and opening the list used to be two calls; the second
+  // ran before the first had applied, so the list was pushed inside a second
+  // copy of the tabs. Back then fell to that copy's first tab, the dictionary.
+  it("opens the new list inside the Lists tab, so back returns to Lists", async () => {
+    const app = open("/lists");
+    push("/create-list");
+    typeAndCreate("Verbs");
+    await waitFor(() => expect(screen).toHavePathname("/lists/7"));
+
+    const rootStack = app.getRouterState()?.routes[0].state;
+    expect(rootStack?.routes.map((r) => r.name)).toEqual(["(tabs)"]);
+
+    act(() => router.back());
+    expect(screen).toHavePathname("/lists");
   });
 
   it("adds the word it was opened with and returns to that page", async () => {

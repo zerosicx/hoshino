@@ -26,8 +26,10 @@ export default function CreateListScreen() {
       return;
     }
 
-    router.back();
-    router.push(`/lists/${created.id}`);
+    // One action, not back() then push(): the push would run before the back
+    // had applied and land the list in a second copy of the tabs. dismissTo
+    // pops this dialog and opens the list inside the Lists stack already there.
+    router.dismissTo(`/lists/${created.id}`);
   };
 
   return <CreateListDialog onCancel={() => router.back()} onCreate={onCreate} />;
