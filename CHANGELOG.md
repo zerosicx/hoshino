@@ -39,7 +39,7 @@ Rules for the lines:
 
 ## v0.1.0 Happy Fruit
 
-Last updated: 10/09/26
+Last updated: 14/09/26
 Created: 03/09/26
 
 Changelog:
@@ -57,6 +57,7 @@ Changelog:
 - [FEATURE] Add a word to a list from its page, or by swiping it right in the search results.
 - [FEATURE] Remove a word from a list by swiping it left, or by tapping the list again in the picker.
 - [FEATURE] Star a list to pin it to the top of the Lists screen.
+- [FEATURE] Delete a list you made from its page, after confirming by name; its words and study progress go with it.
 - [FEATURE] Choose a light, dark, or device-matching theme.
 - [FEATURE] Choose whether readings appear as furigana or romaji throughout the app.
 - [FEATURE] Runs on Android, iOS and the web from one app.
@@ -71,6 +72,8 @@ Changelog:
 - [BUG FIX] Example sentences on a word page are separated by a divider with even spacing, in step with the rest of the page.
 - [BUG FIX] Readings now sit over the right kanji in words like 痛い, 五つ and 言い訳, instead of spanning the whole word or landing on the wrong character.
 - [BUG FIX] Kanji in JLPT lists no longer stretch to odd sizes on the last row.
+- [BUG FIX] Going back from a list you have just created returns to the Lists screen in one step, instead of the Dictionary.
+- [UPDATED] Words made only of kanji, like 学校 or 図書館, show a reading over each kanji rather than one reading across the whole word.
 - [UPDATED] JLPT kanji lists show one kanji per row with its meanings, readings and level, matching the word lists.
 - [UPDATED] New lists are named in a floating card in the upper part of the screen, with the keyboard opening straight away; it stays clear of the keyboard and closes on Cancel, hardware back, or a tap outside it.
 - [UPDATED] Word and kanji pages open full-screen over the tabs; the tab bar is hidden while reading one.

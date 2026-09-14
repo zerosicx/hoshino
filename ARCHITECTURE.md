@@ -336,7 +336,8 @@ hoshino/
 │   └── settingsStore.ts
 ├── utils/                        # Pure functions
 │   ├── conjugation.ts            # Conjugation engine
-│   ├── furigana.ts               # Furigana parsing/alignment
+│   ├── furigana.ts               # Furigana alignment; splits compounds per kanji from KANJIDIC readings
+│   ├── confirm.ts                # Native yes/no before something irreversible; browser confirm on web
 │   ├── japanese.ts               # Script detection, kana folding, romaji both ways
 │   ├── deinflect.ts              # Conjugated form -> dictionary form
 │   ├── wordClass.ts              # JMdict POS tags -> word class + transitivity

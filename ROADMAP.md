@@ -63,7 +63,7 @@ on Android. Check a real device after any theme or typography change.
 
 ## Now
 
-### Beta bug fixes — Milestones 1 and 1′ verified on the S25; Milestone 2 landed, awaiting device test
+### Beta bug fixes — Milestones 1, 1′ and 2 on the S25; Milestone 2′ landed, awaiting device test
 
 Milestone 1 (the navigation restructure) and 1′ (tab bar height, JLPT counts,
 the three-cause transition flash) are confirmed on the S25 in a development
@@ -80,9 +80,12 @@ navigator's `transitionEnd`. Judge it again on a release build before spending
 on it.
 
 Milestone 2 — B4 (create-list as a floating card), B5 (example dividers), B6
-(furigana anchoring), B11 and B8's layout half (kanji rows) — is landed and in
-the next preview build. Next: Hannah tests it on the S25 against the device
-checklist in `BUG_TRIAGE.md`, then Milestone 3.
+(furigana anchoring), B11 and B8's layout half (kanji rows) — tested on the
+S25: "works mostly well". Testing turned up three more, now landed as Milestone
+2′: B15 (back from a new list went to Dictionary), B16 (one reading per kanji
+in compounds, from KANJIDIC — 92.9% of multi-kanji runs split), B17 (delete a
+custom list). Next: Hannah tests 2′ against the checklist in `BUG_TRIAGE.md`,
+then Milestone 3.
 
 ### The database rebuild — done
 
@@ -161,9 +164,9 @@ Deferred deliberately; the screens work without them.
 
 ### Deferred from Stage 3
 
-- [ ] **No way to delete or rename a list.** A list created by accident is
-      permanent, and a typo in its name cannot be fixed. Needs a decision on the
-      gesture — swipe on the row, or an edit mode.
+- [ ] **No way to rename a list.** A typo in a list's name cannot be fixed.
+      Delete landed in Milestone 2′ (trash icon on the list's page, native
+      confirm); rename would sit beside it.
 - [ ] **No undo on removing a word.** The toast reports the removal but cannot
       reverse it; the word has to be searched for and added again.
 - [ ] **Kanji cannot go into a custom list.** `list_items.entry_id` is an

@@ -31,6 +31,9 @@ investigators reached this independently from different bugs.
 | B12 | Old list state flashes | Bug — symptom of B1's root cause | A | Landed |
 | B13 | Every transition flashes | Bug — found testing M1; three causes | A′ || ✅ |
 | B14 | Android: popped page goes white as it slides out | Known react-native-screens fault on the new architecture; Expo Go only | A′ | ✅ Not in the dev build — Expo Go artefact, no code change |
+| B15 | Back from a new list goes to Dictionary | Bug — found testing M2; reproduced in Jest | 2′ | Landed |
+| B16 | Kanji-only words show one reading over the whole word | Bug — found testing M2; no per-kanji split existed | 2′ | Landed |
+| B17 | No way to delete a list | Missing feature, requested testing M2 | 2′ | Landed |
 
 ---
 
@@ -110,6 +113,14 @@ things. Fixed before Milestone 2 because they set the feel of every screen.
 `lists/*.tsx`, `ListRow.tsx`. C touches `utils/furigana.ts`, `app/word/[id].tsx`
 (moved there by Milestone 1). D touches `BottomDrawer.tsx`. No file appears
 twice. Each lands as its own commit.
+
+### Milestone 2′ — What device testing of M2 turned up (one agent, one commit each)
+
+| ID | Bug | Root cause | Solution | Status |
+|---|---|---|---|---|
+| B15 | Back from a just-created list lands on Dictionary; several backs to reach Lists | `create-list` closed with `router.back()` then `router.push('/lists/<id>')`. The push ran before the back had applied, so Expo Router saw the dialog as the focused route and pushed a *second* `(tabs)` onto the root stack with the list inside it. Back from the list fell to that copy's first tab | One call: `router.dismissTo('/lists/<id>')` pops the dialog and opens the list inside the Lists stack that is already there. `tests/createList.test.tsx` now uses the real Tabs layout — the stubbed Stack could not reproduce this — and asserts one `(tabs)` and back → `/lists` | Landed |
+| B16 | 日本語 shows にほんご centred over three kanji | `alignFurigana` only splits at kana; a run of two or more kanji is one pair. No per-kanji furigana data exists in the bundle | `splitKanjiRun` in `utils/furigana.ts` matches the KANJIDIC readings of each kanji against the run's reading, allowing rendaku after the first kanji (新聞 しん\|ぶん) and a doubled final consonant before the next (学校 がっ\|こう), longest first. Audited over all 142,992 multi-kanji runs: 132,792 (92.9%) split exactly, 6 ambiguous (longest-first picks the conventional one). Jukujikun (大人) and irregulars (日本's に) are refused and keep one reading — a one-wildcard fallback was tried and produced visibly wrong splits (真面目 → ま\|じ\|め). `getEntry` returns `entry.furigana` already split, as `getExamples` does for sentences | Landed |
+| B17 | No way to delete a list | Never built | Trash icon on a custom list's page → `confirmDestructive` (native `Alert`; `window.confirm` on web, where `Alert.alert` is an empty function) → `deleteList` runs `DELETE_LIST_SQL` in one transaction over `srs_cards`, `list_items`, `lists` → back to Lists. The SQL is guarded by `type = 'custom'`, so built-ins cannot go. A confirm as a `transparentModal` route was tried first and rejected: `dismissTo('/lists')` from a root dialog pushes a second `index` into the Lists stack | Landed |
 
 ---
 
@@ -209,6 +220,18 @@ Each step is one thing to tap and one thing to look for.
 | B4 | Lists → + | Keyboard opens by itself; the card floats in the upper part of the screen, clear of the keyboard, with Cancel and Create visible |
 | B4 | Word page → + → New list; Dictionary → swipe a result right with no custom lists yet | Same card; after Create the word is in the new list and you are back where you started |
 | B4 | Lists → + → hardware back / tap the dimmed area | Card closes, Lists screen unchanged |
+
+**After Milestone 2′**
+
+| Bug | Steps | Pass when |
+|---|---|---|
+| B15 | Lists → + → name → Create → Back | One tap lands on Lists, with the new list in it |
+| B16 | Search 日本語, 学校, 図書館, 新聞, 出発 | One reading over each kanji: に·ほん·ご stays whole (irregular), がっ·こう, と·しょ·かん, しん·ぶん, しゅっ·ぱつ split |
+| B16 | Search 大人, 今日 | Still one reading over the pair — never a wrong split |
+| B16 | Settings → Romaji, repeat | Same splits in romaji |
+| B17 | Open a custom list → trash icon → Cancel | Nothing changes |
+| B17 | Same → Delete | Back on Lists; the list is gone; its words are untouched in any other list |
+| B17 | Open Searched Terms, then any JLPT list | No trash icon |
 
 ---
 
@@ -610,3 +633,54 @@ instance, a superseded fetch belongs to an unmounted component and its
 serves only the index screen), so there is nothing to clean up. If we ever
 choose *not* to restructure, the one-line fallback is
 `useEffect(() => setLoading(true), [id])`.
+
+### B15 — Back from a new list
+
+```
+Root stack (after Create, before the fix)      Root stack (after the fix)
+  (tabs)                                          (tabs)
+    lists: index                                    lists: index, [id]
+  (tabs)   ← second copy, pushed by push()
+    lists: [id]
+```
+
+`router.back()` dispatches GO_BACK, but the state it produces is committed by
+React, not on the spot. `router.push('/lists/7')` on the next line therefore
+computed its action from a state in which `create-list` was still focused. The
+deepest navigator both routes share is the root stack, so Expo Router pushed a
+whole new `(tabs)` with `lists/[id]` inside it. Back from `[id]` had nothing
+under it in that copy's Lists stack, and a tab navigator's fallback is its
+first tab. `router.navigate` behaves the same on React Navigation 7 (it stopped
+popping to an existing route; that moved to `popTo`). `router.dismissTo` is
+`popTo` on the existing `(tabs)` with the nested target as params, which is the
+one call that does both halves in one committed action. Reproduced and each
+alternative tried in Jest with the real Tabs layout before the change.
+
+### B16 — One reading per kanji
+
+The bundle has JMdict readings per *word* and KANJIDIC readings per *kanji*,
+but nothing that says which part of にほんご belongs to 本. `splitKanjiRun`
+derives it: for each kanji in turn, try every listed on/kun reading (kun stem
+only, `-` affix marks stripped) against the reading at the cursor, plus the two
+sound changes compounds actually undergo — a voiced first consonant after the
+first kanji, and つ/ち/く/き doubling into っ before another kanji. Depth-first,
+longest reading first; the run splits only if the whole reading is consumed.
+
+Audit over every first written form in the dictionary: 142,992 runs of two or
+more kanji; 132,792 split (92.9%); 6 have two exact splits and longest-first
+picks the conventional one in each (合気道 あい|き|どう). A fallback that let
+one kanji take an unlisted reading was prototyped to reach 日本 and rejected:
+it produced confident wrong splits (真面目 → ま|じ|め, 座技 → すわ|りわざ). The
+gold standard would be the JmdictFurigana dataset in the build pipeline; that
+is a database rebuild and belongs to a later version.
+
+### B17 — Delete a list
+
+The obvious shape — a confirm card on a `transparentModal` route like
+create-list — was tried and dropped. After the delete the dialog has to pop
+*and* the list page under it has to pop, and no single router call does that
+from a root-level route: `dismissTo('/lists')` reaches `popTo('(tabs)')` with
+`{screen: 'lists', params: {screen: 'index'}}`, and the nested `navigate` to
+`index` pushes a second one (`[index, [id], index]`). A confirm has no text
+field, so none of the reasons create-list left `Modal` apply; the platform's
+own dialog is the right tool, and it is what was asked for.
