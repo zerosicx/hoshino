@@ -1,11 +1,11 @@
 import { useCallback, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Trash2 } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { getList, getListEntries, getListKanji } from "@/services/lists";
-import { useAddToList } from "@/hooks/useLists";
+import { useAddToList, useDeleteList } from "@/hooks/useLists";
 import DictionaryResultRow from "@/components/DictionaryResultRow";
 import KanjiResultRow from "@/components/KanjiResultRow";
 import SwipeAction from "@/components/SwipeAction";
@@ -18,6 +18,7 @@ export default function ListDetailScreen() {
   const { isDark } = useTheme();
   const readingMode = useSettingsStore((s) => s.readingMode);
   const { remove } = useAddToList();
+  const deleteList = useDeleteList();
 
   const [list, setList] = useState<ListSummary | null>(null);
   const [entries, setEntries] = useState<SearchResult[]>([]);
@@ -59,20 +60,41 @@ export default function ListDetailScreen() {
     setEntries((current) => current.filter((e) => e.id !== item.id));
   };
 
+  // Only a list the user made can go; Searched Terms and JLPT are the app's.
+  const deletable = list?.type === "custom";
+
+  const deleteThisList = async () => {
+    if (!list) return;
+    // The count shown is the one loaded here, not the one the summary carried.
+    if (await deleteList({ ...list, itemCount: entries.length })) router.back();
+  };
+
   // The frame paints on the first frame; the title and body fill in as they
   // arrive. A local read is too quick for a spinner to be anything but a flash.
   const header = (
     <View className="px-4 pb-3">
-      <Pressable
-        onPress={() => router.back()}
-        className="flex-row items-center mb-4"
-        hitSlop={8}
-      >
-        <ChevronLeft size={20} color={isDark ? "#6366F1" : "#4F46E5"} />
-        <Text className="text-body text-accent dark:text-accent-light ml-1">
-          Back
-        </Text>
-      </Pressable>
+      <View className="flex-row items-center justify-between mb-4">
+        <Pressable
+          onPress={() => router.back()}
+          className="flex-row items-center"
+          hitSlop={8}
+        >
+          <ChevronLeft size={20} color={isDark ? "#6366F1" : "#4F46E5"} />
+          <Text className="text-body text-accent dark:text-accent-light ml-1">
+            Back
+          </Text>
+        </Pressable>
+
+        {deletable && (
+          <Pressable
+            accessibilityLabel="Delete list"
+            onPress={deleteThisList}
+            hitSlop={8}
+          >
+            <Trash2 size={20} color={isDark ? "#A1A1AA" : "#71717A"} />
+          </Pressable>
+        )}
+      </View>
 
       {list && (
         <Text

@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { USER_SCHEMA, BUILT_IN_LISTS, MIGRATIONS } from "@/services/schema";
 import {
+  DELETE_LIST_SQL,
   LIST_ITEM_IDS_SQL,
   MOST_RECENT_LIST_SQL,
   REMOVE_ITEM_SQL,
@@ -353,5 +354,56 @@ describe("removing an item", () => {
       "Verbs",
       "Food",
     ]);
+  });
+});
+
+describe("deleting a list", () => {
+  function deleteList(listId: number) {
+    for (const sql of DELETE_LIST_SQL) db.prepare(sql).run(listId);
+  }
+
+  function count(table: string, listId: number): number {
+    const column = table === "lists" ? "id" : "list_id";
+    const row = db
+      .prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE ${column} = ?`)
+      .get(listId) as { n: number };
+    return row.n;
+  }
+
+  function addCard(listId: number, entryId: number) {
+    db.prepare(
+      "INSERT INTO srs_cards (entry_id, list_id, due) VALUES (?, ?, ?)"
+    ).run(entryId, listId, EPOCH);
+  }
+
+  it("removes the list, its words and its study cards, and nothing else", () => {
+    const verbs = createList("Verbs", EPOCH);
+    const food = createList("Food", EPOCH);
+    addItem(verbs, 10, EPOCH);
+    addItem(verbs, 20, EPOCH);
+    addItem(food, 10, EPOCH);
+    addCard(verbs, 10);
+    addCard(food, 10);
+
+    deleteList(verbs);
+
+    expect(count("lists", verbs)).toBe(0);
+    expect(count("list_items", verbs)).toBe(0);
+    expect(count("srs_cards", verbs)).toBe(0);
+    expect(count("lists", food)).toBe(1);
+    expect(count("list_items", food)).toBe(1);
+    expect(count("srs_cards", food)).toBe(1);
+    expect(visibleNames()).toEqual(["Food"]);
+  });
+
+  it("refuses to delete a built-in list", () => {
+    seedBuiltIns();
+    const searched = db
+      .prepare("SELECT id FROM lists WHERE type = 'system'")
+      .get() as { id: number };
+
+    deleteList(searched.id);
+
+    expect(count("lists", searched.id)).toBe(1);
   });
 });

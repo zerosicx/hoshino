@@ -1,5 +1,6 @@
-import { ActivityIndicator, FlatList } from "react-native";
-import { renderRouter, screen, act } from "expo-router/testing-library";
+import { ActivityIndicator, FlatList, Text } from "react-native";
+import { router } from "expo-router";
+import { renderRouter, screen, act, fireEvent } from "expo-router/testing-library";
 import ListDetail from "@/app/(tabs)/lists/[id]";
 import WordDetail from "@/app/word/[id]";
 import KanjiDetail from "@/app/kanji/[char]";
@@ -8,9 +9,11 @@ import type { ListSummary } from "@/types/lists";
 
 jest.mock("@/services/lists");
 jest.mock("@/services/dictionary");
+jest.mock("@/utils/confirm");
 
 const lists = jest.requireMock("@/services/lists");
 const dictionary = jest.requireMock("@/services/dictionary");
+const confirm = jest.requireMock("@/utils/confirm");
 
 /** A promise the test resolves by hand, so the loading state can be inspected. */
 function deferred<T>() {
@@ -57,10 +60,60 @@ const kanji: KanjiEntry = {
 };
 
 const routes = {
+  "(tabs)/lists/index": () => <Text>lists</Text>,
   "(tabs)/lists/[id]": ListDetail,
   "word/[id]": WordDetail,
   "kanji/[char]": KanjiDetail,
 };
+
+describe("deleting a list", () => {
+  afterEach(() => jest.resetAllMocks());
+
+  /** Pushed from Lists, as in the app, so there is somewhere to go back to. */
+  async function openList(summary: ListSummary) {
+    lists.getList.mockResolvedValue(summary);
+    lists.getListEntries.mockResolvedValue([]);
+    lists.getListKanji.mockResolvedValue([]);
+    renderRouter(routes, { initialUrl: "/lists" });
+    await act(async () => router.push(`/lists/${summary.id}`));
+  }
+
+  it("asks by name, then deletes and returns to Lists", async () => {
+    confirm.confirmDestructive.mockResolvedValue(true);
+    lists.deleteList.mockResolvedValue(undefined);
+    await openList({ ...list, itemCount: 12 });
+
+    await act(async () => fireEvent.press(screen.getByLabelText("Delete list")));
+
+    expect(confirm.confirmDestructive).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Delete Verbs?", action: "Delete" })
+    );
+    expect(lists.deleteList).toHaveBeenCalledWith(5);
+    expect(screen).toHavePathname("/lists");
+  });
+
+  it("does nothing when the deletion is not confirmed", async () => {
+    confirm.confirmDestructive.mockResolvedValue(false);
+    await openList(list);
+
+    await act(async () => fireEvent.press(screen.getByLabelText("Delete list")));
+
+    expect(lists.deleteList).not.toHaveBeenCalled();
+    expect(screen).toHavePathname("/lists/5");
+  });
+
+  it("offers no delete on Searched Terms", async () => {
+    await openList({ ...list, id: 1, name: "Searched Terms", type: "system" });
+    expect(screen.getByText("Searched Terms")).toBeTruthy();
+    expect(screen.queryByLabelText("Delete list")).toBeNull();
+  });
+
+  it("offers no delete on a JLPT list", async () => {
+    await openList({ ...list, id: 3, name: "N5 Kanji", type: "jlpt_kanji", jlptLevel: 5 });
+    expect(screen.getByText("N5 Kanji")).toBeTruthy();
+    expect(screen.queryByLabelText("Delete list")).toBeNull();
+  });
+});
 
 // Every detail screen mounts fresh on each visit, so a spinner-then-content
 // swap would show on every navigation. The frame has to paint first and the

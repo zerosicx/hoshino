@@ -146,6 +146,17 @@ export const REMOVE_ITEM_SQL = `
   DELETE FROM list_items WHERE list_id = ? AND entry_id = ?
 `;
 
+/**
+ * A hard delete, run as one transaction with the same list id for each. Study
+ * cards and items have no foreign key to the list, so they go explicitly. Only
+ * a list the user made can go: the built-ins are the app's, not theirs.
+ */
+export const DELETE_LIST_SQL = [
+  `DELETE FROM srs_cards WHERE list_id = ? AND list_id IN (SELECT id FROM lists WHERE type = 'custom')`,
+  `DELETE FROM list_items WHERE list_id = ? AND list_id IN (SELECT id FROM lists WHERE type = 'custom')`,
+  `DELETE FROM lists WHERE id = ? AND type = 'custom'`,
+];
+
 export const SET_STARRED_SQL = `
   UPDATE lists SET starred = ? WHERE id = ?
 `;

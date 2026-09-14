@@ -3,11 +3,13 @@ import { useFocusEffect } from "expo-router";
 import {
   addToList,
   createList,
+  deleteList,
   getMostRecentList,
   getVisibleLists,
   removeFromList,
 } from "@/services/lists";
 import { useToastStore } from "@/stores/toastStore";
+import { confirmDestructive } from "@/utils/confirm";
 import type { ListSummary } from "@/types/lists";
 
 /**
@@ -89,6 +91,36 @@ export function useAddToList() {
   );
 
   return { add, addToMostRecent, remove };
+}
+
+/**
+ * Deletes a list for good once the user has confirmed it by name. Resolves
+ * true only when the list is gone, so the caller knows whether to leave it.
+ */
+export function useDeleteList() {
+  const show = useToastStore((s) => s.show);
+
+  return useCallback(
+    async (list: ListSummary) => {
+      const words = list.itemCount === 1 ? "1 word" : `${list.itemCount} words`;
+      const ok = await confirmDestructive({
+        title: `Delete ${list.name}?`,
+        message: `Its ${words} and their study progress go with it. This cannot be undone.`,
+        action: "Delete",
+      });
+      if (!ok) return false;
+
+      try {
+        await deleteList(list.id);
+        show(`Deleted ${list.name}`);
+        return true;
+      } catch {
+        show(`There was a problem deleting ${list.name}. Try again.`, "error");
+        return false;
+      }
+    },
+    [show]
+  );
 }
 
 export function useCreateList() {

@@ -8,6 +8,7 @@ import {
 import {
   ADD_ITEM_SQL,
   CREATE_LIST_SQL,
+  DELETE_LIST_SQL,
   LIST_BY_ID_SQL,
   LIST_ITEM_IDS_SQL,
   LISTS_CONTAINING_SQL,
@@ -84,6 +85,13 @@ export async function createList(name: string): Promise<ListSummary> {
   const created = await getList(result.lastInsertRowId);
   if (!created) throw new Error("The list could not be read back after saving");
   return created;
+}
+
+/** Removes a custom list for good, with every word and study card in it. */
+export async function deleteList(id: number): Promise<void> {
+  await getUserDb().withTransactionAsync(async () => {
+    for (const sql of DELETE_LIST_SQL) await getUserDb().runAsync(sql, [id]);
+  });
 }
 
 export async function setStarred(id: number, starred: boolean): Promise<void> {
