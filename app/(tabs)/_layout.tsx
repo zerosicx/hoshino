@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Search, Library, Settings as SettingsIcon } from 'lucide-react-native';
+import { Search, Library, GraduationCap, Settings as SettingsIcon } from 'lucide-react-native';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/useTheme';
@@ -45,6 +45,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="study"
+        options={{
+          title: 'Study',
+          tabBarIcon: ({ color, size }) => <GraduationCap color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
         name="lists"
         options={{
           title: 'Lists',
@@ -56,13 +63,6 @@ export default function TabsLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />,
-        }}
-      />
-      {/* Hidden until Stage 4. The routes still work if navigated to directly. */}
-      <Tabs.Screen
-        name="study"
-        options={{
-          href: null,
         }}
       />
     </Tabs>

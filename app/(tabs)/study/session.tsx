@@ -1,49 +1,168 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useEffect, useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { X } from "lucide-react-native";
+import { useTheme } from "@/hooks/useTheme";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
+import { useStudySession } from "@/hooks/useStudySession";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { useToastStore } from "@/stores/toastStore";
+import { getActiveLists } from "@/services/srs";
+import FlashCard from "@/components/FlashCard";
+import SRSRatingBar from "@/components/SRSRatingBar";
+
+/** `lists=all` is every active list; otherwise comma-separated list ids. */
+function parseListIds(param: string | undefined): number[] | "all" {
+  if (!param || param === "all") return "all";
+  return param
+    .split(",")
+    .map(Number)
+    .filter((n) => Number.isInteger(n) && n > 0);
+}
 
 export default function StudySessionScreen() {
+  const { lists } = useLocalSearchParams<{ lists?: string }>();
+  const wanted = parseListIds(lists);
+  const [listIds, setListIds] = useState<number[] | null>(
+    wanted === "all" ? null : wanted
+  );
+
+  useEffect(() => {
+    if (wanted !== "all") return;
+    let cancelled = false;
+    getActiveLists().then((active) => {
+      if (!cancelled) setListIds(active.map((a) => a.list.id));
+    });
+    return () => {
+      cancelled = true;
+    };
+    // `wanted` is re-derived every render; the param string is the real input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lists]);
+
+  const { isDark } = useTheme();
+  if (listIds === null) {
+    return <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"}`} />;
+  }
+  return <Session listIds={listIds} />;
+}
+
+function Session({ listIds }: { listIds: number[] }) {
   const router = useRouter();
+  const { isDark } = useTheme();
+  const readingMode = useSettingsStore((s) => s.readingMode);
+  const cardFront = useSettingsStore((s) => s.cardFrontMode);
+  const sessionSize = useSettingsStore((s) => s.sessionSize);
+  const reduceMotion = useReduceMotion();
+  const toast = useToastStore((s) => s.show);
+
+  const session = useStudySession(listIds, sessionSize);
+  const secondary = isDark ? "text-zinc-500" : "text-zinc-400";
+  const progress = session.total > 0 ? (100 * (session.position - 1)) / session.total : 0;
+
+  const markKnown = async () => {
+    await session.suspend();
+    toast("Marked as known. Restore it from the list's page.");
+  };
+
+  const header = (
+    <View className="px-4 pt-14 pb-3">
+      <View className="flex-row items-center">
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="End session"
+          className="w-9 h-9 items-center justify-center -ml-2"
+        >
+          <X size={22} color={isDark ? "#A1A1AA" : "#71717A"} />
+        </Pressable>
+        <Text
+          className={`flex-1 text-center text-subheadline font-semibold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
+        >
+          {session.total > 0 ? `${session.position} / ${session.total}` : ""}
+        </Text>
+        <View className="w-9" />
+      </View>
+      <View className={`h-1 rounded-full mt-3 overflow-hidden ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}>
+        <View className="h-full bg-accent" style={{ width: `${progress}%` }} />
+      </View>
+    </View>
+  );
+
+  if (session.loading) {
+    return <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"}`}>{header}</View>;
+  }
+
+  if (session.finished) {
+    const { tally } = session;
+    return (
+      <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"}`}>
+        {header}
+        <View className="flex-1 items-center justify-center px-8">
+          {tally.reviewed === 0 ? (
+            <>
+              <Text className={`text-title2 font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}>
+                Nothing to study
+              </Text>
+              <Text className={`text-footnote text-center mt-2 ${secondary}`}>
+                This list has no words left to learn or review right now.
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text className={`text-title2 font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}>
+                Session complete
+              </Text>
+              <Text className={`text-body mt-2 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
+                {tally.reviewed} {tally.reviewed === 1 ? "card" : "cards"} reviewed
+              </Text>
+              <Text className={`text-footnote mt-1 ${secondary}`}>
+                {tally.again} again · {tally.hard} hard · {tally.good} good · {tally.easy} easy
+              </Text>
+            </>
+          )}
+          <Pressable
+            onPress={() => router.back()}
+            className="mt-8 px-6 py-3 rounded-md bg-accent active:bg-accent-dark"
+          >
+            <Text className="text-subheadline font-semibold text-white">Done</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      <Pressable onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>← End Session</Text>
-      </Pressable>
-      <View style={styles.card}>
-        <Text style={styles.cardText}>No cards due</Text>
-        <Text style={styles.cardHint}>Add words to a list to start reviewing.</Text>
+    <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"}`}>
+      {header}
+
+      <View className="flex-1 px-4">
+        <FlashCard
+          content={session.content}
+          revealed={session.revealed}
+          onReveal={session.reveal}
+          readingMode={readingMode}
+          cardFront={cardFront}
+          reduceMotion={reduceMotion}
+          onSeeMore={() => {
+            if (session.content) router.push(`/word/${session.content.entry.id}`);
+          }}
+          onMarkKnown={markKnown}
+          onPressKanji={(char) => router.push(`/kanji/${char}`)}
+        />
       </View>
-      <View style={styles.ratingBar}>
-        {(['Again', 'Hard', 'Good', 'Easy'] as const).map((label) => (
-          <Pressable key={label} style={[styles.ratingBtn, styles[`rating${label}`]]}>
-            <Text style={styles.ratingText}>{label}</Text>
-          </Pressable>
-        ))}
+
+      {/* Fixed height either way, so the card does not jump on reveal. */}
+      <View className="px-4 pt-4 pb-6 min-h-[96px] justify-center">
+        {session.revealed ? (
+          <SRSRatingBar intervals={session.intervals} onRate={session.rate} />
+        ) : (
+          <Text className={`text-center text-footnote ${secondary}`}>
+            Think of the answer, then tap the card.
+          </Text>
+        )}
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0F14', padding: 16, paddingTop: 60 },
-  back: { marginBottom: 24 },
-  backText: { color: '#8B5CF6', fontSize: 17 },
-  card: {
-    flex: 1,
-    backgroundColor: '#1A1A24',
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    marginBottom: 24,
-  },
-  cardText: { fontSize: 24, fontWeight: '700', color: '#F4F4F8', marginBottom: 8 },
-  cardHint: { fontSize: 15, color: '#6B6B80', textAlign: 'center' },
-  ratingBar: { flexDirection: 'row', gap: 8, paddingBottom: 24 },
-  ratingBtn: { flex: 1, padding: 14, borderRadius: 10, alignItems: 'center' },
-  ratingText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-  ratingAgain: { backgroundColor: '#EF4444' },
-  ratingHard: { backgroundColor: '#F97316' },
-  ratingGood: { backgroundColor: '#22C55E' },
-  ratingEasy: { backgroundColor: '#3B82F6' },
-});

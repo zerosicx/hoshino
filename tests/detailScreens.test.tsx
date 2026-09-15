@@ -9,9 +9,11 @@ import type { ListSummary } from "@/types/lists";
 
 jest.mock("@/services/lists");
 jest.mock("@/services/dictionary");
+jest.mock("@/services/srs");
 jest.mock("@/utils/confirm");
 
 const lists = jest.requireMock("@/services/lists");
+const srs = jest.requireMock("@/services/srs");
 const dictionary = jest.requireMock("@/services/dictionary");
 const confirm = jest.requireMock("@/utils/confirm");
 
@@ -71,6 +73,7 @@ describe("deleting a list", () => {
 
   /** Pushed from Lists, as in the app, so there is somewhere to go back to. */
   async function openList(summary: ListSummary) {
+    srs.getSuspendedCount.mockResolvedValue(0);
     lists.getList.mockResolvedValue(summary);
     lists.getListEntries.mockResolvedValue([]);
     lists.getListKanji.mockResolvedValue([]);
@@ -119,6 +122,7 @@ describe("deleting a list", () => {
 // swap would show on every navigation. The frame has to paint first and the
 // body fill in underneath it.
 describe("detail screens while loading", () => {
+  beforeEach(() => srs.getSuspendedCount.mockResolvedValue(0));
   afterEach(() => jest.resetAllMocks());
 
   it("list: shows the frame with no spinner or empty state, then the list", async () => {

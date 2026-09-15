@@ -8,6 +8,16 @@
 
 require("react-native-gesture-handler/jestSetup");
 
+// The shipped mock leaves out useReducedMotion, which the flashcard reads.
+// Patched at the mock module itself rather than in the factory below, because
+// expo-router's testing library registers its own factory for reanimated on
+// import and would otherwise replace this one; both factories require the
+// mock module, so both see the patch.
+jest.mock("react-native-reanimated/mock", () => ({
+  ...jest.requireActual("react-native-reanimated/mock"),
+  useReducedMotion: () => false,
+}));
+
 jest.mock("react-native-reanimated", () =>
   require("react-native-reanimated/mock")
 );

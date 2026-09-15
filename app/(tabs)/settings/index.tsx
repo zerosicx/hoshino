@@ -1,11 +1,22 @@
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import Constants from 'expo-constants';
-import { useSettingsStore } from '@/stores/settingsStore';
+import { SESSION_SIZES, useSettingsStore } from '@/stores/settingsStore';
 import { useTheme } from '@/hooks/useTheme';
 import { Sun, Moon, Monitor, ShieldCheck } from 'lucide-react-native';
 
 export default function SettingsScreen() {
-  const { themeMode, readingMode, setThemeMode, setReadingMode } = useSettingsStore();
+  const {
+    themeMode,
+    readingMode,
+    cardFrontMode,
+    sessionSize,
+    motionMode,
+    setThemeMode,
+    setReadingMode,
+    setCardFrontMode,
+    setSessionSize,
+    setMotionMode,
+  } = useSettingsStore();
   const { isDark } = useTheme();
 
   return (
@@ -72,7 +83,76 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {/* Section 3: Account & Sync */}
+      {/* Section 3: Study */}
+      <Text className={`text-xs font-semibold ${isDark ? 'text-zinc-400' : 'text-zinc-500'} uppercase tracking-wider mb-2 px-1`}>
+        Study
+      </Text>
+      <View className={`border ${isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-200 bg-zinc-50'} rounded-xl p-3 mb-6`}>
+        <Text className={`text-sm font-medium ${isDark ? 'text-zinc-200' : 'text-zinc-700'} mb-1`}>
+          Cards per session
+        </Text>
+        <Text className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'} mb-3`}>
+          The pile is this size every day, however many days were missed.
+        </Text>
+        <View className="flex-row gap-2">
+          {SESSION_SIZES.map((size) => (
+            <ReadingOption
+              key={size}
+              label={String(size)}
+              active={sessionSize === size}
+              isDark={isDark}
+              onSelect={() => setSessionSize(size)}
+            />
+          ))}
+        </View>
+
+        <Text className={`text-sm font-medium ${isDark ? 'text-zinc-200' : 'text-zinc-700'} mt-5 mb-3`}>
+          Front of the card
+        </Text>
+        <View className="flex-row gap-2">
+          <ReadingOption
+            label="Japanese"
+            active={cardFrontMode === 'kanji'}
+            isDark={isDark}
+            onSelect={() => setCardFrontMode('kanji')}
+          />
+          <ReadingOption
+            label="Meaning"
+            active={cardFrontMode === 'meaning'}
+            isDark={isDark}
+            onSelect={() => setCardFrontMode('meaning')}
+          />
+        </View>
+
+        <Text className={`text-sm font-medium ${isDark ? 'text-zinc-200' : 'text-zinc-700'} mt-5 mb-1`}>
+          Animations
+        </Text>
+        <Text className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'} mb-3`}>
+          Reduced turns the card over without the flip.
+        </Text>
+        <View className="flex-row gap-2">
+          <ReadingOption
+            label="System"
+            active={motionMode === 'system'}
+            isDark={isDark}
+            onSelect={() => setMotionMode('system')}
+          />
+          <ReadingOption
+            label="Reduced"
+            active={motionMode === 'reduced'}
+            isDark={isDark}
+            onSelect={() => setMotionMode('reduced')}
+          />
+          <ReadingOption
+            label="Full"
+            active={motionMode === 'full'}
+            isDark={isDark}
+            onSelect={() => setMotionMode('full')}
+          />
+        </View>
+      </View>
+
+      {/* Section 4: Account & Sync */}
       <Text className={`text-xs font-semibold ${isDark ? 'text-zinc-400' : 'text-zinc-500'} uppercase tracking-wider mb-2 px-1`}>
         Account & Data
       </Text>

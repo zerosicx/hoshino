@@ -7,6 +7,7 @@ import {
   getMostRecentList,
   getVisibleLists,
   removeFromList,
+  startStudying,
 } from "@/services/lists";
 import { useToastStore } from "@/stores/toastStore";
 import { confirmDestructive } from "@/utils/confirm";
@@ -132,6 +133,28 @@ export function useCreateList() {
         return await createList(name);
       } catch {
         show(`There was a problem creating ${name}. Try again.`, "error");
+        return null;
+      }
+    },
+    [show]
+  );
+}
+
+/**
+ * The list a study session should run on. A JLPT reference list is copied
+ * into the user's own lists first (or the existing copy found), so progress
+ * has somewhere to live; any other list is studied as it is.
+ */
+export function useStartStudying() {
+  const show = useToastStore((s) => s.show);
+
+  return useCallback(
+    async (list: ListSummary): Promise<number | null> => {
+      if (list.type !== "jlpt_vocab") return list.id;
+      try {
+        return (await startStudying(list)).id;
+      } catch {
+        show(`There was a problem starting ${list.name}. Try again.`, "error");
         return null;
       }
     },
