@@ -7,7 +7,9 @@ import {
 } from "./dictionary";
 import {
   ADD_ITEM_SQL,
+  CREATE_JLPT_COPY_SQL,
   CREATE_LIST_SQL,
+  JLPT_COPY_SQL,
   DELETE_LIST_SQL,
   LIST_BY_ID_SQL,
   LIST_ITEM_IDS_SQL,
@@ -85,6 +87,59 @@ export async function createList(name: string): Promise<ListSummary> {
   const created = await getList(result.lastInsertRowId);
   if (!created) throw new Error("The list could not be read back after saving");
   return created;
+}
+
+/** The user's copy of a JLPT vocabulary list, if they have started it. */
+export async function getJlptCopy(level: number): Promise<ListSummary | null> {
+  const row = await getUserDb().getFirstAsync<ListRow>(JLPT_COPY_SQL, [level]);
+  if (!row) return null;
+  return (await summarise([row]))[0];
+}
+
+/**
+ * Starts studying a JLPT vocabulary list by copying it into a list of the
+ * user's own, or returns the copy if one exists already.
+ *
+ * The reference list stays as it was. The copy is filled in one transaction,
+ * common words first, so the new-card queue meets the useful ones early.
+ * Kanji lists cannot be copied: `list_items` holds entry ids only.
+ */
+export async function startStudying(list: ListSummary): Promise<ListSummary> {
+  if (list.type !== "jlpt_vocab" || list.jlptLevel === null) {
+    throw new Error("Only a JLPT vocabulary list can be started");
+  }
+
+  const existing = await getJlptCopy(list.jlptLevel);
+  if (existing) return existing;
+
+  const entries = await getJlptEntries(list.jlptLevel);
+  const db = getUserDb();
+  const now = new Date().toISOString();
+  let copyId = 0;
+
+  await db.withTransactionAsync(async () => {
+    const created = await db.runAsync(CREATE_JLPT_COPY_SQL, [
+      list.name,
+      list.jlptLevel,
+      now,
+    ]);
+    copyId = created.lastInsertRowId;
+
+    // A few hundred rows per statement keeps well inside SQLite's bind limit.
+    const CHUNK = 300;
+    for (let i = 0; i < entries.length; i += CHUNK) {
+      const chunk = entries.slice(i, i + CHUNK);
+      const values = chunk.map(() => "(?, ?, ?)").join(",");
+      await db.runAsync(
+        `INSERT OR IGNORE INTO list_items (list_id, entry_id, added_at) VALUES ${values}`,
+        chunk.flatMap((e) => [copyId, e.id, now])
+      );
+    }
+  });
+
+  const copy = await getList(copyId);
+  if (!copy) throw new Error("The list could not be read back after copying");
+  return copy;
 }
 
 /** Removes a custom list for good, with every word and study card in it. */

@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS srs_cards (
   reps INTEGER DEFAULT 0,
   lapses INTEGER DEFAULT 0,
   state INTEGER DEFAULT 0,
-  last_review TEXT
+  last_review TEXT,
+  suspended INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS lists (
@@ -55,6 +56,7 @@ CREATE TABLE IF NOT EXISTS study_stats (
   streak_length INTEGER DEFAULT 0
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_srs_cards_entry_list ON srs_cards(entry_id, list_id);
 CREATE INDEX IF NOT EXISTS idx_srs_cards_due ON srs_cards(due);
 CREATE INDEX IF NOT EXISTS idx_srs_cards_entry ON srs_cards(entry_id);
 CREATE INDEX IF NOT EXISTS idx_srs_cards_list ON srs_cards(list_id);
@@ -90,5 +92,10 @@ export const MIGRATIONS: { table: string; column: string; sql: string }[] = [
     table: "lists",
     column: "starred",
     sql: "ALTER TABLE lists ADD COLUMN starred INTEGER NOT NULL DEFAULT 0",
+  },
+  {
+    table: "srs_cards",
+    column: "suspended",
+    sql: "ALTER TABLE srs_cards ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0",
   },
 ];

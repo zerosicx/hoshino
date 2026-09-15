@@ -86,7 +86,7 @@ describe("user schema", () => {
       "INSERT INTO lists (name, type, created_at) VALUES ('Mine', 'custom', ?)"
     ).run(EPOCH);
 
-    for (const m of MIGRATIONS) old.exec(m.sql);
+    for (const m of MIGRATIONS.filter((m) => m.table === "lists")) old.exec(m.sql);
 
     const row = old.prepare("SELECT starred FROM lists").get() as {
       starred: number;

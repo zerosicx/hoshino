@@ -132,6 +132,25 @@ export const LIST_ITEM_IDS_SQL = `
   ORDER BY added_at DESC, entry_id DESC
 `;
 
+/**
+ * A JLPT list is a reference, not somewhere progress can live. Studying one
+ * copies it into a list of the user's own — `type = 'custom'` so it can be
+ * added to, starred and deleted like any other, with `jlpt_level` kept as
+ * provenance so the reference knows it has been started.
+ */
+export const JLPT_COPY_SQL = `
+  SELECT ${COLUMNS}
+  FROM lists
+  WHERE lists.type = 'custom' AND lists.jlpt_level = ?
+  ORDER BY lists.id ASC
+  LIMIT 1
+`;
+
+export const CREATE_JLPT_COPY_SQL = `
+  INSERT INTO lists (name, type, jlpt_level, created_at)
+  VALUES (?, 'custom', ?, ?)
+`;
+
 export const CREATE_LIST_SQL = `
   INSERT INTO lists (name, type, jlpt_level, created_at)
   VALUES (?, 'custom', NULL, ?)
