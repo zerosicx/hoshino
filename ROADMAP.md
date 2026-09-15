@@ -82,7 +82,8 @@ on it.
 
 ### Stage 4 — done. The study loop runs end to end
 
-Built 15/09/26 as preview build 8 for the Android beta. The Study tab is back
+Built 15/09/26 as preview build 9 for the Android beta (version code 8 was
+burnt by an upload that did not complete). The Study tab is back
 in the tab bar. Every decision below was taken with Hannah before building;
 the reasoning is in `ARCHITECTURE.md` under "Study".
 
@@ -296,7 +297,7 @@ already built with theme and reading-mode preferences.
 - [x] **Android beta** — APK by internal distribution, no Play Console yet.
       Seven preview builds so far; the embedded dictionary opens on the S25.
 - [ ] **Prove an over-the-air update lands.** Nothing has been published to the
-      `preview` channel yet; Stage 4 went out as a full build (8) instead, so
+      `preview` channel yet; Stage 4 went out as a full build (9) instead, so
       the update path is still configured but unexercised. Worth watching the
       first one for download size: the dictionary is an update asset, and only
       its hash keeps it from being re-fetched. Note that this machine's database
