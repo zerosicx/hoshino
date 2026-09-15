@@ -39,7 +39,7 @@ Rules for the lines:
 
 ## v0.1.0 Happy Fruit
 
-Last updated: 14/09/26
+Last updated: 15/09/26
 Created: 03/09/26
 
 Changelog:
@@ -62,6 +62,14 @@ Changelog:
 - [FEATURE] Choose whether readings appear as furigana or romaji throughout the app.
 - [FEATURE] Runs on Android, iOS and the web from one app.
 - [FEATURE] Android beta installs directly from a link and updates itself over the air.
+- [FEATURE] Study any list as flashcards: tap Study on a list's page, turn each card over, and rate it Again, Hard, Good or Easy. Each button shows how long until you would see the word again.
+- [FEATURE] Spaced repetition decides when each word comes back, so words you know well appear less often and words you keep missing appear sooner.
+- [FEATURE] The Study tab shows your day streak, today's accuracy and how many cards you have reviewed, with a bar to start reviewing everything that is ready.
+- [FEATURE] Each day's pile is the same size (20 cards, adjustable in Settings) however many days you missed, so a break never comes back as a mountain.
+- [FEATURE] Mark a word as already known from the card's corner menu to take it out of study; restore known words from the list's page.
+- [FEATURE] Study a JLPT vocabulary list and it becomes a list of your own, with its progress kept there.
+- [FEATURE] Choose whether the front of the card shows the Japanese or the meaning.
+- [FEATURE] Reduce animations in Settings if the card flip is uncomfortable; the card then turns over instantly.
 - [BUG FIX] Going back from a word, kanji or list page now returns to the screen you came from, instead of the Dictionary home.
 - [BUG FIX] Opening a list no longer briefly shows the previous list's words.
 - [BUG FIX] Reopening a kanji page starts at the top rather than where you last scrolled to.

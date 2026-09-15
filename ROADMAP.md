@@ -6,7 +6,8 @@ Where the app is, and what ships next. Shipped work is recorded in
 ## Where we are
 
 The data pipeline and the whole dictionary read path are done. `assets/hoshino.db`
-holds 217k entries, 13k kanji and 232k example sentences, and the dictionary
+holds 217k entries, 13k kanji and 62k example sentences (the five best of 232k
+Tatoeba links per entry), and the dictionary
 searches offline on iOS, Android and web from a single service layer. Search
 handles conjugated verbs, kana and romaji; word detail shows conjugation tables
 and furigana-annotated examples.
@@ -16,12 +17,9 @@ and furigana-annotated examples.
 | 1 — App foundation | Done |
 | 2 — Dictionary tab | Done, bar the deferred items below |
 | 3 — Lists tab | Done, bar the deferred items below |
-| 4 — Study system | Not started — **next** |
-| 5 — Auth and sync | Not started |
+| 4 — Study system | Done, bar the deferred items below |
+| 5 — Auth and sync | Not started — **next** |
 | 6 — Polish and ship | Settings done; build and store work outstanding |
-
-Study is hidden from the tab bar until Stage 4 begins. Its routes still exist and
-resolve if navigated to directly — only the tab entry is removed.
 
 Work flows top-down through the dependency chain:
 
@@ -30,7 +28,7 @@ database.ts → root layout → tab bar                        ✅
   → dictionary service → search screen → word detail       ✅
     → conjugation engine                                   ✅
       → lists service → lists tab                          ✅
-        → SRS service → study session
+        → SRS service → study session                       ✅
           → Supabase + auth + sync
             → EAS build + submission
 ```
@@ -82,11 +80,37 @@ the candidate fix is to hold the body and the search-history write until the
 navigator's `transitionEnd`. Judge it again on a release build before spending
 on it.
 
-**Next: Stage 4, the study system.** It is the reason the app exists — a
-dictionary with lists but no review loop is a bookmark folder. Two Stage 2
-leftovers are prerequisites and go first: extracting `WordDetail` from
-`app/word/[id].tsx` (the flashcard back reuses it) and deciding on the
-conjugation table's collapse (it will be on the back of every card).
+### Stage 4 — done. The study loop runs end to end
+
+Built 15/09/26 as preview build 8 for the Android beta. The Study tab is back
+in the tab bar. Every decision below was taken with Hannah before building;
+the reasoning is in `ARCHITECTURE.md` under "Study".
+
+- **FSRS, unmodified.** `services/scheduler.ts` is a thin wrap of `ts-fsrs`
+  4.7: Again / Hard / Good / Easy, default parameters, 90% target retention,
+  fuzz on so cards learned together drift apart.
+- **A pile, not a backlog.** A session is `sessionSize` cards (default 20,
+  in Settings), the most likely forgotten first, topped up with unseen words
+  only when fewer than that are waiting. The landing shows "20 cards ready",
+  never "340 due". Missed days do not grow the pile; FSRS schedules a late
+  card from the time that actually passed.
+- **"I already know this"** lives behind the ⋯ in the card's corner, not in
+  the rating bar. It suspends the card; the list's page shows how many are
+  suspended and restores them all in one tap.
+- **JLPT lists copy on first study.** The reference stays as it was; Study on
+  it creates (or reopens) a custom list of the same name with `jlpt_level`
+  set, filled common-first in one transaction. Kanji lists cannot be studied
+  yet — see deferred.
+- **The card back is `WordDetail` minus conjugations**, with "See full entry"
+  to the word page for the rest.
+- **Reduce animations** in Settings: follow the device, reduced, or full.
+  Reduced turns the card over with no flip.
+- **A card rated Again comes back once** at the end of the same session.
+
+**Test it on the S25:** Lists → any list with words → Study. Rate through
+the pile; check the landing's streak, accuracy and reviewed count move; kill
+the app mid-session and confirm the ratings given so far stuck. Then Settings
+→ Animations → Reduced, and flip a card.
 
 ### The database rebuild — done
 
@@ -126,10 +150,13 @@ Deferred deliberately; the screens work without them.
 
 - [ ] `components/FeaturedWord.tsx` — word of the day, a random common entry
       seeded by date
-- [ ] Extract `SearchBar`, `RecentChip` and `WordDetail` from the screens. The
-      search input and recent-search row are currently inline in
-      `dictionary/index.tsx`; `WordDetail` needs extracting before the flashcard
-      back can reuse it in Stage 4.
+- [x] Extract `WordDetail` from the word screen. `components/WordDetail.tsx`
+      renders hero, meanings, examples, conjugations and kanji breakdown from
+      props and reports a kanji tap upward; the screen keeps loading, the header
+      and the add-to-list drawer. Done ahead of Stage 4 so the flashcard back can
+      mount the same component.
+- [ ] Extract `SearchBar` and `RecentChip` from `dictionary/index.tsx`, where
+      the search input and recent-search row are still inline.
 - [ ] **Decide whether the conjugation table needs collapsing.** Every group is
       expanded — seven of them for a verb — which is a lot of vertical scroll on
       a phone. Left that way on purpose so nothing has to be tapped to be
@@ -187,28 +214,40 @@ lookups, custom lists creatable with entries added from word detail. Met.
 
 ## Stage 4 — Study system
 
-- [ ] `services/srs.ts` — wrap `ts-fsrs`: initialise a card, schedule after a
-      rating, fetch due cards overdue-first, compute interval labels
-- [ ] `services/stats.ts` — write daily stats, compute day streak, read today's
-      accuracy and reviewed count
-- [ ] `stores/studyStore.ts` — card queue, index, pending ratings, totals
-- [ ] `hooks/useStudySession.ts` — load, advance, rate, exit
-- [ ] `hooks/useStudyStats.ts` — streak, accuracy, reviewed today
-- [ ] `components/FlashCard.tsx` — reanimated flip; front kanji + furigana or
-      English per settings, back the full `WordDetail`; tap and swipe
-- [ ] `components/SRSRatingBar.tsx` — Again/Hard/Good/Easy with next-interval
-      labels, semantic colours per `DESIGN_SYSTEM.md` §2.6
-- [ ] `components/StatsBar.tsx` — streak, accuracy, reviewed today
-- [ ] `components/DueTodayCard.tsx` — total due across active lists, starts a
-      combined session
-- [ ] `app/(tabs)/study/index.tsx` — stats banner, due bar, active lists,
-      Browse All
-- [ ] `app/(tabs)/study/session.tsx` — queue loop, flip, rating bar, progress,
-      exit-and-save
-- [ ] Re-enable the Study tab
+- [x] `services/scheduler.ts` — ts-fsrs wrapped: schedule a rating, preview
+      the four intervals, label an interval
+- [x] `services/studyQuery.ts` — the review queue, the new queue, progress
+      buckets and daily stats as SQL, tested against real SQLite
+- [x] `services/srs.ts` — build a session, rate a card in one transaction
+      with the day's stats, suspend, progress, active lists
+- [x] `services/stats.ts` — daily rows; streak derived from them at read time
+- [x] `hooks/useStudySession.ts`, `hooks/useStudyStats.ts`,
+      `hooks/useReduceMotion.ts`
+- [x] `components/FlashCard.tsx`, `SRSRatingBar.tsx`, `StatsBar.tsx`,
+      `DueTodayBar.tsx`, `ActiveListRow.tsx`
+- [x] `app/(tabs)/study/index.tsx` and `session.tsx`; Study tab re-enabled
+- [x] Study button on a list's page; JLPT vocabulary copies on first study
+- [x] Settings: cards per session, front of the card, animations
+- [x] No `studyStore`: a session's state is local to its screen and every
+      rating is written as it is given, so nothing needs to outlive the screen
 
 **Checkpoint:** a full FSRS session runs end to end; intervals schedule, due
-counts and streak update afterwards.
+counts and streak update afterwards. Met in Jest; awaiting the S25.
+
+### Deferred from Stage 4
+
+- [ ] **Kanji cannot be studied.** Cards point at `entries`; kanji are keyed
+      by character. Same blocker as kanji in custom lists (Stage 3), same fix.
+- [ ] **The front shows furigana.** Per the SRD the front is "kanji with
+      furigana", so the reading is given away when the reading setting is
+      furigana. A learner testing readings may want a "kanji only" front;
+      decide after using it.
+- [ ] **Suspended words are not marked in the list.** The list page shows a
+      count and a Restore-all; there is no per-word marker or per-word restore.
+- [ ] **No per-list progress on the list's own page.** Mastered / learning /
+      new counts appear on the Study landing only.
+- [ ] **The ⋯ menu has one item.** "See full entry" and "skip for now" could
+      join it.
 
 ---
 
@@ -237,8 +276,8 @@ mode works fully offline.
 Settings (`app/(tabs)/settings/index.tsx`) and `stores/settingsStore.ts` are
 already built with theme and reading-mode preferences.
 
-- [ ] Extend settings — card direction, daily new-card limit per list, reset SRS
-      progress for a list
+- [x] Extend settings — card direction, cards per session, animations
+- [ ] Reset SRS progress for a list
 - [ ] **Tab bar on detail pages.** Word and kanji detail live in the root stack
       so that back always returns to the previous screen, which hides the tab
       bar while reading a word. Accepted for the beta; the tab bar should be
@@ -257,9 +296,13 @@ already built with theme and reading-mode preferences.
 - [x] **Android beta** — APK by internal distribution, no Play Console yet.
       Seven preview builds so far; the embedded dictionary opens on the S25.
 - [ ] **Prove an over-the-air update lands.** Nothing has been published to the
-      `preview` channel yet, so the update path is configured but unexercised.
-      Worth watching the first one for download size: the dictionary is an
-      update asset, and only its hash keeps it from being re-fetched.
+      `preview` channel yet; Stage 4 went out as a full build (8) instead, so
+      the update path is still configured but unexercised. Worth watching the
+      first one for download size: the dictionary is an update asset, and only
+      its hash keeps it from being re-fetched. Note that this machine's database
+      was rebuilt on 15/09/26 and the build is not byte-deterministic, so its
+      hash may differ from the one inside build 7 — the first update after a
+      rebuild is the one most likely to re-download it.
 - [ ] **iOS** — TestFlight via EAS, App Store Connect record
 - [ ] **Web** — `npx expo export --platform web`, deploy with the headers above
 
@@ -267,6 +310,21 @@ already built with theme and reading-mode preferences.
 loop (search → add to list → study → review) works on all three platforms.
 
 ### Running locally
+
+**Node first.** `.nvmrc` pins Node 22 and `package.json` declares the range
+Expo and Vite accept (`^20.19 || >=22.12`). Vite 7 will not load its config on
+anything older, so on a fresh checkout or a new machine:
+
+```bash
+nvm install && nvm use      # reads .nvmrc
+npm install
+npm rebuild better-sqlite3  # only after switching Node major; it is a native module
+```
+
+The dictionary database is gitignored, so a fresh clone has none. Rebuild it
+from the sources under "Data sources" below before running the Vitest half;
+an old copy from before the frequency-rank rebuild fails 88 tests with
+`no such column: e.frequency_rank`.
 
 Two loops, one per platform.
 

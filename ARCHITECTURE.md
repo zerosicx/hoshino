@@ -164,6 +164,10 @@ Holds rows only for `custom` and `system` lists. JLPT lists are resolved from `j
 | lapses | INTEGER | Times forgotten |
 | state | INTEGER | 0=new, 1=learning, 2=review, 3=relearning |
 | last_review | TEXT | ISO timestamp |
+| suspended | INTEGER | 1 = "I already know this"; out of every queue until restored |
+
+Unique on `(entry_id, list_id)`. A row exists only once a word has been rated
+or suspended — see "Study" under Key Design Decisions.
 
 #### `search_history` — Powers the "Searched Terms" list
 
@@ -185,7 +189,7 @@ Holds rows only for `custom` and `system` lists. JLPT lists are resolved from `j
 | cards_hard | INTEGER | Cards rated Hard |
 | cards_easy | INTEGER | Cards rated Easy |
 | session_count | INTEGER | Number of study sessions that day |
-| streak_length | INTEGER | Consecutive days studied (computed/cached) |
+| streak_length | INTEGER | Unused. The streak is derived from the rows at read time |
 
 ### Full-Text Search
 
@@ -262,7 +266,51 @@ A list sorts by when it was last added to. That is read at query time as the new
 Columns added after release also need an entry in `MIGRATIONS`, because `CREATE TABLE IF NOT EXISTS` does nothing to a database an earlier build already created.
 
 ### FSRS over SM-2
-The FSRS algorithm (used by Anki 23.10+) is empirically better. The `ts-fsrs` npm package provides a TypeScript implementation ready to use.
+The FSRS algorithm (used by Anki 23.10+) is empirically better. The `ts-fsrs` npm package provides a TypeScript implementation ready to use. `services/scheduler.ts` is the only file that imports it for scheduling; everything else asks that file.
+
+### Study
+
+**A card is created on the first rating, not when a word joins a list.** A word
+in a list with no `srs_cards` row is new. Adding a word therefore writes
+nothing but the list item, and the new-card queue is a `LEFT JOIN` that finds
+items without a card. Suspending a never-rated word writes an empty row with
+`suspended = 1`, which is the one exception.
+
+**Every card query joins `list_items`.** Removing a word from a list leaves its
+card in place but invisible: it is in no queue and no count. Re-add the word and
+its progress is back. Nothing is destroyed by a removal that the user might
+undo, and no query has to remember to clean up.
+
+**The pile is fixed-size; there is no backlog.** `buildSession` takes the
+`sessionSize` most-at-risk due cards, then fills the rest with new words.
+"At risk" is ordered in SQL by elapsed time over stability, which is the
+variable FSRS's forgetting curve is a function of, so the order is by recall
+probability without evaluating the curve per row. FSRS has no notion of review
+debt — a late card is scheduled from the time that actually passed, and
+recalling a very overdue card is strong evidence that raises stability more
+than an on-time recall would — so leaving cards waiting costs only their own
+retention, honestly.
+
+**A card rated Again returns once in the same session.** The queue grows by one
+and the total shown grows with it. A second Again does not requeue, so a card
+that will not stick cannot trap the session.
+
+**JLPT lists copy on first study.** The ten reference lists hold no items and
+no cards. `startStudying` creates a `custom` list with the same name and
+`jlpt_level` as provenance, fills `list_items` from the dictionary in one
+transaction (common words first, which becomes the new-card order), and
+returns the existing copy on later taps. Kanji lists cannot be copied because
+`list_items.entry_id` cannot hold a kanji.
+
+**Stats are per local day and the streak is derived.** `study_stats` has one
+row per `YYYY-MM-DD` in the device's time zone. The streak counts back from
+today, or from yesterday if today has no review yet, so it holds until midnight
+passes without one. `streak_length` is not written.
+
+**No study store.** A session's state — queue, position, tally — lives in
+`useStudySession` on the session screen. Every rating is written as it is
+given, so nothing needs to survive the screen, and the landing reloads on
+focus.
 
 ### Searched Terms as a first-class list
 Every dictionary lookup automatically adds the entry to a "Searched Terms" list with a timestamp and frequency count. This list is reviewable as flashcards just like any JLPT list. Frequently searched words surface higher — if you keep looking something up, you clearly need to learn it.
@@ -296,15 +344,15 @@ hoshino/
 │   └── _layout.tsx               # Root layout (Stack: tabs, word, kanji, create-list)
 ├── components/                   # Shared UI
 │   ├── FuriganaText.tsx          # Kanji with furigana overlay (column-flex approach)
-│   ├── FlashCard.tsx             # Flippable card with gestures
+│   ├── FlashCard.tsx             # Flip on tap; back is WordDetail without conjugations; ⋯ menu suspends
 │   ├── WordDetail.tsx            # Full word breakdown
 │   ├── ConjugationTable.tsx      # Verb/adj conjugation display
 │   ├── ExampleSentences.tsx      # Word page examples; divider under every row but the last
 │   ├── SRSRatingBar.tsx          # Again/Hard/Good/Easy buttons with intervals
 │   ├── SearchBar.tsx             # Dictionary search input
 │   ├── StatsBar.tsx              # Study landing stats (streak, accuracy, reviewed today)
-│   ├── DueTodayCard.tsx          # Accent-coloured CTA showing total due cards
-│   ├── ListDuePill.tsx           # Compact pill badge showing due count per list
+│   ├── DueTodayBar.tsx           # Slim accent bar: pile size (never backlog) and Start Review
+│   ├── ActiveListRow.tsx         # A studied list: counts, progress bar, due pill
 │   ├── ListRow.tsx               # List row with star toggle and item count
 │   ├── KanjiResultRow.tsx        # One kanji per row: character, meanings, readings, JLPT
 │   ├── BottomDrawer.tsx          # Slide-up panel shell used by the drawers
@@ -317,7 +365,9 @@ hoshino/
 ├── services/                     # Business logic
 │   ├── dictionary.ts             # Search, lookup, conjugation
 │   ├── searchQuery.ts            # Query intent, FTS5 SQL, tiered ranking
-│   ├── srs.ts                    # FSRS scheduling logic
+│   ├── scheduler.ts              # The only ts-fsrs import: schedule, preview, label
+│   ├── studyQuery.ts             # Queues, progress and stats as SQL, testable in Node
+│   ├── srs.ts                    # Sessions, ratings, suspend, progress against the user db
 │   ├── lists.ts                  # List CRUD, Searched Terms
 │   ├── listQuery.ts              # List ordering and membership SQL
 │   ├── schema.ts                 # User schema, built-in seeds, migrations
@@ -326,12 +376,12 @@ hoshino/
 ├── hooks/                        # Custom React hooks
 │   ├── useDictionary.ts
 │   ├── useTheme.ts               # Theme setting -> NativeWind colour scheme
-│   ├── useStudySession.ts
-│   ├── useStudyStats.ts          # Hook for stats banner data
+│   ├── useStudySession.ts        # One pile: queue, reveal, rate, Again-requeue, suspend
+│   ├── useStudyStats.ts          # Landing data, reloaded on focus
+│   ├── useReduceMotion.ts        # Setting or device preference
 │   └── useLists.ts
 ├── stores/                       # Zustand stores
 │   ├── searchStore.ts
-│   ├── studyStore.ts
 │   ├── toastStore.ts
 │   └── settingsStore.ts
 ├── utils/                        # Pure functions
@@ -344,7 +394,7 @@ hoshino/
 │   ├── entryJson.ts              # Parses the JSON columns on entries
 │   └── formatting.ts             # Display helpers
 ├── assets/
-│   └── hoshino.db                # Pre-built dictionary database
+│   └── hoshino.db                # Pre-built dictionary database (gitignored; ~100MB)
 ├── scripts/                      # Build-time data pipeline
 │   ├── build-dictionary.ts       # XML/TSV → SQLite
 │   └── sources/                  # Raw data files
