@@ -20,6 +20,7 @@ and furigana-annotated examples.
 | 4 — Study system | Done, bar the deferred items below |
 | 5 — Auth and sync | Not started — **next** |
 | 6 — Polish and ship | Settings done; build and store work outstanding |
+| 7 — Reader | Planned; requirement written (`SRD.md` FR-10), not started |
 
 Work flows top-down through the dependency chain:
 
@@ -296,14 +297,14 @@ already built with theme and reading-mode preferences.
       `u.expo.dev`. `preview` builds and the `preview` channel carry the beta.
 - [x] **Android beta** — APK by internal distribution, no Play Console yet.
       Seven preview builds so far; the embedded dictionary opens on the S25.
-- [ ] **Prove an over-the-air update lands.** Nothing has been published to the
-      `preview` channel yet; Stage 4 went out as a full build (9) instead, so
-      the update path is still configured but unexercised. Worth watching the
-      first one for download size: the dictionary is an update asset, and only
-      its hash keeps it from being re-fetched. Note that this machine's database
-      was rebuilt on 15/09/26 and the build is not byte-deterministic, so its
-      hash may differ from the one inside build 7 — the first update after a
-      rebuild is the one most likely to re-download it.
+- [ ] **Prove an over-the-air update lands.** The first `eas update` on the
+      `preview` channel went out 16/09/26 (the due-bar overflow fix), for the
+      build 9 runtime. EAS reported "1 asset uploaded, 33 reused", so the
+      dictionary was not re-uploaded: build 9 was made from this machine's
+      rebuilt database, so the hashes agree. Confirm on the S25 that the fix
+      arrives on the second launch after the update, and note how long the
+      download takes. Note for later: the build is not byte-deterministic, so
+      an update published after the next database rebuild will re-fetch it.
 - [ ] **iOS** — TestFlight via EAS, App Store Connect record
 - [ ] **Web** — `npx expo export --platform web`, deploy with the headers above
 
@@ -372,6 +373,69 @@ update is never offered to an older build.
 
 `eas-cli` must be 23.x or newer. 7.6.0 was installed globally and predates
 fingerprint runtime versions by about two years; `eas.json` now sets that floor.
+
+---
+
+## Stage 7 — Reader
+
+Requirement: `SRD.md` FR-10. Paste Japanese text, read it with furigana, tap
+any word for its entry. Every tap goes through the word page, so it lands in
+search history and Searched Terms for free — the reader is a new front door
+to the dictionary, not a new dictionary.
+
+**Where it lives.** Not a fifth tab. An action on the Dictionary screen ("Read
+a text", beside the search bar) pushes `app/(tabs)/dictionary/reader.tsx` in
+the dictionary stack, so back returns to search and the tab bar stays at four.
+The pasted text is kept in a small persisted store so it survives leaving.
+
+**The hard part is segmentation.** Japanese has no spaces, and the database's
+example sentences are pre-tokenised by Tatoeba — nothing in the app can split
+arbitrary text yet. Three ways to get there:
+
+1. **Dictionary-driven longest match, with deinflection.** Walk the text; at
+   each position try the longest span that is a dictionary form, or that
+   `utils/deinflect.ts` can reduce to one; fall back one character and mark it
+   unknown. Reuses `entries_fts`, the deinflector and the furigana aligner.
+   No new dependency, no download, works offline on all three platforms.
+   Weaker on compound splits and on kana runs (は as particle vs 歯 as tooth),
+   which a small stop-list of particles and a "prefer common" tie-break
+   mostly fix.
+2. **A real morphological analyser** — kuromoji.js, or a Sudachi / Lindera
+   WebAssembly build. Far better boundaries and part-of-speech per token, but
+   a 15–20MB dictionary on top of our 100MB, a new native or WASM dependency
+   to make work on iOS, Android and web, and a start-up cost per session.
+3. **Ship pre-segmented text only.** Rules out pasting; not the job.
+
+Recommendation: **1**, measured. It needs no approval for a library, and it
+can be judged the same way search was: a benchmark of real paragraphs with
+hand-marked boundaries, scored on the share of words found and tapped
+correctly. If it stalls under about 90% on ordinary prose, option 2 becomes
+worth its weight. FR-10 is unusable below that bar either way.
+
+- [ ] `utils/segment.ts` — pure longest-match segmenter over a lookup
+      function; unit-tested on hand-picked sentences, plus a Vitest benchmark
+      against the real database (`tests/segmentBenchmark.ts`, twenty
+      paragraphs, hand-marked) alongside the search benchmark
+- [ ] `services/reader.ts` — batch-resolves the candidate spans a paragraph
+      needs in one query each rather than one per word; returns tokens with
+      `entryId`, surface, reading and furigana pairs
+- [ ] `stores/readerStore.ts` — the current text and scroll offset, persisted
+- [ ] `components/ReaderText.tsx` — wrapping flow of tappable tokens over
+      `FuriganaText`'s ruby layout; paragraphs virtualised so a long article
+      does not mount thousands of views at once; unknown spans plain
+- [ ] `app/(tabs)/dictionary/reader.tsx` — paste field, Clear, the text; a
+      tap pushes `/word/[id]`, which records the search
+- [ ] Entry point on the Dictionary screen
+- [ ] Check romaji mode: romaji above every kanji run will space a paragraph
+      out badly (the same open question as Stage 2's romaji-on-a-phone item)
+
+**Checkpoint:** paste a news paragraph, read it end to end with the readings
+showing, tap three unknown words, find all three in Searched Terms.
+
+**Deferred from the start:** a library of saved texts; share-sheet intake from
+other apps (needs `expo-share-intent` or similar — a new library, so ask);
+OCR from a photo; reading the clipboard automatically (`expo-clipboard`, also
+a new library; a paste into the field needs nothing).
 
 ---
 

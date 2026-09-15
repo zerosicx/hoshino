@@ -142,6 +142,46 @@ The primary user is an intermediate-to-advanced Japanese learner (JLPT N3–N1 l
 - **Conflict resolution**: last-write-wins based on `last_review` timestamp; FSRS card state is self-contained and does not require merge logic
 - When a user signs in on a new device, their remote data is pulled down and merged into the local SQLite database
 
+#### FR-10: Reader (paste text, read with furigana, tap to look up)
+
+**Job to be done.** *When I am reading Japanese somewhere else — a message, an
+article, a game's dialogue, a menu photo's text — and I hit words I do not know,
+I want to bring that text into Hoshino and read it with the readings shown and
+every word one tap from its entry, so that I keep reading instead of stopping
+to type each word into a search box, and so that the words I stumbled on become
+the words I study.*
+
+**The problem today.** The dictionary answers one word at a time and only if
+the learner can type it. Reading real Japanese means meeting ten unknown words
+a paragraph, copying each into the search bar, and losing the thread of the
+text in between. Kanji the learner cannot read cannot be typed at all, so the
+very words that most need looking up are the hardest to look up. Meanwhile the
+"Searched Terms" list, the app's core innovation, only ever sees the words the
+learner managed to type.
+
+**What the Reader does.**
+- A screen where the learner pastes (or types) any Japanese text
+- The text is segmented into words; each word that matches a dictionary entry
+  is shown with its reading above it (furigana or romaji, per the reading
+  setting) and is tappable; text the dictionary does not know is shown as is
+- Tapping a word opens the word detail page, which records the lookup in
+  search history and so in the Searched Terms list — the same path as a search
+- Conjugated forms resolve to their dictionary entry, as search already does
+- Readings only for kanji: kana and punctuation carry none
+- Back returns to the text, at the same scroll position, so reading continues
+- The pasted text survives leaving the screen and relaunching the app, so a
+  long article can be read across several sittings
+- Works offline, on all three platforms, from the bundled dictionary alone
+
+**Out of scope for the first version.** Saving several texts as a library;
+sharing text into the app from other apps; reading from a photo (OCR);
+per-word "add to list" from the reader (the word page already offers it);
+grammar or particle explanations.
+
+**Success looks like** a learner pasting a paragraph and reading it end to end
+with, at most, one tap per unknown word — and finding those words waiting in
+Searched Terms afterwards.
+
 ### 3.2 Non-Functional Requirements
 
 #### NFR-01: Performance
@@ -226,6 +266,7 @@ The primary user is an intermediate-to-advanced Japanese learner (JLPT N3–N1 l
 | Stroke order animation for kanji | Visual guide for writing practice |
 | Study statistics dashboard | Charts showing progress over time, accuracy trends, streak history |
 | Multiple study modes | Listening quiz, reading quiz, writing quiz, matching |
+| **Reader** (FR-10) | Paste any Japanese text; read it with furigana and tap any word for its entry. Feeds Searched Terms. Planned as Stage 7 in `ROADMAP.md` |
 
 ### Phase 3 — Grammar & Lessons
 > *Evolve from vocabulary tool to comprehensive study companion*
