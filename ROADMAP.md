@@ -63,13 +63,16 @@ on Android. Check a real device after any theme or typography change.
 
 ## Now
 
-### Beta bug fixes — Milestones 1, 1′ and 2 on the S25; Milestone 2′ landed, awaiting device test
+### Beta bug fixes — done. All four milestones verified on the S25
 
-Milestone 1 (the navigation restructure) and 1′ (tab bar height, JLPT counts,
-the three-cause transition flash) are confirmed on the S25 in a development
-build ✅. The one thing that looked like a regression — the popped page
-sliding away white — turned out to be an Expo Go artefact (B14 in
-`BUG_TRIAGE.md`) and does not exist in a real build.
+Every bug from the first Android beta is fixed and confirmed on device
+(`BUG_TRIAGE.md`, 17 reports, closed 15/09/26 on preview build version code
+7). Milestone 1 restructured navigation; 1′ fixed what testing it exposed; 2
+was the parallel sweep of the remaining reports; 2′ fixed the three things
+testing *that* exposed — back from a new list, one reading per kanji in
+compounds, and deleting a list. The one apparent regression along the way,
+the popped page sliding away white, was an Expo Go artefact (B14) and does not
+exist in a real build.
 
 **Parked, not forgotten:** the push into a word or kanji page is not perfectly
 smooth on the S25 — the perf monitor shows a dip and "2+ stutters" on
@@ -79,13 +82,11 @@ the candidate fix is to hold the body and the search-history write until the
 navigator's `transitionEnd`. Judge it again on a release build before spending
 on it.
 
-Milestone 2 — B4 (create-list as a floating card), B5 (example dividers), B6
-(furigana anchoring), B11 and B8's layout half (kanji rows) — tested on the
-S25: "works mostly well". Testing turned up three more, now landed as Milestone
-2′: B15 (back from a new list went to Dictionary), B16 (one reading per kanji
-in compounds, from KANJIDIC — 92.9% of multi-kanji runs split), B17 (delete a
-custom list). Next: Hannah tests 2′ against the checklist in `BUG_TRIAGE.md`,
-then Milestone 3.
+**Next: Stage 4, the study system.** It is the reason the app exists — a
+dictionary with lists but no review loop is a bookmark folder. Two Stage 2
+leftovers are prerequisites and go first: extracting `WordDetail` from
+`app/word/[id].tsx` (the flashcard back reuses it) and deciding on the
+conjugation table's collapse (it will be on the back of every card).
 
 ### The database rebuild — done
 
@@ -154,7 +155,8 @@ Deferred deliberately; the screens work without them.
 - [x] `hooks/useLists.ts` — catalogue hook, add-to-list with toast reporting
 - [x] `app/(tabs)/lists/index.tsx` — starred, then Searched Terms, then recent
 - [x] `app/(tabs)/lists/jlpt.tsx` — the ten preloaded lists, star to pin
-- [x] `app/(tabs)/lists/[id].tsx` — words, or a kanji grid for JLPT kanji lists
+- [x] `app/(tabs)/lists/[id].tsx` — words, or kanji rows for JLPT kanji lists;
+      delete for custom lists
 - [x] `components/BottomDrawer.tsx`, `CreateListDialog.tsx`,
       `AddToListDrawer.tsx`, `ListRow.tsx`, `SwipeAction.tsx`, `Toast.tsx`
 - [x] Plus button on word detail, swipe-to-add on search results, Lists tab
@@ -252,9 +254,8 @@ already built with theme and reading-mode preferences.
       platforms
 - [x] **EAS project and updates** — `@zerosicx/hoshino`, updates served from
       `u.expo.dev`. `preview` builds and the `preview` channel carry the beta.
-- [ ] **Android beta** — APK by internal distribution, no Play Console yet. The
-      first build is queued; installing it is what proves the embedded
-      dictionary opens on a device.
+- [x] **Android beta** — APK by internal distribution, no Play Console yet.
+      Seven preview builds so far; the embedded dictionary opens on the S25.
 - [ ] **Prove an over-the-air update lands.** Nothing has been published to the
       `preview` channel yet, so the update path is configured but unexercised.
       Worth watching the first one for download size: the dictionary is an

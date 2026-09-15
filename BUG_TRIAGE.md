@@ -3,6 +3,11 @@
 Tracking document for the beta bugs. It spans sessions: when a fix lands, mark
 it **Landed**; once Hannah has tested it on device, mark it ✅.
 
+**Status (15/09/26): closed.** Every reported bug is ✅ — Milestones 1, 1′, 2
+and 2′ all verified on the S25, the last on preview build version code 7.
+Anything under "Deferred" has moved to `ROADMAP.md`. A new bug bash on a later
+build starts a new section of this file, not new rows in these tables.
+
 Twelve reports from the Android beta (Samsung Galaxy S25 Ultra, 3-button
 navigation) and the iOS simulator. Four read-only investigations root-caused
 every item against the actual code and, where possible, the real database.
@@ -20,20 +25,20 @@ investigators reached this independently from different bugs.
 | B1 | Back goes to Dictionary root | Bug — navigator architecture | A | ✅ |
 | B2 | Tab bar hard to see | Bug — content abuts the system bar | A || ✅ |
 | B3 | Starred JLPT list shows 0 items | Bug — proven in SQL | A′ || ✅ |
-| B4 | Create-list drawer under keyboard | Bug — one line | D | Landed |
-| B5 | Examples too far apart | Bug — unsupported NativeWind variant | C | Landed |
-| B6 | Furigana misaligned on hero | Bug — proven on 980 real words | C | Landed |
+| B4 | Create-list drawer under keyboard | Bug — one line | D | ✅ |
+| B5 | Examples too far apart | Bug — unsupported NativeWind variant | C | ✅ |
+| B6 | Furigana misaligned on hero | Bug — proven on 980 real words | C | ✅ |
 | B7 | Black-and-white redesign | **Dropped from scope** — see below | — | — |
-| B8 | Random crash opening JLPT pages | Bug — symptom of B1's root cause | A + B | Landed |
+| B8 | Random crash opening JLPT pages | Bug — symptom of B1's root cause | A + B | ✅ |
 | B9 | Startup loading state | **Deferred** — see below | — | — |
-| B10 | Kanji page keeps scrolling | Bug — symptom of B1's root cause | A | Landed |
-| B11 | Kanji as rows, not grid | Bug — flex behaviour | B | Landed |
-| B12 | Old list state flashes | Bug — symptom of B1's root cause | A | Landed |
+| B10 | Kanji page keeps scrolling | Bug — symptom of B1's root cause | A | ✅ |
+| B11 | Kanji as rows, not grid | Bug — flex behaviour | B | ✅ |
+| B12 | Old list state flashes | Bug — symptom of B1's root cause | A | ✅ |
 | B13 | Every transition flashes | Bug — found testing M1; three causes | A′ || ✅ |
 | B14 | Android: popped page goes white as it slides out | Known react-native-screens fault on the new architecture; Expo Go only | A′ | ✅ Not in the dev build — Expo Go artefact, no code change |
-| B15 | Back from a new list goes to Dictionary | Bug — found testing M2; reproduced in Jest | 2′ | Landed |
-| B16 | Kanji-only words show one reading over the whole word | Bug — found testing M2; no per-kanji split existed | 2′ | Landed |
-| B17 | No way to delete a list | Missing feature, requested testing M2 | 2′ | Landed |
+| B15 | Back from a new list goes to Dictionary | Bug — found testing M2; reproduced in Jest | 2′ | ✅ |
+| B16 | Kanji-only words show one reading over the whole word | Bug — found testing M2; no per-kanji split existed | 2′ | ✅ |
+| B17 | No way to delete a list | Missing feature, requested testing M2 | 2′ | ✅ |
 
 ---
 
@@ -65,11 +70,11 @@ Two milestones. Each ends in a build Hannah tests with the short steps under
 
 | ID | Bug | Root cause | Solution | Status |
 |---|---|---|---|---|
-| B1 | Back goes to Dictionary root from every page | No stack exists; `back()` hits `TabRouter` history whose `firstRoute` default is always Dictionary | Per-tab `Stack` layouts for tab-internal screens; word and kanji detail moved to the root stack | Landed |
-| B12 | Old list flashes before new one loads | `lists/[id]` is one permanently mounted instance; `loading` only starts `true` on first mount | Fixed by the restructure — each push is a fresh instance. No hook or store change | Landed |
-| B10 | Kanji page reopens mid-scroll | Same instance reused when revisiting the *same* kanji; its `ScrollView` keeps its offset. Layout is clean | Fixed by the restructure. No layout change | Landed |
-| B8 | Crash opening JLPT pages (trigger half) | Reused `lists/[id]` swaps `FlatList numColumns` 5 ↔ undefined when the list type changes; RN 0.81 throws. Never on the first list after cold start — matching the report | Restructure removes the reuse; B11 (Milestone 2) removes `numColumns` entirely | Landed |
-| B2 | Tab bar hard to see | `paddingBottom = max(inset, 8)` uses the system bar's height *as* the padding, so labels sit directly on the 3-button bar with no gap | `paddingBottom = inset + 8`; drop the fixed `height` so a scaled label cannot clip — *dropping the height was wrong; reversed in Milestone 1′* | Landed |
+| B1 | Back goes to Dictionary root from every page | No stack exists; `back()` hits `TabRouter` history whose `firstRoute` default is always Dictionary | Per-tab `Stack` layouts for tab-internal screens; word and kanji detail moved to the root stack | ✅ |
+| B12 | Old list flashes before new one loads | `lists/[id]` is one permanently mounted instance; `loading` only starts `true` on first mount | Fixed by the restructure — each push is a fresh instance. No hook or store change | ✅ |
+| B10 | Kanji page reopens mid-scroll | Same instance reused when revisiting the *same* kanji; its `ScrollView` keeps its offset. Layout is clean | Fixed by the restructure. No layout change | ✅ |
+| B8 | Crash opening JLPT pages (trigger half) | Reused `lists/[id]` swaps `FlatList numColumns` 5 ↔ undefined when the list type changes; RN 0.81 throws. Never on the first list after cold start — matching the report | Restructure removes the reuse; B11 (Milestone 2) removes `numColumns` entirely | ✅ |
+| B2 | Tab bar hard to see | `paddingBottom = max(inset, 8)` uses the system bar's height *as* the padding, so labels sit directly on the 3-button bar with no gap | `paddingBottom = inset + 8`; drop the fixed `height` so a scaled label cannot clip — *dropping the height was wrong; reversed in Milestone 1′* | ✅ |
 
 **Why this goes first and alone.** It changes how every screen mounts, and four
 bugs hinge on it. If anything regresses, it was this and nothing else.
@@ -93,21 +98,21 @@ things. Fixed before Milestone 2 because they set the feel of every screen.
 | ID | Bug | Root cause | Solution | Status |
 |---|---|---|---|---|
 | B3 | Starred JLPT list shows 0 items | Pulled forward into Milestone 1′ | — || ✅ |
-| B11 | Kanji cells grow on a short last row | Each cell is `flex-1` in a 5-column row; 1232 mod 5 = 2, so the last two share the full width. Bordered cards also contradict the design system's flat rows | New `KanjiResultRow` mirroring `DictionaryResultRow`; single-column `FlatList`. Also closes B8 permanently | Landed |
-| B8 | Crash (fix half) | See Milestone 1 | With B11 landed there is no `numColumns` to change | Landed |
+| B11 | Kanji cells grow on a short last row | Each cell is `flex-1` in a 5-column row; 1232 mod 5 = 2, so the last two share the full width. Bordered cards also contradict the design system's flat rows | New `KanjiResultRow` mirroring `DictionaryResultRow`; single-column `FlatList`. Also closes B8 permanently | ✅ |
+| B8 | Crash (fix half) | See Milestone 1 | With B11 landed there is no `numColumns` to change | ✅ |
 
 **Workstream C — Dictionary detail**
 
 | ID | Bug | Root cause | Solution | Status |
 |---|---|---|---|---|
-| B6 | Furigana over the wrong kanji | `alignFurigana` anchors each kana run at its *first* occurrence in the reading; when the okurigana also appears inside the kanji's reading the split lands early. 709 words fall back to one reading over the whole word (痛い, 可愛い, 五つ, 疑う); 271 silently attach the reading to the wrong kanji (言い訳) | Two rules, ~8 lines in `utils/furigana.ts`. Re-audited on landing over all 176,688 written forms: wrong-kanji 271 → 0; whole-word fallbacks 1345 → 869 counting full-width digits and letters as anchors (what remains is that class — １月, Ｘ線 — unanchorable by nature). All 8 existing tests unchanged; sentence coverage 98.7% → 98.8% | Landed |
-| B5 | Examples too far apart | `last:border-b-0` is unsupported by NativeWind and compiles to an *unconditional* rule, so every divider is removed and each gap is 32px of blank space | `components/ExampleSentences.tsx` owns the section; `exampleRowClass(i, count)` gives every row but the last `pb-3 mb-3 border-b`. It has a Jest test of its own, since Jest has no compiled CSS to read a class back from a render | Landed |
+| B6 | Furigana over the wrong kanji | `alignFurigana` anchors each kana run at its *first* occurrence in the reading; when the okurigana also appears inside the kanji's reading the split lands early. 709 words fall back to one reading over the whole word (痛い, 可愛い, 五つ, 疑う); 271 silently attach the reading to the wrong kanji (言い訳) | Two rules, ~8 lines in `utils/furigana.ts`. Re-audited on landing over all 176,688 written forms: wrong-kanji 271 → 0; whole-word fallbacks 1345 → 869 counting full-width digits and letters as anchors (what remains is that class — １月, Ｘ線 — unanchorable by nature). All 8 existing tests unchanged; sentence coverage 98.7% → 98.8% | ✅ |
+| B5 | Examples too far apart | `last:border-b-0` is unsupported by NativeWind and compiles to an *unconditional* rule, so every divider is removed and each gap is 32px of blank space | `components/ExampleSentences.tsx` owns the section; `exampleRowClass(i, count)` gives every row but the last `pb-3 mb-3 border-b`. It has a Jest test of its own, since Jest has no compiled CSS to read a class back from a render | ✅ |
 
 **Workstream D — App shell**
 
 | ID | Bug | Root cause | Solution | Status |
 |---|---|---|---|---|
-| B4 | Drawer hidden by keyboard | `KeyboardAvoidingView` gets `behavior={undefined}` on Android, relying on the window resizing. SDK 54 defaults to edge-to-edge, under which the Modal's window is not resized. Same regression fixed upstream in react-native-paper the same way. *Device testing of the one-line fix then showed two more Modal-window faults — see the deep dive* | Create-list is no longer a Modal at all: `app/create-list.tsx` is a `transparentModal` route in the root stack rendering `CreateListDialog`, a floating card. `BottomDrawer` keeps `behavior="padding"` for the list picker | Landed |
+| B4 | Drawer hidden by keyboard | `KeyboardAvoidingView` gets `behavior={undefined}` on Android, relying on the window resizing. SDK 54 defaults to edge-to-edge, under which the Modal's window is not resized. Same regression fixed upstream in react-native-paper the same way. *Device testing of the one-line fix then showed two more Modal-window faults — see the deep dive* | Create-list is no longer a Modal at all: `app/create-list.tsx` is a `transparentModal` route in the root stack rendering `CreateListDialog`, a floating card. `BottomDrawer` keeps `behavior="padding"` for the list picker | ✅ |
 
 **Why these run in parallel.** B touches `services/lists.ts`, `listQuery.ts`,
 `lists/*.tsx`, `ListRow.tsx`. C touches `utils/furigana.ts`, `app/word/[id].tsx`
@@ -118,9 +123,9 @@ twice. Each lands as its own commit.
 
 | ID | Bug | Root cause | Solution | Status |
 |---|---|---|---|---|
-| B15 | Back from a just-created list lands on Dictionary; several backs to reach Lists | `create-list` closed with `router.back()` then `router.push('/lists/<id>')`. The push ran before the back had applied, so Expo Router saw the dialog as the focused route and pushed a *second* `(tabs)` onto the root stack with the list inside it. Back from the list fell to that copy's first tab | One call: `router.dismissTo('/lists/<id>')` pops the dialog and opens the list inside the Lists stack that is already there. `tests/createList.test.tsx` now uses the real Tabs layout — the stubbed Stack could not reproduce this — and asserts one `(tabs)` and back → `/lists` | Landed |
-| B16 | 日本語 shows にほんご centred over three kanji | `alignFurigana` only splits at kana; a run of two or more kanji is one pair. No per-kanji furigana data exists in the bundle | `splitKanjiRun` in `utils/furigana.ts` matches the KANJIDIC readings of each kanji against the run's reading, allowing rendaku after the first kanji (新聞 しん\|ぶん) and a doubled final consonant before the next (学校 がっ\|こう), longest first. Audited over all 142,992 multi-kanji runs: 132,792 (92.9%) split exactly, 6 ambiguous (longest-first picks the conventional one). Jukujikun (大人) and irregulars (日本's に) are refused and keep one reading — a one-wildcard fallback was tried and produced visibly wrong splits (真面目 → ま\|じ\|め). `getEntry` returns `entry.furigana` already split, as `getExamples` does for sentences | Landed |
-| B17 | No way to delete a list | Never built | Trash icon on a custom list's page → `confirmDestructive` (native `Alert`; `window.confirm` on web, where `Alert.alert` is an empty function) → `deleteList` runs `DELETE_LIST_SQL` in one transaction over `srs_cards`, `list_items`, `lists` → back to Lists. The SQL is guarded by `type = 'custom'`, so built-ins cannot go. A confirm as a `transparentModal` route was tried first and rejected: `dismissTo('/lists')` from a root dialog pushes a second `index` into the Lists stack | Landed |
+| B15 | Back from a just-created list lands on Dictionary; several backs to reach Lists | `create-list` closed with `router.back()` then `router.push('/lists/<id>')`. The push ran before the back had applied, so Expo Router saw the dialog as the focused route and pushed a *second* `(tabs)` onto the root stack with the list inside it. Back from the list fell to that copy's first tab | One call: `router.dismissTo('/lists/<id>')` pops the dialog and opens the list inside the Lists stack that is already there. `tests/createList.test.tsx` now uses the real Tabs layout — the stubbed Stack could not reproduce this — and asserts one `(tabs)` and back → `/lists` | ✅ |
+| B16 | 日本語 shows にほんご centred over three kanji | `alignFurigana` only splits at kana; a run of two or more kanji is one pair. No per-kanji furigana data exists in the bundle | `splitKanjiRun` in `utils/furigana.ts` matches the KANJIDIC readings of each kanji against the run's reading, allowing rendaku after the first kanji (新聞 しん\|ぶん) and a doubled final consonant before the next (学校 がっ\|こう), longest first. Audited over all 142,992 multi-kanji runs: 132,792 (92.9%) split exactly, 6 ambiguous (longest-first picks the conventional one). Jukujikun (大人) and irregulars (日本's に) are refused and keep one reading — a one-wildcard fallback was tried and produced visibly wrong splits (真面目 → ま\|じ\|め). `getEntry` returns `entry.furigana` already split, as `getExamples` does for sentences | ✅ |
+| B17 | No way to delete a list | Never built | Trash icon on a custom list's page → `confirmDestructive` (native `Alert`; `window.confirm` on web, where `Alert.alert` is an empty function) → `deleteList` runs `DELETE_LIST_SQL` in one transaction over `srs_cards`, `list_items`, `lists` → back to Lists. The SQL is guarded by `type = 'custom'`, so built-ins cannot go. A confirm as a `transparentModal` route was tried first and rejected: `dismissTo('/lists')` from a root dialog pushes a second `index` into the Lists stack | ✅ |
 
 ---
 
