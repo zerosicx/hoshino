@@ -1,17 +1,13 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, BookOpen, Plus } from "lucide-react-native";
+import { ChevronLeft, Plus } from "lucide-react-native";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useTheme } from "@/hooks/useTheme";
 import { useSearchStore } from "@/stores/searchStore";
 import { getEntry, getExamples } from "@/services/dictionary";
-import FuriganaText from "@/components/FuriganaText";
-import JlptBadge from "@/components/JlptBadge";
-import ConjugationTable from "@/components/ConjugationTable";
-import WordClassBadges from "@/components/WordClassBadges";
+import WordDetail from "@/components/WordDetail";
 import AddToListDrawer from "@/components/AddToListDrawer";
-import ExampleSentences from "@/components/ExampleSentences";
 import { useAddToList } from "@/hooks/useLists";
 import { getCustomLists, getListIdsContaining } from "@/services/lists";
 import type { DictionaryEntry, ExampleSentence } from "@/types/dictionary";
@@ -111,8 +107,6 @@ export default function WordDetailScreen() {
   }
 
   const primaryKanji = entry.kanjiForms[0] ?? entry.readingForms[0] ?? "";
-  const primaryReading = entry.readingForms[0] ?? "";
-  const furiganaPairs = entry.furigana;
 
   // Tapping a list the word is already in takes it out again, so the same row
   // both adds and undoes — there is nowhere else to remove a word from a list.
@@ -130,11 +124,6 @@ export default function WordDetailScreen() {
     );
   };
 
-  // Extract kanji characters for the breakdown section
-  const kanjiChars = primaryKanji
-    .split("")
-    .filter((ch) => /[\u4E00-\u9FFF]/.test(ch));
-
   return (
     <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"}`}>
       <ScrollView
@@ -143,120 +132,12 @@ export default function WordDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {header}
-
-        {/* Hero */}
-        <View className="px-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">
-          <FuriganaText
-            pairs={furiganaPairs}
-            size="xl"
-            readingMode={readingMode}
-          />
-
-          {/* Alt readings / kanji forms */}
-          {entry.readingForms.length > 1 && (
-            <Text
-              className={`text-footnote ${isDark ? "text-zinc-400" : "text-zinc-500"} mt-2`}
-            >
-              {entry.readingForms.join("、")}
-            </Text>
-          )}
-
-          {/* Badges row */}
-          <View className="flex-row flex-wrap items-center gap-2 mt-3">
-            <JlptBadge level={entry.jlptLevel} />
-            {entry.isCommon && (
-              <View className="bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                <Text className="text-caption2 font-semibold text-emerald-600 dark:text-emerald-400">
-                  Common
-                </Text>
-              </View>
-            )}
-            <WordClassBadges info={entry.wordClass} />
-          </View>
-        </View>
-
-        {/* Senses / Meanings */}
-        <View className="px-4 py-5">
-          <View className="flex-row items-center gap-2 mb-3">
-            <BookOpen size={18} color={isDark ? "#A1A1AA" : "#71717A"} />
-            <Text
-              className={`text-body font-semibold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
-            >
-              Meanings
-            </Text>
-          </View>
-
-          {entry.senses.map((sense, i) => (
-            <View key={i} className="mb-3">
-              <View className="flex-row">
-                <Text
-                  className={`text-footnote font-medium ${isDark ? "text-zinc-600" : "text-zinc-400"} w-6`}
-                >
-                  {i + 1}.
-                </Text>
-                <View className="flex-1">
-                  <Text
-                    className={`text-subheadline ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
-                  >
-                    {sense.glosses.join("; ")}
-                  </Text>
-                  {sense.pos.length > 0 && (
-                    <Text
-                      className={`text-caption1 ${isDark ? "text-zinc-500" : "text-zinc-400"} mt-0.5`}
-                    >
-                      {sense.pos.join(", ")}
-                    </Text>
-                  )}
-                  {sense.info.length > 0 && (
-                    <Text className="text-caption1 text-accent dark:text-accent-light mt-0.5">
-                      {sense.info.join("; ")}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        <ExampleSentences examples={examples} readingMode={readingMode} />
-
-        {/* Conjugations */}
-        {entry.wordClass && (
-          <ConjugationTable
-            written={primaryKanji}
-            reading={primaryReading}
-            info={entry.wordClass}
-            isDark={isDark}
-            readingMode={readingMode}
-          />
-        )}
-
-        {/* Kanji Breakdown */}
-        {kanjiChars.length > 0 && (
-          <View className="px-4 py-5 border-t border-zinc-200 dark:border-zinc-800">
-            <Text
-              className={`text-body font-semibold ${isDark ? "text-zinc-50" : "text-zinc-900"} mb-3`}
-            >
-              Kanji
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {kanjiChars.map((char) => (
-                <Pressable
-                  key={char}
-                  onPress={() => router.push(`/kanji/${char}`)}
-                  className={`w-12 h-12 items-center justify-center rounded-md border ${isDark ? "border-zinc-700 bg-zinc-900" : "border-zinc-200 bg-zinc-50"} active:bg-accent/10`}
-                >
-                  <Text
-                    className={`text-title2 font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
-                  >
-                    {char}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        )}
-
+        <WordDetail
+          entry={entry}
+          examples={examples}
+          readingMode={readingMode}
+          onPressKanji={(char) => router.push(`/kanji/${char}`)}
+        />
       </ScrollView>
 
       <AddToListDrawer
