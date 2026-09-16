@@ -87,8 +87,8 @@ on Android. Check a real device after any theme or typography change.
 
 Built 17/09/26 from `STUDY_ALGORITHM.md`, the design record written the same
 day from Hannah's week with build 9 and a survey of Anki, FSRS, WaniKani,
-Memrise and Duolingo. The scheduler is untouched; everything around it
-changed.
+Memrise and Duolingo. Shipped as preview build 16 and production build 17.
+The scheduler is untouched; everything around it changed.
 
 - **Two limits.** New words per day (default 10) is a budget of
   introductions across every list. Cards per session (default 20) is the
