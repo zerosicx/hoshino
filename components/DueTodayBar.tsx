@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 import { Play } from "lucide-react-native";
-import type { SessionPreview } from "@/services/studyQuery";
+import type { SessionPreview } from "@/types/study";
 
 interface DueTodayBarProps {
   /** What a mixed session would hold right now, already capped. */

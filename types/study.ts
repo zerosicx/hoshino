@@ -18,6 +18,14 @@ export interface StudyCard {
  */
 export type SessionMode = "mixed" | "review" | "learn";
 
+/** What the Study landing's bar promises a mixed session will contain. */
+export interface SessionPreview {
+  due: number;
+  fresh: number;
+  /** Today's new words are all introduced; only "Learn more" adds any. */
+  budgetSpent: boolean;
+}
+
 /**
  * How far a list has come, for the Study landing and the list page. The five
  * buckets are the mastery ladder (`stageOf` in `services/scheduler.ts`);

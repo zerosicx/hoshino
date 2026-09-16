@@ -13,7 +13,13 @@
 
 import { State, type Card } from "ts-fsrs";
 import { FAMILIAR_STABILITY, KNOWN_STABILITY, MASTERED_STABILITY } from "./scheduler";
-import type { DailyStats, ListProgress, SessionMode, StudyCard } from "@/types/study";
+import type {
+  DailyStats,
+  ListProgress,
+  SessionMode,
+  SessionPreview,
+  StudyCard,
+} from "@/types/study";
 
 // ---------------------------------------------------------------------------
 // Cards
@@ -166,13 +172,6 @@ export function newAllowance(
 }
 
 /** What the Study landing's bar promises a mixed session will contain. */
-export interface SessionPreview {
-  due: number;
-  fresh: number;
-  /** Today's new words are all introduced; only "Learn more" adds any. */
-  budgetSpent: boolean;
-}
-
 export function previewSession(
   counts: { due: number; unseen: number; newToday: number },
   settings: { sessionSize: number; newPerDay: number }

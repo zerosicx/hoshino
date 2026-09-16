@@ -2,9 +2,9 @@ import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { getNewToday, getStudyStats } from "@/services/stats";
 import { getActiveLists } from "@/services/srs";
-import { previewSession, type SessionPreview } from "@/services/studyQuery";
+import { previewSession } from "@/services/studyQuery";
 import { useSettingsStore } from "@/stores/settingsStore";
-import type { ActiveList, StudyStats } from "@/types/study";
+import type { ActiveList, SessionPreview, StudyStats } from "@/types/study";
 
 /**
  * Everything on the Study landing. Reloads on focus, since a session that
