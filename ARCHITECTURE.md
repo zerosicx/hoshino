@@ -312,6 +312,67 @@ passes without one. `streak_length` is not written.
 given, so nothing needs to survive the screen, and the landing reloads on
 focus.
 
+### Reader
+
+**Segmentation is the dictionary asking itself.** Japanese has no spaces.
+Rather than ship a morphological analyser and its 15–20MB dictionary,
+`utils/segment.ts` takes every span of up to eight characters at every
+position, adds the dictionary forms `deinflect` can reduce a kana-ending span
+to, and asks `entries_fts` which of those terms exist. The index stores each
+written form and reading as one token, so a bare `"term"` match (no prefix
+star) is an exact whole-form lookup, and one `MATCH` with a few thousand
+terms OR'd answers a paragraph in one query — about 100ms in Node for 400
+characters, under 5ms for a sentence.
+
+**The split is scored, not greedy.** Dynamic programming over positions picks
+the segmentation with the highest total, where a word scores its length
+squared (so 日本語 beats 日本 + 語), on a lower curve when JMdict does not flag
+it common (so 毎日 + 野菜 beats 日野菜, a turnip), plus a little for matching
+as written rather than by deinflection. Unknown characters cost a little each
+and merge into one plain run. Four rules encode how Japanese is written and
+were each added for a benchmark sentence that failed without them:
+
+- A lone kana is never a candidate: it is a particle or an ending.
+- A kana surface may only be a kanji word that JMdict marks "usually written
+  in kana" — ある is 有る, but は is not 歯 and れつ is not 列.
+- Words seldom start or end inside a run of kanji, so a span that does
+  (解|決する) pays for it.
+- A deinflection that only works by treating a trailing case particle as an
+  ending (近くで → 近い) pays; so does a span with a case particle inside it
+  (面が割れて) unless it is common as written.
+
+`tests/segmentBenchmark.ts` holds 20 hand-marked sentences; the reader shipped
+at 83/83. When a sentence fails, the fix is a rule with a reason, not a
+special case.
+
+**Readings follow the dictionary form onto the surface.** 食べた matched 食べる
+/ たべる: the kanji keep the readings `alignFurigana` gives them in the
+dictionary form, and whatever the passage has after the shared prefix is kana
+that needs none (`furiganaFor`). A kana-only word, or a match through a
+reading rather than a written form, is shown bare.
+
+**Every tap is a search.** A word opens `/word/[id]`, which records the lookup
+into `search_history` and Searched Terms exactly as a typed search does. The
+reader adds no tracking of its own. Unknown Japanese opens search prefilled
+instead, so no tap is a dead end. "Visited" underlines come from
+`search_history` at read time and are refreshed when the screen regains focus.
+
+**Rendering is Views in a wrapping row, not nested Text.** Android cannot lay
+out a View inside Text without a fixed size, and nested-Text press targets
+land wrong, so each token is a Pressable column of ruby over base text inside
+`flex-row flex-wrap`. The cost is no kinsoku, so punctuation is glued onto the
+word before it in `services/reader.ts`. Paragraphs — newline-separated, and
+broken at sentence ends past 400 characters — go in a `FlatList`, each
+resolving itself when it comes on screen, so a long article never mounts
+thousands of views at once and the first screen paints before the rest is
+looked up.
+
+**The text lives in a persisted store, not the user database.** It is not one
+of the five synced tables, has no query, needs no migration, and a pasted
+passage may be someone else's writing. Only the text is stored; the
+segmentation is recomputed from the dictionary, which is the one source of
+truth for what a word is.
+
 ### Searched Terms as a first-class list
 Every dictionary lookup automatically adds the entry to a "Searched Terms" list with a timestamp and frequency count. This list is reviewable as flashcards just like any JLPT list. Frequently searched words surface higher — if you keep looking something up, you clearly need to learn it.
 
@@ -360,6 +421,7 @@ hoshino/
 │   ├── AddToListDrawer.tsx       # Pick a list for a word, or make one
 │   ├── SwipeAction.tsx          # Swipe a row right to add it, left to remove it
 │   ├── Toast.tsx                 # Bottom toast, mounted once at the root
+│   ├── ReaderText.tsx            # A paragraph of tappable ruby tokens
 │   ├── RecentChip.tsx            # Recently searched word chip
 │   └── FeaturedWord.tsx          # Word of the Day / recommended word card
 ├── services/                     # Business logic
@@ -368,6 +430,8 @@ hoshino/
 │   ├── scheduler.ts              # The only ts-fsrs import: schedule, preview, label
 │   ├── studyQuery.ts             # Queues, progress and stats as SQL, testable in Node
 │   ├── srs.ts                    # Sessions, ratings, suspend, progress against the user db
+│   ├── readerQuery.ts            # Batched exact-form lookup, lexicon, paragraphs; pure
+│   ├── reader.ts                 # A paragraph to tokens with furigana and visited marks
 │   ├── lists.ts                  # List CRUD, Searched Terms
 │   ├── listQuery.ts              # List ordering and membership SQL
 │   ├── schema.ts                 # User schema, built-in seeds, migrations
@@ -379,14 +443,17 @@ hoshino/
 │   ├── useStudySession.ts        # One pile: queue, reveal, rate, Again-requeue, suspend
 │   ├── useStudyStats.ts          # Landing data, reloaded on focus
 │   ├── useReduceMotion.ts        # Setting or device preference
+│   ├── useReader.ts              # Per-paragraph resolution with a session cache
 │   └── useLists.ts
 ├── stores/                       # Zustand stores
 │   ├── searchStore.ts
+│   ├── readerStore.ts            # The pasted text, persisted
 │   ├── toastStore.ts
 │   └── settingsStore.ts
 ├── utils/                        # Pure functions
 │   ├── conjugation.ts            # Conjugation engine
 │   ├── furigana.ts               # Furigana alignment; splits compounds per kanji from KANJIDIC readings
+│   ├── segment.ts                # Running text to dictionary words, scored over a lexicon
 │   ├── confirm.ts                # Native yes/no before something irreversible; browser confirm on web
 │   ├── japanese.ts               # Script detection, kana folding, romaji both ways
 │   ├── deinflect.ts              # Conjugated form -> dictionary form

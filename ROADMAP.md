@@ -18,9 +18,9 @@ and furigana-annotated examples.
 | 2 — Dictionary tab | Done, bar the deferred items below |
 | 3 — Lists tab | Done, bar the deferred items below |
 | 4 — Study system | Done, bar the deferred items below |
-| 5 — Auth and sync | Not started — **next** |
-| 6 — Polish and ship | Settings done; build and store work outstanding |
-| 7 — Reader | Planned; requirement written (`SRD.md` FR-10), not started |
+| 5 — Auth and sync | Not started |
+| 6 — Polish and ship | Settings done; first production build made; store work outstanding |
+| 7 — Reader | Done, bar the deferred items below |
 
 Work flows top-down through the dependency chain:
 
@@ -30,6 +30,7 @@ database.ts → root layout → tab bar                        ✅
     → conjugation engine                                   ✅
       → lists service → lists tab                          ✅
         → SRS service → study session                       ✅
+          → segmenter → reader                              ✅
           → Supabase + auth + sync
             → EAS build + submission
 ```
@@ -44,6 +45,11 @@ assert on mocks, and both open the real `assets/hoshino.db`:
   holds a second set never used for tuning, to catch overfitting.
 - **Furigana coverage** — the share of kanji in example sentences that get a
   reading, currently 98.8%.
+- **Segmentation** — `tests/segmentBenchmark.ts`, 20 sentences of ordinary
+  Japanese with the words a reader should be able to tap in each, currently
+  83/83. Run through the real dictionary in `services/readerQuery.test.ts`,
+  which also holds the reader to one query per sentence and under a second
+  for a long paragraph.
 
 Neither can run against a small fixture: BM25 scores depend on corpus-wide
 statistics, so a cut-down database ranks differently. Both suites skip rather
@@ -80,6 +86,56 @@ the page body (hundreds of furigana and conjugation views) mounting mid-slide;
 the candidate fix is to hold the body and the search-history write until the
 navigator's `transitionEnd`. Judge it again on a release build before spending
 on it.
+
+### Stage 7 — done. Paste anything, read it, tap any word
+
+Built 16/09/26; preview build 10 and the first production build. The
+Dictionary home has a "Read a text" row; the reader segments a paste into
+words with their readings, and every tap goes through the word page, so it
+lands in Searched Terms like a search does.
+
+Designed by a three-seat product council (learner experience, growth and
+first run, technical) whose memos were reconciled into these decisions:
+
+- **One labelled door, on the Dictionary home**, not an icon in the search
+  bar and not a fifth tab. With text saved the row reads "Continue reading"
+  with the text's first line, which is the reader's return hook.
+- **The empty reader shows the mechanic, not instructions:** a sample
+  sentence rendered live with tappable words under "Try it — tap any word".
+  Taps on it are real lookups.
+- **Two states, never both:** the paste field with a Read button, or the
+  text with an Edit button. Edit reopens the field prefilled; the field's X
+  clears. No confirmation on clear.
+- **A tap opens the word page at once.** No peek: the SRD promises one tap
+  per unknown word, and the word page is where history is recorded.
+- **Unknown Japanese is still tappable** — it opens search prefilled — so no
+  tap mid-sentence is a dead end. Unknown text is not dimmed: grey reads as
+  "the app failed". Digits, latin and punctuation are plain.
+- **Words looked up before are underlined** in the accent colour, derived
+  from `search_history` at read time, so the "search → study" loop is visible
+  without a toast or counter.
+- **No romaji in the reader.** Romaji above every kanji run spaces prose out
+  until it stops reading as prose; the romaji setting shows kana here.
+- **The text persists; the scroll position does not** (the reader stays
+  mounted under the word page, so back lands where you were anyway).
+- **Segmentation is dictionary-driven**, no new library: see
+  `ARCHITECTURE.md` "Reader". Gated on the benchmark above.
+
+**Test it on the S25:** Dictionary → Read a text → tap a word in the sample →
+back → paste a paragraph from a news site → Read → tap three words you do
+not know → Lists → Searched Terms has them. Then Edit, clear, and confirm the
+Dictionary row is back to "Read a text".
+
+### Review-only sessions — done
+
+From the same council. A footnote link under the due bar on the Study
+landing, "Review only · N cards, no new words", shown only when it changes
+something: with nothing due the bar already says Learn New, and with a full
+pile of due cards the two sessions are identical. Not a setting: a standing
+"no new words" starves the loop and the pile reads "Nothing due" within a
+week. The session is labelled "Review only" under the count and finishes as
+"Review complete"; opened with nothing due it says so and offers a normal
+session.
 
 ### Stage 4 — done. The study loop runs end to end
 
@@ -250,6 +306,8 @@ counts and streak update afterwards. Met in Jest; awaiting the S25.
       new counts appear on the Study landing only.
 - [ ] **The ⋯ menu has one item.** "See full entry" and "skip for now" could
       join it.
+- [ ] **Per-list review-only.** The landing's link runs review-only across
+      every active list; tapping a list row still starts a mixed session.
 
 ---
 
@@ -305,6 +363,11 @@ already built with theme and reading-mode preferences.
       arrives on the second launch after the update, and note how long the
       download takes. Note for later: the build is not byte-deterministic, so
       an update published after the next database rebuild will re-fetch it.
+- [x] **First Android production build** — `eas build --profile production
+      --platform android` on 16/09/26, an app bundle for the Play Console.
+      Not yet uploaded anywhere; no Play Console record exists.
+- [ ] **Play Console** — create the app record, internal testing track,
+      upload the bundle
 - [ ] **iOS** — TestFlight via EAS, App Store Connect record
 - [ ] **Web** — `npx expo export --platform web`, deploy with the headers above
 
@@ -378,64 +441,48 @@ fingerprint runtime versions by about two years; `eas.json` now sets that floor.
 
 ## Stage 7 — Reader
 
-Requirement: `SRD.md` FR-10. Paste Japanese text, read it with furigana, tap
-any word for its entry. Every tap goes through the word page, so it lands in
-search history and Searched Terms for free — the reader is a new front door
-to the dictionary, not a new dictionary.
+Requirement: `SRD.md` FR-10. Decisions: "Now" above. How it works:
+`ARCHITECTURE.md` "Reader".
 
-**Where it lives.** Not a fifth tab. An action on the Dictionary screen ("Read
-a text", beside the search bar) pushes `app/(tabs)/dictionary/reader.tsx` in
-the dictionary stack, so back returns to search and the tab bar stays at four.
-The pasted text is kept in a small persisted store so it survives leaving.
-
-**The hard part is segmentation.** Japanese has no spaces, and the database's
-example sentences are pre-tokenised by Tatoeba — nothing in the app can split
-arbitrary text yet. Three ways to get there:
-
-1. **Dictionary-driven longest match, with deinflection.** Walk the text; at
-   each position try the longest span that is a dictionary form, or that
-   `utils/deinflect.ts` can reduce to one; fall back one character and mark it
-   unknown. Reuses `entries_fts`, the deinflector and the furigana aligner.
-   No new dependency, no download, works offline on all three platforms.
-   Weaker on compound splits and on kana runs (は as particle vs 歯 as tooth),
-   which a small stop-list of particles and a "prefer common" tie-break
-   mostly fix.
-2. **A real morphological analyser** — kuromoji.js, or a Sudachi / Lindera
-   WebAssembly build. Far better boundaries and part-of-speech per token, but
-   a 15–20MB dictionary on top of our 100MB, a new native or WASM dependency
-   to make work on iOS, Android and web, and a start-up cost per session.
-3. **Ship pre-segmented text only.** Rules out pasting; not the job.
-
-Recommendation: **1**, measured. It needs no approval for a library, and it
-can be judged the same way search was: a benchmark of real paragraphs with
-hand-marked boundaries, scored on the share of words found and tapped
-correctly. If it stalls under about 90% on ordinary prose, option 2 becomes
-worth its weight. FR-10 is unusable below that bar either way.
-
-- [ ] `utils/segment.ts` — pure longest-match segmenter over a lookup
-      function; unit-tested on hand-picked sentences, plus a Vitest benchmark
-      against the real database (`tests/segmentBenchmark.ts`, twenty
-      paragraphs, hand-marked) alongside the search benchmark
-- [ ] `services/reader.ts` — batch-resolves the candidate spans a paragraph
-      needs in one query each rather than one per word; returns tokens with
-      `entryId`, surface, reading and furigana pairs
-- [ ] `stores/readerStore.ts` — the current text and scroll offset, persisted
-- [ ] `components/ReaderText.tsx` — wrapping flow of tappable tokens over
-      `FuriganaText`'s ruby layout; paragraphs virtualised so a long article
-      does not mount thousands of views at once; unknown spans plain
-- [ ] `app/(tabs)/dictionary/reader.tsx` — paste field, Clear, the text; a
-      tap pushes `/word/[id]`, which records the search
-- [ ] Entry point on the Dictionary screen
-- [ ] Check romaji mode: romaji above every kanji run will space a paragraph
-      out badly (the same open question as Stage 2's romaji-on-a-phone item)
+- [x] `utils/segment.ts` — candidate spans, deinflection, and the scored
+      split, pure over a `Lexicon`; unit-tested on a fake lexicon
+- [x] `services/readerQuery.ts` — the batched exact-form lookup against
+      `entries_fts`, lexicon assembly with JMdict's "usually kana" flag,
+      visited lookup, paragraph splitting; pure
+- [x] `tests/segmentBenchmark.ts` + `services/readerQuery.test.ts` — 20
+      sentences against the real dictionary, 83/83 words, ~5ms a sentence
+- [x] `services/reader.ts` — one paragraph to tokens with furigana and
+      visited marks; punctuation glued to the word before it
+- [x] `stores/readerStore.ts` — the text, persisted; 20,000-character cap
+- [x] `hooks/useReader.ts` — per-paragraph resolution with a session cache;
+      visited marks refreshed on focus
+- [x] `components/ReaderText.tsx` — wrapping row of tappable ruby tokens
+- [x] `app/(tabs)/dictionary/reader.tsx` — field / text states, sample, Edit
+- [x] Dictionary home: "Read a text" / "Continue reading" row; "See all" on
+      Recently Searched, to the Searched Terms list
 
 **Checkpoint:** paste a news paragraph, read it end to end with the readings
-showing, tap three unknown words, find all three in Searched Terms.
+showing, tap three unknown words, find all three in Searched Terms. Met in
+Jest against a mocked reader and in Vitest against the real dictionary;
+awaiting the S25.
 
-**Deferred from the start:** a library of saved texts; share-sheet intake from
-other apps (needs `expo-share-intent` or similar — a new library, so ask);
-OCR from a photo; reading the clipboard automatically (`expo-clipboard`, also
-a new library; a paste into the field needs nothing).
+### Deferred from Stage 7
+
+- [ ] **A library of saved texts.** One text at a time for now; pasting
+      replaces it.
+- [ ] **Share-sheet intake** from other apps needs `expo-share-intent` or
+      similar — a new library, so ask first.
+- [ ] **Reading the clipboard automatically** (`expo-clipboard`, also new).
+      A paste into the field needs nothing.
+- [ ] **OCR from a photo.**
+- [ ] **Homographs.** A span with several entries (生 as なま / せい) opens the
+      common one; the others are reachable from search only.
+- [ ] **Irregular stems.** 来た shows 来 read く from 来る; it should be き. A
+      table of the handful of irregulars belongs in `furiganaFor`.
+- [ ] **Compound readings are one block.** 日本語 shows にほんご over the run,
+      not per kanji as the word page does, since `splitCompounds` needs the
+      KANJIDIC readings the reader does not fetch.
+- [ ] **Scroll position across relaunch.** Revisit with saved texts.
 
 ---
 

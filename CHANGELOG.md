@@ -39,7 +39,7 @@ Rules for the lines:
 
 ## v0.1.0 Happy Fruit
 
-Last updated: 15/09/26
+Last updated: 16/09/26
 Created: 03/09/26
 
 Changelog:
@@ -70,6 +70,13 @@ Changelog:
 - [FEATURE] Study a JLPT vocabulary list and it becomes a list of your own, with its progress kept there.
 - [FEATURE] Choose whether the front of the card shows the Japanese or the meaning.
 - [FEATURE] Reduce animations in Settings if the card flip is uncomfortable; the card then turns over instantly.
+- [FEATURE] Read a text: paste any Japanese into the Dictionary tab and read it with the readings shown above the kanji; tap any word to open its entry, and it joins your Searched Terms like a search would.
+- [FEATURE] Words you have looked up before are underlined in the reader, so you can see what you have met.
+- [FEATURE] Tap a word the dictionary does not recognise in the reader to search for it instead.
+- [FEATURE] Your pasted text stays in the reader until you replace it, and the Dictionary tab offers to continue reading it.
+- [FEATURE] Review only: when some cards are due, a link under the study bar runs through just those, with no new words added.
+- [FEATURE] "See all" on Recently Searched opens the Searched Terms list.
+- [BUG FIX] The study bar no longer pushes its button off the screen when nothing is due; it now says "Nothing due" with a "Learn New" action.
 - [BUG FIX] Going back from a word, kanji or list page now returns to the screen you came from, instead of the Dictionary home.
 - [BUG FIX] Opening a list no longer briefly shows the previous list's words.
 - [BUG FIX] Reopening a kanji page starts at the top rather than where you last scrolled to.

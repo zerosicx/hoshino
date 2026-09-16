@@ -106,6 +106,8 @@ The primary user is an intermediate-to-advanced Japanese learner (JLPT N3–N1 l
 - The FSRS algorithm calculates the next review date based on the rating
 - The session shows a progress bar and count (e.g., "7 / 20")
 - Users can exit a session early via the X button, which returns to the Study landing; progress is saved
+- A session is a fixed-size pile (default 20): due cards first, ordered by how likely they are to have been forgotten, topped up with never-seen words. The landing shows the pile, never a backlog count
+- **Review only**: when some but fewer than a pile of cards are due, the landing offers a review-only session that adds no new words. It is a one-off choice, not a setting
 - Card flip animation is smooth and satisfying (react-native-reanimated)
 
 #### FR-06: Study Progress & Statistics
@@ -166,11 +168,18 @@ learner managed to type.
   setting) and is tappable; text the dictionary does not know is shown as is
 - Tapping a word opens the word detail page, which records the lookup in
   search history and so in the Searched Terms list — the same path as a search
+- Tapping Japanese the dictionary does not know opens search with it filled
+  in, so no tap is a dead end; digits, latin and punctuation are plain
+- Words looked up before, in the reader or in search, are underlined
 - Conjugated forms resolve to their dictionary entry, as search already does
 - Readings only for kanji: kana and punctuation carry none
 - Back returns to the text, at the same scroll position, so reading continues
 - The pasted text survives leaving the screen and relaunching the app, so a
-  long article can be read across several sittings
+  long article can be read across several sittings; the Dictionary home offers
+  to continue it
+- Before anything is pasted, a sample sentence is shown live with tappable
+  words, so the mechanic is seen rather than explained
+- Romaji is not offered in the reader; the romaji setting shows kana there
 - Works offline, on all three platforms, from the bundled dictionary alone
 
 **Out of scope for the first version.** Saving several texts as a library;
@@ -266,7 +275,7 @@ Searched Terms afterwards.
 | Stroke order animation for kanji | Visual guide for writing practice |
 | Study statistics dashboard | Charts showing progress over time, accuracy trends, streak history |
 | Multiple study modes | Listening quiz, reading quiz, writing quiz, matching |
-| **Reader** (FR-10) | Paste any Japanese text; read it with furigana and tap any word for its entry. Feeds Searched Terms. Planned as Stage 7 in `ROADMAP.md` |
+| **Reader** (FR-10) | Paste any Japanese text; read it with furigana and tap any word for its entry. Feeds Searched Terms. Shipped as Stage 7, 16/09/26 |
 
 ### Phase 3 — Grammar & Lessons
 > *Evolve from vocabulary tool to comprehensive study companion*

@@ -121,7 +121,8 @@ hoshino/
 │   ├── (tabs)/                   # Tab navigator (Dictionary, Study, Lists)
 │   │   ├── dictionary/
 │   │   │   ├── _layout.tsx       # Stack
-│   │   │   └── index.tsx         # Search screen
+│   │   │   ├── index.tsx         # Search screen
+│   │   │   └── reader.tsx        # Paste text, read with furigana, tap words
 │   │   ├── study/
 │   │   │   ├── _layout.tsx       # Stack
 │   │   │   ├── index.tsx         # Study landing (stats, due CTA, active lists)
@@ -137,7 +138,7 @@ hoshino/
 ├── components/                   # Shared UI components
 ├── services/                     # Business logic (dictionary, srs, lists, stats, database)
 ├── hooks/                        # Custom React hooks (useDictionary, useStudySession, etc.)
-├── stores/                       # Zustand stores (searchStore, settingsStore, toastStore)
+├── stores/                       # Zustand stores (searchStore, settingsStore, readerStore, toastStore)
 ├── utils/                        # Pure functions (conjugation, furigana, formatting)
 ├── assets/
 │   └── hoshino.db                # Pre-built SQLite database (bundled asset, ~100MB)
@@ -228,6 +229,15 @@ Do not add a new store for something that belongs in a service or local state.
 - "I already know this" sets `srs_cards.suspended`. It is never a rating-bar button.
 - JLPT vocabulary lists are references; studying one copies it into a `custom` list with `jlpt_level` set (`services/lists.ts` `startStudying`). Never write cards against a `jlpt_vocab` list id.
 - The "Searched Terms" list auto-adds entries on every dictionary lookup and updates `search_count`.
+
+---
+
+## Reader Rules
+
+- Segmentation lives in `utils/segment.ts` and is pure over a `Lexicon`. A wrong split is fixed with a scoring rule that has a reason in its comment, never a hard-coded word; add the failing sentence to `tests/segmentBenchmark.ts` first.
+- The reader never records history itself. A tap opens `/word/[id]`, and the word page records the lookup.
+- Only the pasted text is stored (`stores/readerStore.ts`). Never persist tokens.
+- No romaji in the reader; the romaji setting shows kana there.
 
 ---
 
