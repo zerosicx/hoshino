@@ -89,12 +89,12 @@ The primary user is an intermediate-to-advanced Japanese learner (JLPT N3–N1 l
 #### FR-05: Study Landing & Flashcard Sessions
 - The **Study tab** opens to a landing page that serves as the user's study workspace
 - The Study landing displays:
-  - **Stats banner**: day streak (consecutive days studied), accuracy (Good + Easy hit rate), and cards reviewed today
-  - **Due Today CTA**: a prominent accent-coloured card showing total cards due across all active lists, tapping starts a combined review session
-  - **Active lists**: lists that have study progress (any cards in learning, review, or mastered state), each showing name, progress bar, mastered/learning/new counts, and a due pill badge
+  - **Stats banner**: day streak (consecutive days studied), new words learned today (words that reached the review stage), and cards reviewed today. There is no accuracy figure: nothing on screen should make pressing Again feel like losing
+  - **Due Today bar**: a slim accent bar saying exactly what a session will hold across all active lists — "6 due · 4 new" — with Start; "Review only" under it whenever anything is due; "Done for today" with "Learn more" once the day's new words are introduced and nothing is due
+  - **Active lists**: lists that have study progress, each showing name, progress bar, counts up the mastery ladder, a due pill and a Review action
   - A "Browse All" link navigating to the Lists tab for discovering new lists
-- Tapping an active list or the Due Today CTA enters a **flashcard session**
-- The session presents cards in order of SRS priority: overdue cards first, then new cards
+- Tapping an active list or the Due Today bar enters a **flashcard session**; a list's own page offers Study and, when anything is due, Review
+- The session presents cards in order of SRS priority: due cards first (most likely forgotten first), then new cards; a card in the minute-scale learning loop counts as due up to twenty minutes early, so a session left mid-way resumes
 - Each card displays the **front** (kanji with furigana, or English meaning — configurable)
 - Tapping/swiping reveals the **back**: full word detail (meaning, readings, example sentence)
 - After viewing the back, the user rates recall with four buttons:
@@ -104,19 +104,22 @@ The primary user is an intermediate-to-advanced Japanese learner (JLPT N3–N1 l
   - **Easy** — instant recall; longer interval
 - Each rating button displays the next scheduled interval (e.g., "<1m", "6m", "10m", "4d")
 - The FSRS algorithm calculates the next review date based on the rating
-- The session shows a progress bar and count (e.g., "7 / 20")
-- Users can exit a session early via the X button, which returns to the Study landing; progress is saved
-- A session is a fixed-size pile (default 20): due cards first, ordered by how likely they are to have been forgotten, topped up with never-seen words. The landing shows the pile, never a backlog count
-- **Review only**: when some but fewer than a pile of cards are due, the landing offers a review-only session that adds no new words. It is a one-off choice, not a setting
+- The session shows a progress bar and a settled count (e.g., "Settled 7 of 20")
+- Users can exit a session early via the X button, which returns to the Study landing; every rating is saved as it is given
+- **Two limits.** New words per day (default 10) caps how many never-seen words may be introduced in a day across every list. Cards per session (default 20) caps the distinct cards one session holds; due cards fill it first, ordered by how likely they are to have been forgotten, then new words within the day's remaining budget. The landing shows what the session will hold, never a backlog count
+- **A session runs until its cards are settled.** A card comes back within the session — soonest after Again, then Hard, then Good, never straight after itself — until the algorithm moves it to the review stage, or until it has been shown four times, in which case it stays in learning and returns tomorrow
+- **Three modes**: mixed (the default), review only (due cards, no new words), and learn more (new words past the day's budget, for a learner who has finished and wants to go on). Review only is offered wherever a session starts, whenever anything is due. None of these is a setting
+- The session ends on a summary: "8 of 10 new words learned · 12 reviews · 2 still learning, back tomorrow", leaving out any part that is zero
 - Card flip animation is smooth and satisfying (react-native-reanimated)
 
 #### FR-06: Study Progress & Statistics
-- Each active list on the Study landing shows: total cards, mastered count, learning count, new count, due count, and a visual progress bar
-- A card is considered "mastered" when its FSRS stability exceeds a threshold (e.g., interval > 30 days)
+- Every word in study sits on a five-rung **mastery ladder**, named so it can be said: New (never seen) · Learning (in the minute loop, or FSRS stability under a day) · Familiar (1–7 days) · Known (7–30 days) · Mastered (30 days and up). The rung shows on the flashcard, in each active list's counts and progress bar, and beside each word on a list's page
+- Each active list on the Study landing shows: counts up the ladder, new and marked-known counts, a due pill, and a visual progress bar; a list's own page shows the same summary under its word count
 - The stats banner tracks:
-  - **Day streak**: consecutive days with at least one review session (persisted in `study_stats` table)
-  - **Accuracy**: percentage of cards rated Good or Easy (computed from daily stats)
-  - **Reviewed today**: total cards reviewed in the current day
+  - **Day streak**: consecutive days with at least one review (persisted in `study_stats`)
+  - **Learned today**: words that reached the review stage for the first time today
+  - **Reviewed today**: ratings given in the current day
+- There is no accuracy figure
 - Stats reset daily and accumulate over the course of the day
 
 #### FR-07: Kanji Detail View

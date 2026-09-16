@@ -39,7 +39,7 @@ Rules for the lines:
 
 ## v0.1.0 Happy Fruit
 
-Last updated: 16/09/26
+Last updated: 17/09/26
 Created: 03/09/26
 
 Changelog:
@@ -64,8 +64,8 @@ Changelog:
 - [FEATURE] Android beta installs directly from a link and updates itself over the air.
 - [FEATURE] Study any list as flashcards: tap Study on a list's page, turn each card over, and rate it Again, Hard, Good or Easy. Each button shows how long until you would see the word again.
 - [FEATURE] Spaced repetition decides when each word comes back, so words you know well appear less often and words you keep missing appear sooner.
-- [FEATURE] The Study tab shows your day streak, today's accuracy and how many cards you have reviewed, with a bar to start reviewing everything that is ready.
-- [FEATURE] Each day's pile is the same size (20 cards, adjustable in Settings) however many days you missed, so a break never comes back as a mountain.
+- [FEATURE] The Study tab shows your day streak and today's counts, with a bar to start a session on everything that is ready.
+- [FEATURE] A session never holds more than a set number of cards (20, adjustable in Settings) however many days you missed, so a break never comes back as a mountain.
 - [FEATURE] Mark a word as already known from the card's corner menu to take it out of study; restore known words from the list's page.
 - [FEATURE] Study a JLPT vocabulary list and it becomes a list of your own, with its progress kept there.
 - [FEATURE] Choose whether the front of the card shows the Japanese or the meaning.
@@ -76,7 +76,16 @@ Changelog:
 - [FEATURE] Your pasted text stays in the reader until you replace it, and the Dictionary tab offers to continue reading it.
 - [FEATURE] Review only: when some cards are due, a link under the study bar runs through just those, with no new words added.
 - [FEATURE] "See all" on Recently Searched opens the Searched Terms list.
-- [BUG FIX] The study bar no longer pushes its button off the screen when nothing is due; it now says "Nothing due" with a "Learn New" action.
+- [FEATURE] A daily budget of new words, set in Settings (10 a day to start), separate from how many cards one session may show; once the day's new words are done the Study tab says so and offers to learn more if you want to keep going.
+- [FEATURE] A word you get wrong comes back within the same session — soonest after Again, later after Hard, later still after Good — until you know it, or until it has had four goes, in which case it returns tomorrow. The session header counts the cards you have settled.
+- [FEATURE] Every word has a place on a five-rung ladder — New, Learning, Familiar, Known, Mastered — shown on the card's corner, in each list's progress, and beside each word on a list's page.
+- [FEATURE] Review only from anywhere a session starts: the link under the study bar whenever anything is due, a Review button on each active list, and Review beside Study on a list's page.
+- [FEATURE] A list's page shows how far you have come with it, under the word count.
+- [UPDATED] The study bar says exactly what the session will hold, such as "6 due · 4 new", and the session ends on a summary like "8 of 10 new words learned · 12 reviews · 2 still learning, back tomorrow".
+- [UPDATED] The Study tab's banner shows your day streak, the words you learned today and the cards you reviewed today; the accuracy figure is gone, so being honest with Again never costs you anything on screen.
+- [UPDATED] A session picks up any words still being learned from an earlier session that day, so leaving mid-way loses nothing.
+- [BUG FIX] The interval shown under a rating button is now the interval you get; the two could previously differ by a day or so.
+- [BUG FIX] The study bar no longer pushes its button off the screen when nothing is due; it now says so, with an action that fits.
 - [BUG FIX] Going back from a word, kanji or list page now returns to the screen you came from, instead of the Dictionary home.
 - [BUG FIX] Opening a list no longer briefly shows the previous list's words.
 - [BUG FIX] Reopening a kanji page starts at the top rather than where you last scrolled to.

@@ -326,6 +326,10 @@ No card wrapper. Large kanji on the left, meaning and metadata on the right, sep
 
 Horizontal scroll of plain text items (no chip styling). Each item shows kanji + meaning, separated by thin vertical dividers.
 
+### 9.12 Mastery Badge
+
+A badge (§9.3) naming a word's rung on the ladder — New, Learning, Familiar, Known, Mastered — with five 6px dots after it, filled up to the rung: `--accent` filled, `--accent` at 25% empty. Background `--accent-soft`, text `--accent`, radius 6px. One colour for every rung: the ladder says how far, the colour never says how well. Top-left corner of the flashcard on both faces (the ⋯ stays top-right); compact form (name only) beside each word on a list's page.
+
 ---
 
 ## 10. Navigation Structure

@@ -187,3 +187,62 @@ mountain of overdue.
 Everything measurable is tested: the transition table against the real
 library, the queue rule as a pure function, the budget and the daily
 counters against SQLite, and the screens under Jest.
+
+---
+
+## 6. As built
+
+Built 17/09/26, the day this was written, in two commits on top of build 15.
+Everything in §4 and §5 landed; these are the places where the spec was silent
+or where building it changed a detail, with the reason for each call.
+
+**Defaults and options.** New words per day: 10, options 5 / 10 / 15 / 20.
+Cards per session: 20, options 10 / 20 / 30 / 50. Learn-ahead window: 20
+minutes. Show cap: 4. Minimum gap: 3 other cards, 2 with three left, 1 with
+two, none alone (the spec's "two when fewer than four remain" read literally
+would block both cards of a pair; the gap is `min(3, remaining − 1)`).
+Mastery thresholds: stability under 1 day learning, 1–7 familiar, 7–30 known,
+30 and up mastered.
+
+**Queue order.** "Ordered by due time" needed a decision about cards not yet
+shown, which have no due time of their own within the session. The order is:
+a card that has come round again and is due, earliest first; then the unseen
+cards in the order `buildSession` gave them (risk order, then new); then a
+card still waiting on its timer, earliest first. So a word rated Again
+interrupts fresh material once its minute is up, as in Anki, and re-shows
+only run early when nothing else is left. With one card in hand it comes
+straight back.
+
+**What "learned" counts.** `cards_learned` is incremented when a rating
+moves a card into Review from New or Learning — not from Relearning, so a
+lapsed word returning to Review does not count as learned a second time.
+A word left in Learning yesterday and graduated today counts today. The
+session's "N of M new words learned" counts only words introduced in that
+session; its "R reviews" counts due cards settled (done or capped), not
+ratings; "K still learning" counts cards that hit the show cap.
+
+**A due count agrees with the queue.** `progressSql`'s `due` uses the same
+learn-ahead rule as the review queue, so the bar never says "Nothing due"
+while a session would open with three Learning cards.
+
+**The bar's third state.** With nothing due, no new words to give and the
+budget *not* spent, there is nothing a session could hold — every word in
+every active list has been seen. The bar says "Nothing due" and its action is
+"Browse lists", which opens the Lists tab, rather than "Learn more" opening
+an empty session. A mixed session opened from a list row into a spent budget
+ends on "Done for today" with a Learn more button, the same offer.
+
+**Learn mode takes due cards too.** "Learn more" fills the session with new
+words past the budget, but any card due at that moment goes in first. It is
+offered only when nothing is due, so in practice the session is all new
+words; the rule exists so a learn session opened later never skips a review.
+
+**Suspending a new word** during a session takes it out of the session's
+"of M" and out of the introduced count; it was never rated, so `cards_new`
+is untouched.
+
+**`cards_correct` stays in the table**, unwritten, like `streak_length`. A
+column cannot be dropped without rebuilding the table, and nothing reads it.
+
+**Unchanged:** suspension, JLPT copies, Searched Terms, the reader, and the
+scheduler itself.

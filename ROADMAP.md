@@ -55,6 +55,21 @@ Neither can run against a small fixture: BM25 scores depend on corpus-wide
 statistics, so a cut-down database ranks differently. Both suites skip rather
 than fail when the database is absent.
 
+The study system is measured too, without a device and without mocks:
+
+- **The transition table** — `services/scheduler.test.ts` checks the table in
+  `STUDY_ALGORITHM.md` §3 against the installed ts-fsrs: the state and the
+  minutes or days after each of the four ratings from New, Learning, Review
+  and Relearning, and the mastery rung for each stability band.
+- **The in-session queue** — `services/sessionQueue.test.ts` runs the pure
+  scheduler through realistic sessions: the gap rule, a due Again card
+  interrupting fresh material, early shows when only timers are left, Again
+  coming round more often than Hard than Good, the four-show cap.
+- **The budget and the counters** — `services/studyQuery.test.ts` runs the
+  real SQL against in-memory SQLite: the learn-ahead window, the new-word
+  allowance per mode, the bar's preview, the daily introductions and
+  graduations, the ladder buckets, and the migrations on an older database.
+
 Components render under Jest, split from Vitest by file extension: Vitest owns
 `*.test.ts`, Jest owns `*.test.tsx`. Run the fast half alone with
 `npm run test:components`.
@@ -67,6 +82,44 @@ on Android. Check a real device after any theme or typography change.
 ---
 
 ## Now
+
+### Study mechanics rework — done, awaiting the S25
+
+Built 17/09/26 from `STUDY_ALGORITHM.md`, the design record written the same
+day from Hannah's week with build 9 and a survey of Anki, FSRS, WaniKani,
+Memrise and Duolingo. The scheduler is untouched; everything around it
+changed.
+
+- **Two limits.** New words per day (default 10) is a budget of
+  introductions across every list. Cards per session (default 20) is the
+  most distinct cards one session holds. Re-shows count against neither.
+- **A session runs until its cards are settled.** A card comes back within
+  the session — Again soonest, then Hard, then Good — until FSRS moves it to
+  Review or it has had four shows, in which case it stays in Learning for
+  tomorrow. The header reads "Settled 3 of 12". A card in the minute loop is
+  picked up again by the next session for up to twenty minutes, so leaving
+  early loses nothing.
+- **Three modes, everywhere a session starts.** The bar says "6 due · 4
+  new" and Starts a mixed session; "Review only" sits under it whenever
+  anything is due; with the budget spent and nothing due it says "Done for
+  today" and offers "Learn more". Each active list row has Review beside its
+  due pill; each list's page has Study and Review.
+- **A mastery ladder** — New · Learning · Familiar · Known · Mastered — read
+  off stability, on the card, on every list row's summary and bar, and
+  beside each word on a list's page.
+- **No accuracy figure.** The banner is Day streak · Learned today ·
+  Reviewed today; a session ends on "8 of 10 new words learned · 12 reviews
+  · 2 still learning, back tomorrow".
+
+**Test it on the S25:** Settings → New words per day 5. Study → the bar
+should read "N due · 5 new" (or fewer). Start; rate the first new word
+Again and count the cards until it returns (three others between); rate it
+Good and it returns once more near the end; Good again and it is settled.
+Watch the badge in the card's corner move from New to Learning. Finish, read
+the summary, and check the landing: Learned today moved, the bar now says
+"Done for today" with Learn more, and Review only is gone. Open a list's
+page: the progress line under the count, a rung beside each word. Come back
+tomorrow: the words left in Learning are due, the budget is fresh.
 
 ### Beta bug fixes — done. All four milestones verified on the S25
 
@@ -126,16 +179,17 @@ back → paste a paragraph from a news site → Read → tap three words you do
 not know → Lists → Searched Terms has them. Then Edit, clear, and confirm the
 Dictionary row is back to "Read a text".
 
-### Review-only sessions — done
+### Review-only sessions — done, then widened by the rework above
 
 From the same council. A footnote link under the due bar on the Study
-landing, "Review only · N cards, no new words", shown only when it changes
-something: with nothing due the bar already says Learn New, and with a full
-pile of due cards the two sessions are identical. Not a setting: a standing
-"no new words" starves the loop and the pile reads "Nothing due" within a
-week. The session is labelled "Review only" under the count and finishes as
-"Review complete"; opened with nothing due it says so and offers a normal
-session.
+landing, "Review only · N cards, no new words". First shown only when it
+changed something (some but fewer than a pile due); the study mechanics
+rework shows it whenever anything is due, since a mixed session may now
+hold new words even with a full pile due, and added Review to each active
+list row and each list's page. Still not a setting: a standing "no new
+words" starves the loop. The session is labelled "Review only" under the
+count and finishes as "Review complete"; opened with nothing due it says
+so and offers a normal session.
 
 ### Stage 4 — done. The study loop runs end to end
 
@@ -147,11 +201,12 @@ the reasoning is in `ARCHITECTURE.md` under "Study".
 - **FSRS, unmodified.** `services/scheduler.ts` is a thin wrap of `ts-fsrs`
   4.7: Again / Hard / Good / Easy, default parameters, 90% target retention,
   fuzz on so cards learned together drift apart.
-- **A pile, not a backlog.** A session is `sessionSize` cards (default 20,
-  in Settings), the most likely forgotten first, topped up with unseen words
-  only when fewer than that are waiting. The landing shows "20 cards ready",
-  never "340 due". Missed days do not grow the pile; FSRS schedules a late
-  card from the time that actually passed.
+- **A pile, not a backlog.** A session is at most `sessionSize` cards
+  (default 20, in Settings), the most likely forgotten first, then unseen
+  words within the day's budget. The landing shows "20 due", never "340
+  due". Missed days do not grow the pile; FSRS schedules a late card from
+  the time that actually passed. (Reworked 17/09/26 — see "Study mechanics
+  rework" above.)
 - **"I already know this"** lives behind the ⋯ in the card's corner, not in
   the rating bar. It suspends the card; the list's page shows how many are
   suspended and restores them all in one tap.
@@ -164,9 +219,10 @@ the reasoning is in `ARCHITECTURE.md` under "Study".
 - **Reduce animations** in Settings: follow the device, reduced, or full.
   Reduced turns the card over with no flip.
 - **A card rated Again comes back once** at the end of the same session.
+  Superseded: a card now comes back until it is settled, see the rework.
 
 **Test it on the S25:** Lists → any list with words → Study. Rate through
-the pile; check the landing's streak, accuracy and reviewed count move; kill
+the pile; check the landing's streak, learned and reviewed counts move; kill
 the app mid-session and confirm the ratings given so far stuck. Then Settings
 → Animations → Reduced, and flip a card.
 
@@ -273,19 +329,25 @@ lookups, custom lists creatable with entries added from word detail. Met.
 ## Stage 4 — Study system
 
 - [x] `services/scheduler.ts` — ts-fsrs wrapped: schedule a rating, preview
-      the four intervals, label an interval
-- [x] `services/studyQuery.ts` — the review queue, the new queue, progress
-      buckets and daily stats as SQL, tested against real SQLite
-- [x] `services/srs.ts` — build a session, rate a card in one transaction
-      with the day's stats, suspend, progress, active lists
-- [x] `services/stats.ts` — daily rows; streak derived from them at read time
+      the four intervals, label an interval, the mastery rung
+- [x] `services/studyQuery.ts` — the review queue (with learn-ahead), the new
+      queue, the new-word allowance, ladder buckets and daily stats as SQL,
+      tested against real SQLite
+- [x] `services/sessionQueue.ts` — the in-session order and settling, pure
+- [x] `services/srs.ts` — build a session by mode, rate a card in one
+      transaction with the day's stats and counters, suspend, progress,
+      active lists, a list's cards
+- [x] `services/stats.ts` — daily rows; streak derived from them at read time;
+      today's new words against the budget
 - [x] `hooks/useStudySession.ts`, `hooks/useStudyStats.ts`,
       `hooks/useReduceMotion.ts`
 - [x] `components/FlashCard.tsx`, `SRSRatingBar.tsx`, `StatsBar.tsx`,
-      `DueTodayBar.tsx`, `ActiveListRow.tsx`
+      `DueTodayBar.tsx`, `ActiveListRow.tsx`, `MasteryBadge.tsx`
 - [x] `app/(tabs)/study/index.tsx` and `session.tsx`; Study tab re-enabled
-- [x] Study button on a list's page; JLPT vocabulary copies on first study
-- [x] Settings: cards per session, front of the card, animations
+- [x] Study and Review on a list's page, with its progress and each word's
+      rung; JLPT vocabulary copies on first study
+- [x] Settings: new words per day, cards per session, front of the card,
+      animations
 - [x] No `studyStore`: a session's state is local to its screen and every
       rating is written as it is given, so nothing needs to outlive the screen
 
@@ -302,12 +364,19 @@ counts and streak update afterwards. Met in Jest; awaiting the S25.
       decide after using it.
 - [ ] **Suspended words are not marked in the list.** The list page shows a
       count and a Restore-all; there is no per-word marker or per-word restore.
-- [ ] **No per-list progress on the list's own page.** Mastered / learning /
-      new counts appear on the Study landing only.
+- [x] **No per-list progress on the list's own page.** Done 17/09/26: the
+      summary line and a rung beside each word.
 - [ ] **The ⋯ menu has one item.** "See full entry" and "skip for now" could
       join it.
-- [ ] **Per-list review-only.** The landing's link runs review-only across
-      every active list; tapping a list row still starts a mixed session.
+- [x] **Per-list review-only.** Done 17/09/26: Review on each active list
+      row and on each list's page.
+- [ ] **A word left in Learning waits until tomorrow only by accident.** A
+      capped card is due in minutes by FSRS's clock; it stays out of the
+      next session only because the learner does not start one within
+      twenty minutes. A deliberate "not before tomorrow" hold would need a
+      column of its own. Decide after using it.
+- [ ] **The ladder is one colour.** Five dots in accent; a rung-specific
+      tint was left out so the colour never reads as a grade.
 
 ---
 

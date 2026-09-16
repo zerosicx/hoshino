@@ -16,7 +16,7 @@ The app includes:
 - **Dictionary** — full-text search across JMdict vocabulary and KANJIDIC2 kanji, with furigana, conjugation tables, and example sentences
 - **Spaced Repetition (SRS)** — FSRS-powered flashcard sessions per list, with Again/Hard/Good/Easy rating
 - **Lists** — JLPT N5–N1 built-in lists, a "Searched Terms" auto-list, and user-created custom lists
-- **Study Stats** — streak, accuracy, daily review counts, and session history
+- **Study Stats** — streak, new words learned today, daily review counts, and session history
 
 Keep implementations simple and readable.
 
@@ -31,6 +31,7 @@ Keep implementations simple and readable.
 | `DESIGN_SYSTEM.md` | Colour, spacing, typography and component tokens. Follow exactly. |
 | `ARCHITECTURE.md` | System and data-layer structure. |
 | `SRD.md` | Product requirements. |
+| `STUDY_ALGORITHM.md` | The study system's design record: the problem, what Anki and FSRS do, the decisions, how it is built, and what was decided while building. Read before touching sessions, budgets or mastery. |
 | `BUG_TRIAGE.md` | Root-caused beta bugs for the current version, in execution order, with status. Read before fixing a bug; mark Landed / ✅ as items progress. |
 
 ---
@@ -225,7 +226,12 @@ Do not add a new store for something that belongs in a service or local state.
 - Rating values: `Rating.Again = 1`, `Rating.Hard = 2`, `Rating.Good = 3`, `Rating.Easy = 4`.
 - SRS state lives in `srs_cards` — one row per `(entry_id, list_id)` pair, **created on the first rating**. A word with no row is "new"; adding a word to a list writes no card.
 - Every card query joins `list_items`. A card whose word has left its list is invisible, not deleted.
-- A session is a fixed-size pile (`settingsStore.sessionSize`), most-at-risk first, topped up with new words. Never show a backlog count to the user.
+- Two limits, two meanings: `newPerDay` is a budget of introductions across every list (`study_stats.cards_new`); `sessionSize` caps the distinct cards one session holds. Re-shows count against neither.
+- A session runs until its cards are settled, not until a count is hit. `services/sessionQueue.ts` decides the order and when a card is done (Review, or four shows); do not re-queue cards in a hook or screen.
+- `buildSession` has no side effects and takes a mode: `mixed`, `review` (no new words) or `learn` (past the budget). Review-only is offered wherever a session starts, whenever anything is due.
+- Never show a backlog count. A due count is capped at `sessionSize` on every surface, and a count must be what the session will actually open with.
+- Never show an accuracy figure. Pressing Again is how the system learns; nothing on screen should make it feel like losing. Mastery is the five-rung ladder from `stageOf`, one colour.
+- A rating uses the instant the card came up, the same instant its interval labels were drawn from (FSRS seeds fuzz from the review time).
 - "I already know this" sets `srs_cards.suspended`. It is never a rating-bar button.
 - JLPT vocabulary lists are references; studying one copies it into a `custom` list with `jlpt_level` set (`services/lists.ts` `startStudying`). Never write cards against a `jlpt_vocab` list id.
 - The "Searched Terms" list auto-adds entries on every dictionary lookup and updates `search_count`.

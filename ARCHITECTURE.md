@@ -177,17 +177,19 @@ or suspended — see "Study" under Key Design Decisions.
 | searched_at | TEXT | ISO timestamp |
 | search_count | INTEGER | Times this term was searched |
 
-#### `study_stats` — Daily study statistics for streak and accuracy tracking
+#### `study_stats` — Daily study statistics: streak, new words, graduations
 
 | Column | Type | Description |
 |---|---|---|
 | id | INTEGER PK | Auto-increment |
 | date | TEXT | ISO date (YYYY-MM-DD), unique |
-| cards_reviewed | INTEGER | Total cards reviewed that day |
-| cards_correct | INTEGER | Cards rated Good or Easy (for accuracy) |
+| cards_reviewed | INTEGER | Ratings given that day, counting re-shows |
+| cards_correct | INTEGER | Unused since the accuracy figure went; no longer written |
 | cards_again | INTEGER | Cards rated Again |
 | cards_hard | INTEGER | Cards rated Hard |
 | cards_easy | INTEGER | Cards rated Easy |
+| cards_new | INTEGER | New words introduced (first rating), spent against "New words per day" |
+| cards_learned | INTEGER | Words that reached Review from New or Learning — "Learned today" |
 | session_count | INTEGER | Number of study sessions that day |
 | streak_length | INTEGER | Unused. The streak is derived from the rows at read time |
 
@@ -270,6 +272,9 @@ The FSRS algorithm (used by Anki 23.10+) is empirically better. The `ts-fsrs` np
 
 ### Study
 
+The long version — the problem, what Anki and FSRS do, the decisions and how
+they were built — is `STUDY_ALGORITHM.md`. This is the engineering summary.
+
 **A card is created on the first rating, not when a word joins a list.** A word
 in a list with no `srs_cards` row is new. Adding a word therefore writes
 nothing but the list item, and the new-card queue is a `LEFT JOIN` that finds
@@ -281,19 +286,52 @@ card in place but invisible: it is in no queue and no count. Re-add the word and
 its progress is back. Nothing is destroyed by a removal that the user might
 undo, and no query has to remember to clean up.
 
-**The pile is fixed-size; there is no backlog.** `buildSession` takes the
-`sessionSize` most-at-risk due cards, then fills the rest with new words.
-"At risk" is ordered in SQL by elapsed time over stability, which is the
-variable FSRS's forgetting curve is a function of, so the order is by recall
+**Two limits, two meanings.** `newPerDay` (default 10) is how many never-seen
+words may be introduced today across every list, counted in
+`study_stats.cards_new` as they are first rated. `sessionSize` (default 20) is
+the most distinct cards one session holds. Re-shows within a session count
+against neither.
+
+**A session is due cards, then new words within the budget; there is no
+backlog.** `buildSession(listIds, { mode, sessionSize, newPerDay })` takes the
+`sessionSize` most-at-risk due cards — including Learning and Relearning cards
+due within a twenty-minute learn-ahead window, so a session that was left
+mid-loop resumes at once — then fills the room left with new words: up to
+`newPerDay − cards_new` in a *mixed* session, none in *review*, as many as fit
+in *learn*. "At risk" is ordered in SQL by elapsed time over stability, which is
+the variable FSRS's forgetting curve is a function of, so the order is by recall
 probability without evaluating the curve per row. FSRS has no notion of review
 debt — a late card is scheduled from the time that actually passed, and
-recalling a very overdue card is strong evidence that raises stability more
-than an on-time recall would — so leaving cards waiting costs only their own
-retention, honestly.
+recalling a very overdue card raises stability more than an on-time recall
+would — so leaving cards waiting costs only their own retention, honestly. The
+progress query counts `due` with the same learn-ahead rule, so the landing's
+"6 due · 4 new" is exactly what the session opens with (`previewSession`).
 
-**A card rated Again returns once in the same session.** The queue grows by one
-and the total shown grows with it. A second Again does not requeue, so a card
-that will not stick cannot trap the session.
+**A session runs until its cards are settled.** `services/sessionQueue.ts` is
+a pure scheduler over the pile: `next()` picks a card that has come due again
+(earliest first), else the next unseen card in build order, else the earliest
+card still waiting on its timer — never the same card within three others
+(fewer when fewer remain). `settle()` marks a card done when FSRS moved it to
+Review, capped after four shows (it stays in Learning for tomorrow), and
+otherwise re-queues it at the due time FSRS gave. The header counts settled
+cards of the session's distinct cards. The rating is applied at the instant
+the card came up, the same instant the interval labels were drawn from: FSRS
+seeds its fuzz from the review time, so two clocks would promise one interval
+and give another.
+
+**Mastery is a ladder read off stability.** `stageOf(card)` in `scheduler.ts`:
+New (no card) · Learning (Learning or Relearning state, or stability under a
+day) · Familiar (1–7 days) · Known (7–30) · Mastered (30 and up). The progress
+buckets in `progressSql` are the same rungs, and `MasteryBadge` shows the rung
+on the card and beside each word on a list's page.
+
+**A rating writes the card and the day's counters in one transaction.**
+`rateCard` upserts the card and calls `recordReview` with the card before and
+after: one review, the grade, an introduction when the card had no row, and a
+graduation when the state crossed into Review from New or Learning (not from
+Relearning — a lapsed word coming back is not learned again). There is no
+accuracy figure anywhere: the banner is Day streak · Learned today · Reviewed
+today.
 
 **JLPT lists copy on first study.** The ten reference lists hold no items and
 no cards. `startStudying` creates a `custom` list with the same name and
@@ -307,7 +345,7 @@ row per `YYYY-MM-DD` in the device's time zone. The streak counts back from
 today, or from yesterday if today has no review yet, so it holds until midnight
 passes without one. `streak_length` is not written.
 
-**No study store.** A session's state — queue, position, tally — lives in
+**No study store.** A session's state — queue, current card, tally — lives in
 `useStudySession` on the session screen. Every rating is written as it is
 given, so nothing needs to survive the screen, and the landing reloads on
 focus.
@@ -411,9 +449,10 @@ hoshino/
 │   ├── ExampleSentences.tsx      # Word page examples; divider under every row but the last
 │   ├── SRSRatingBar.tsx          # Again/Hard/Good/Easy buttons with intervals
 │   ├── SearchBar.tsx             # Dictionary search input
-│   ├── StatsBar.tsx              # Study landing stats (streak, accuracy, reviewed today)
-│   ├── DueTodayBar.tsx           # Slim accent bar: pile size (never backlog) and Start Review
-│   ├── ActiveListRow.tsx         # A studied list: counts, progress bar, due pill
+│   ├── StatsBar.tsx              # Study landing stats (streak, learned today, reviewed today)
+│   ├── DueTodayBar.tsx           # Slim accent bar: "6 due · 4 new" (never backlog), Start / Learn more
+│   ├── ActiveListRow.tsx         # A studied list: ladder counts, progress bar, due pill, Review
+│   ├── MasteryBadge.tsx          # A word's rung on the ladder: name and five dots
 │   ├── ListRow.tsx               # List row with star toggle and item count
 │   ├── KanjiResultRow.tsx        # One kanji per row: character, meanings, readings, JLPT
 │   ├── BottomDrawer.tsx          # Slide-up panel shell used by the drawers
@@ -427,20 +466,21 @@ hoshino/
 ├── services/                     # Business logic
 │   ├── dictionary.ts             # Search, lookup, conjugation
 │   ├── searchQuery.ts            # Query intent, FTS5 SQL, tiered ranking
-│   ├── scheduler.ts              # The only ts-fsrs import: schedule, preview, label
-│   ├── studyQuery.ts             # Queues, progress and stats as SQL, testable in Node
+│   ├── scheduler.ts              # The only ts-fsrs import: schedule, preview, label, mastery rung
+│   ├── studyQuery.ts             # Queues, budget, progress and stats as SQL, testable in Node
+│   ├── sessionQueue.ts           # In-session order and settling, pure
 │   ├── srs.ts                    # Sessions, ratings, suspend, progress against the user db
 │   ├── readerQuery.ts            # Batched exact-form lookup, lexicon, paragraphs; pure
 │   ├── reader.ts                 # A paragraph to tokens with furigana and visited marks
 │   ├── lists.ts                  # List CRUD, Searched Terms
 │   ├── listQuery.ts              # List ordering and membership SQL
 │   ├── schema.ts                 # User schema, built-in seeds, migrations
-│   ├── stats.ts                  # Streak, accuracy, daily review counts
+│   ├── stats.ts                  # Streak, today's new words and graduations, review counts
 │   └── database.ts               # SQLite connection + DAL
 ├── hooks/                        # Custom React hooks
 │   ├── useDictionary.ts
 │   ├── useTheme.ts               # Theme setting -> NativeWind colour scheme
-│   ├── useStudySession.ts        # One pile: queue, reveal, rate, Again-requeue, suspend
+│   ├── useStudySession.ts        # One session: queue until settled, reveal, rate, suspend
 │   ├── useStudyStats.ts          # Landing data, reloaded on focus
 │   ├── useReduceMotion.ts        # Setting or device preference
 │   ├── useReader.ts              # Per-paragraph resolution with a session cache
