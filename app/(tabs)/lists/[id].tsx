@@ -1,17 +1,21 @@
 import { useCallback, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, GraduationCap, Trash2 } from "lucide-react-native";
+import { ChevronLeft, GraduationCap, RotateCcw, Trash2 } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { getList, getListEntries, getListKanji } from "@/services/lists";
 import { useAddToList, useDeleteList, useStartStudying } from "@/hooks/useLists";
-import { getSuspendedCount, unsuspendAll } from "@/services/srs";
+import { getListCards, getProgress, getSuspendedCount, unsuspendAll } from "@/services/srs";
+import { stageOf } from "@/services/scheduler";
 import DictionaryResultRow from "@/components/DictionaryResultRow";
 import KanjiResultRow from "@/components/KanjiResultRow";
+import MasteryBadge from "@/components/MasteryBadge";
 import SwipeAction from "@/components/SwipeAction";
+import { progressSummary } from "@/components/ActiveListRow";
 import type { ListSummary } from "@/types/lists";
 import type { KanjiEntry, SearchResult } from "@/types/dictionary";
+import type { ListProgress, StudyCard } from "@/types/study";
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,6 +30,8 @@ export default function ListDetailScreen() {
   const [entries, setEntries] = useState<SearchResult[]>([]);
   const [kanji, setKanji] = useState<KanjiEntry[]>([]);
   const [known, setKnown] = useState(0);
+  const [progress, setProgress] = useState<ListProgress | null>(null);
+  const [cards, setCards] = useState<Map<number, StudyCard>>(new Map());
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
@@ -41,6 +47,15 @@ export default function ListDetailScreen() {
         setKanji([]);
       }
       setKnown(await getSuspendedCount(found.id));
+      // A JLPT reference has no cards of its own; its copy does.
+      if (found.type === "custom" || found.type === "system") {
+        const [p, c] = await Promise.all([getProgress([found]), getListCards(found.id)]);
+        setProgress(p.get(found.id) ?? null);
+        setCards(c);
+      } else {
+        setProgress(null);
+        setCards(new Map());
+      }
     }
     setLoading(false);
   }, [id]);
@@ -70,11 +85,16 @@ export default function ListDetailScreen() {
   // Kanji cannot be studied yet: cards point at entries, and kanji are not.
   const studyable = !!list && list.type !== "jlpt_kanji" && entries.length > 0;
 
-  const study = async () => {
+  const study = async (mode: "mixed" | "review") => {
     if (!list) return;
     const listId = await startStudying(list);
-    if (listId !== null) router.push(`/study/session?lists=${listId}`);
+    if (listId !== null) router.push(`/study/session?lists=${listId}&mode=${mode}`);
   };
+
+  // Review only makes sense once something is due; the reference JLPT list
+  // has no cards, so it never shows there.
+  const reviewable = studyable && (progress?.due ?? 0) > 0;
+  const studied = cards.size > 0;
 
   const restoreKnown = async () => {
     if (!list) return;
@@ -105,10 +125,21 @@ export default function ListDetailScreen() {
         </Pressable>
 
         <View className="flex-row items-center gap-3">
+          {reviewable && (
+            <Pressable
+              accessibilityLabel="Review this list"
+              onPress={() => study("review")}
+              hitSlop={8}
+              className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border ${isDark ? "border-zinc-700 active:bg-zinc-900" : "border-zinc-300 active:bg-zinc-50"}`}
+            >
+              <RotateCcw size={14} color={isDark ? "#6366F1" : "#4F46E5"} />
+              <Text className="text-footnote font-semibold text-accent dark:text-accent-light">Review</Text>
+            </Pressable>
+          )}
           {studyable && (
             <Pressable
               accessibilityLabel="Study this list"
-              onPress={study}
+              onPress={() => study("mixed")}
               hitSlop={8}
               className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent active:bg-accent-dark"
             >
@@ -141,6 +172,11 @@ export default function ListDetailScreen() {
         >
           {kanji.length || entries.length}{" "}
           {list.type === "jlpt_kanji" ? "kanji" : "words"}
+        </Text>
+      )}
+      {progress && studied && (
+        <Text className={`text-footnote mt-0.5 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+          {progressSummary(progress)}
         </Text>
       )}
       {known > 0 && (
@@ -205,6 +241,9 @@ export default function ListDetailScreen() {
               <DictionaryResultRow
                 item={item}
                 readingMode={readingMode}
+                badge={
+                  studied ? <MasteryBadge stage={stageOf(cards.get(item.id)?.card ?? null)} compact /> : undefined
+                }
                 onPress={() => router.push(`/word/${item.id}`)}
               />
             );

@@ -1,5 +1,6 @@
 import { View, Text, Pressable } from "react-native";
 import { ChevronRight } from "lucide-react-native";
+import type { ReactNode } from "react";
 import type { SearchResult } from "@/types/dictionary";
 import type { ReadingMode } from "@/stores/settingsStore";
 import { kanaToRomaji } from "@/utils/japanese";
@@ -8,12 +9,15 @@ import JlptBadge from "./JlptBadge";
 interface DictionaryResultRowProps {
   item: SearchResult;
   readingMode?: ReadingMode;
+  /** An extra badge from the caller, shown before the built-in ones. */
+  badge?: ReactNode;
   onPress: () => void;
 }
 
 export default function DictionaryResultRow({
   item,
   readingMode = "furigana",
+  badge,
   onPress,
 }: DictionaryResultRowProps) {
   const romaji = readingMode === "romaji";
@@ -57,6 +61,7 @@ export default function DictionaryResultRow({
 
       {/* Badges */}
       <View className="flex-row items-center gap-2">
+        {badge}
         {item.isCommon && (
           <View className="bg-emerald-500/10 px-2 py-0.5 rounded-full">
             <Text className="text-caption2 font-semibold text-emerald-600 dark:text-emerald-400">
