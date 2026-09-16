@@ -4,10 +4,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
-import { useStudySession, type SessionMode } from "@/hooks/useStudySession";
+import { useStudySession, type SessionTally } from "@/hooks/useStudySession";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useToastStore } from "@/stores/toastStore";
 import { getActiveLists } from "@/services/srs";
+import type { SessionMode } from "@/types/study";
 import FlashCard from "@/components/FlashCard";
 import SRSRatingBar from "@/components/SRSRatingBar";
 
@@ -20,10 +21,33 @@ function parseListIds(param: string | undefined): number[] | "all" {
     .filter((n) => Number.isInteger(n) && n > 0);
 }
 
+function parseMode(param: string | undefined): SessionMode {
+  return param === "review" || param === "learn" ? param : "mixed";
+}
+
+const MODE_CAPTION: Record<SessionMode, string | null> = {
+  mixed: null,
+  review: "Review only",
+  learn: "Learning more",
+};
+
+/**
+ * "8 of 10 new words learned · 12 reviews · 2 still learning, back tomorrow",
+ * leaving out any part that is zero.
+ */
+export function sessionSummary(t: SessionTally): string {
+  const parts = [
+    t.introduced > 0 &&
+      `${t.learned} of ${t.introduced} new ${t.introduced === 1 ? "word" : "words"} learned`,
+    t.reviews > 0 && `${t.reviews} ${t.reviews === 1 ? "review" : "reviews"}`,
+    t.stillLearning > 0 && `${t.stillLearning} still learning, back tomorrow`,
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
 export default function StudySessionScreen() {
   const { lists, mode } = useLocalSearchParams<{ lists?: string; mode?: string }>();
   const wanted = parseListIds(lists);
-  const sessionMode: SessionMode = mode === "review" ? "review" : "mixed";
   const [listIds, setListIds] = useState<number[] | null>(
     wanted === "all" ? null : wanted
   );
@@ -45,7 +69,7 @@ export default function StudySessionScreen() {
   if (listIds === null) {
     return <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"}`} />;
   }
-  return <Session listIds={listIds} listsParam={lists ?? "all"} mode={sessionMode} />;
+  return <Session listIds={listIds} listsParam={lists ?? "all"} mode={parseMode(mode)} />;
 }
 
 function Session({ listIds, listsParam, mode }: { listIds: number[]; listsParam: string; mode: SessionMode }) {
@@ -54,13 +78,15 @@ function Session({ listIds, listsParam, mode }: { listIds: number[]; listsParam:
   const readingMode = useSettingsStore((s) => s.readingMode);
   const cardFront = useSettingsStore((s) => s.cardFrontMode);
   const sessionSize = useSettingsStore((s) => s.sessionSize);
+  const newPerDay = useSettingsStore((s) => s.newPerDay);
   const reduceMotion = useReduceMotion();
   const toast = useToastStore((s) => s.show);
 
-  const session = useStudySession(listIds, sessionSize, mode);
+  const session = useStudySession(listIds, { mode, sessionSize, newPerDay });
   const reviewOnly = mode === "review";
+  const caption = MODE_CAPTION[mode];
   const secondary = isDark ? "text-zinc-500" : "text-zinc-400";
-  const progress = session.total > 0 ? (100 * (session.position - 1)) / session.total : 0;
+  const progress = session.total > 0 ? (100 * session.settled) / session.total : 0;
 
   const markKnown = async () => {
     await session.suspend();
@@ -83,10 +109,10 @@ function Session({ listIds, listsParam, mode }: { listIds: number[]; listsParam:
           <Text
             className={`text-subheadline font-semibold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
           >
-            {session.total > 0 ? `${session.position} / ${session.total}` : ""}
+            {session.total > 0 ? `Settled ${session.settled} of ${session.total}` : ""}
           </Text>
-          {reviewOnly && session.total > 0 && (
-            <Text className={`text-caption2 ${secondary}`}>Review only</Text>
+          {caption && session.total > 0 && (
+            <Text className={`text-caption2 ${secondary}`}>{caption}</Text>
           )}
         </View>
         <View className="w-9" />
@@ -103,11 +129,12 @@ function Session({ listIds, listsParam, mode }: { listIds: number[]; listsParam:
 
   if (session.finished) {
     const { tally } = session;
+    const empty = session.total === 0 && tally.ratings === 0;
     return (
       <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"}`}>
         {header}
         <View className="flex-1 items-center justify-center px-8">
-          {tally.reviewed === 0 && reviewOnly ? (
+          {empty && reviewOnly ? (
             <>
               <Text className={`text-title2 font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}>
                 Nothing due right now
@@ -124,7 +151,24 @@ function Session({ listIds, listsParam, mode }: { listIds: number[]; listsParam:
                 </Text>
               </Pressable>
             </>
-          ) : tally.reviewed === 0 ? (
+          ) : empty && mode === "mixed" && session.budgetSpent ? (
+            <>
+              <Text className={`text-title2 font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}>
+                Done for today
+              </Text>
+              <Text className={`text-footnote text-center mt-2 ${secondary}`}>
+                Nothing is due and today's new words are all introduced. Keep going if you like.
+              </Text>
+              <Pressable
+                onPress={() => router.replace(`/study/session?lists=${listsParam}&mode=learn`)}
+                className={`mt-6 px-5 py-2.5 rounded-md border ${isDark ? "border-zinc-700" : "border-zinc-300"}`}
+              >
+                <Text className="text-subheadline font-semibold text-accent dark:text-accent-light">
+                  Learn more
+                </Text>
+              </Pressable>
+            </>
+          ) : empty ? (
             <>
               <Text className={`text-title2 font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}>
                 Nothing to study
@@ -138,11 +182,8 @@ function Session({ listIds, listsParam, mode }: { listIds: number[]; listsParam:
               <Text className={`text-title2 font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}>
                 {reviewOnly ? "Review complete" : "Session complete"}
               </Text>
-              <Text className={`text-body mt-2 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                {tally.reviewed} {tally.reviewed === 1 ? "card" : "cards"} reviewed
-              </Text>
-              <Text className={`text-footnote mt-1 ${secondary}`}>
-                {tally.again} again · {tally.hard} hard · {tally.good} good · {tally.easy} easy
+              <Text className={`text-body text-center mt-2 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
+                {sessionSummary(tally)}
               </Text>
             </>
           )}
@@ -166,6 +207,7 @@ function Session({ listIds, listsParam, mode }: { listIds: number[]; listsParam:
           content={session.content}
           revealed={session.revealed}
           onReveal={session.reveal}
+          stage={session.stage}
           readingMode={readingMode}
           cardFront={cardFront}
           reduceMotion={reduceMotion}

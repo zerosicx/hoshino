@@ -1,32 +1,47 @@
 import { Pressable, Text, View } from "react-native";
 import { Play } from "lucide-react-native";
+import type { SessionPreview } from "@/services/studyQuery";
 
 interface DueTodayBarProps {
-  /** Cards ready across every active list. */
-  due: number;
-  /** How many a pile holds, so the bar never promises more than a session. */
-  pile: number;
+  /** What a mixed session would hold right now, already capped. */
+  preview: SessionPreview;
+  /** Starts a mixed session. */
   onStart: () => void;
+  /** Starts a learn session, past today's budget. */
+  onLearnMore: () => void;
+  /** Nothing due and nothing left to learn: go find a list. */
+  onBrowse: () => void;
+}
+
+/** "6 due · 4 new", leaving out a part that is zero. */
+export function barMessage(preview: SessionPreview): string {
+  const parts = [
+    preview.due > 0 && `${preview.due} due`,
+    preview.fresh > 0 && `${preview.fresh} new`,
+  ].filter(Boolean);
+  if (parts.length > 0) return parts.join(" · ");
+  return preview.budgetSpent ? "Done for today" : "Nothing due";
 }
 
 /**
  * The slim accent bar that starts a combined session (DESIGN_SYSTEM.md §9.7).
  *
- * It shows the pile, not the backlog: a hundred overdue cards read as "20
- * ready", which is the number the user can actually finish. With nothing due
- * the session still runs, filled with words not yet seen, and the action says
- * so.
+ * It says what the session will contain and nothing more: due cards capped at
+ * the session size, new words within today's budget. With the budget spent
+ * and nothing due it offers to go on learning; with nothing new left anywhere
+ * it points at the Lists tab rather than opening an empty session.
  */
-export default function DueTodayBar({ due, pile, onStart }: DueTodayBarProps) {
-  const ready = Math.min(due, pile);
-  const message = ready > 0 ? `${ready} ${ready === 1 ? "card" : "cards"} ready` : "Nothing due";
-  const action = ready > 0 ? "Start Review" : "Learn New";
+export default function DueTodayBar({ preview, onStart, onLearnMore, onBrowse }: DueTodayBarProps) {
+  const message = barMessage(preview);
+  const hasCards = preview.due + preview.fresh > 0;
+  const action = hasCards ? "Start" : preview.budgetSpent ? "Learn more" : "Browse lists";
+  const onPress = hasCards ? onStart : preview.budgetSpent ? onLearnMore : onBrowse;
 
   return (
     <Pressable
-      onPress={onStart}
+      onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="Start review"
+      accessibilityLabel={action}
       className="h-12 flex-row items-center px-4 rounded-sm bg-accent active:bg-accent-dark"
     >
       {/* The message gives way; the action never wraps or leaves the bar. */}

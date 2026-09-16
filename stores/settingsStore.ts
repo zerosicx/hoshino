@@ -9,19 +9,23 @@ export type CardFrontMode = "kanji" | "meaning";
 export type MotionMode = "system" | "reduced" | "full";
 
 export const SESSION_SIZES = [10, 20, 30, 50] as const;
+export const NEW_PER_DAY_OPTIONS = [5, 10, 15, 20] as const;
 
 interface SettingsState {
   themeMode: ThemeMode;
   readingMode: ReadingMode;
   cardFrontMode: CardFrontMode;
-  /** How many cards make up a study pile. The same every day, backlog or not. */
+  /** The most distinct cards one session shows. Re-shows do not count. */
   sessionSize: number;
+  /** Never-seen words that may be introduced in a day, across every list. */
+  newPerDay: number;
   motionMode: MotionMode;
 
   setThemeMode: (mode: ThemeMode) => void;
   setReadingMode: (mode: ReadingMode) => void;
   setCardFrontMode: (mode: CardFrontMode) => void;
   setSessionSize: (size: number) => void;
+  setNewPerDay: (count: number) => void;
   setMotionMode: (mode: MotionMode) => void;
 }
 
@@ -32,12 +36,14 @@ export const useSettingsStore = create<SettingsState>()(
       readingMode: "furigana",
       cardFrontMode: "kanji",
       sessionSize: 20,
+      newPerDay: 10,
       motionMode: "system",
 
       setThemeMode: (themeMode) => set({ themeMode }),
       setReadingMode: (readingMode) => set({ readingMode }),
       setCardFrontMode: (cardFrontMode) => set({ cardFrontMode }),
       setSessionSize: (sessionSize) => set({ sessionSize }),
+      setNewPerDay: (newPerDay) => set({ newPerDay }),
       setMotionMode: (motionMode) => set({ motionMode }),
     }),
     {
@@ -49,6 +55,7 @@ export const useSettingsStore = create<SettingsState>()(
         readingMode: s.readingMode,
         cardFrontMode: s.cardFrontMode,
         sessionSize: s.sessionSize,
+        newPerDay: s.newPerDay,
         motionMode: s.motionMode,
       }),
     }

@@ -7,8 +7,9 @@ interface StatsBarProps {
 }
 
 /**
- * Streak, accuracy, reviewed today. Three numbers separated by hairlines, no
- * card and no icons (DESIGN_SYSTEM.md §9.6).
+ * Streak, learned today, reviewed today. Three numbers separated by
+ * hairlines, no card and no icons (DESIGN_SYSTEM.md §9.6). Nothing here
+ * falls when the user is honest: there is no accuracy figure.
  */
 export default function StatsBar({ stats }: StatsBarProps) {
   const { isDark } = useTheme();
@@ -17,8 +18,8 @@ export default function StatsBar({ stats }: StatsBarProps) {
   const items = [
     { value: String(stats?.streak ?? 0), label: "Day streak", colour: "text-[#F97316]" },
     {
-      value: stats?.accuracy == null ? "—" : `${stats.accuracy}%`,
-      label: "Accuracy",
+      value: String(stats?.learnedToday ?? 0),
+      label: "Learned today",
       colour: "text-[#15803D] dark:text-[#5CC98E]",
     },
     {

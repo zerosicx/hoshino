@@ -53,7 +53,9 @@ CREATE TABLE IF NOT EXISTS study_stats (
   cards_hard INTEGER DEFAULT 0,
   cards_easy INTEGER DEFAULT 0,
   session_count INTEGER DEFAULT 0,
-  streak_length INTEGER DEFAULT 0
+  streak_length INTEGER DEFAULT 0,
+  cards_new INTEGER DEFAULT 0,
+  cards_learned INTEGER DEFAULT 0
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_srs_cards_entry_list ON srs_cards(entry_id, list_id);
@@ -97,5 +99,15 @@ export const MIGRATIONS: { table: string; column: string; sql: string }[] = [
     table: "srs_cards",
     column: "suspended",
     sql: "ALTER TABLE srs_cards ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0",
+  },
+  {
+    table: "study_stats",
+    column: "cards_new",
+    sql: "ALTER TABLE study_stats ADD COLUMN cards_new INTEGER DEFAULT 0",
+  },
+  {
+    table: "study_stats",
+    column: "cards_learned",
+    sql: "ALTER TABLE study_stats ADD COLUMN cards_learned INTEGER DEFAULT 0",
   },
 ];

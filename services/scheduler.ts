@@ -25,8 +25,28 @@ export type { Card, Grade };
  */
 const scheduler = fsrs({ enable_fuzz: true });
 
-/** A card whose 90%-recall interval has reached a month is called mastered. */
+/**
+ * The mastery ladder, from FSRS stability: the days until recall probability
+ * falls to 90%. FSRS has no terminal state, so the rungs are thresholds. A
+ * word in the minute loop (Learning or Relearning) is learning whatever its
+ * stability says, and a word never rated is new.
+ */
+export type Stage = "new" | "learning" | "familiar" | "known" | "mastered";
+
+/** In ladder order, so a rung's index is how many dots the badge fills. */
+export const STAGES: Stage[] = ["new", "learning", "familiar", "known", "mastered"];
+
+export const FAMILIAR_STABILITY = 1;
+export const KNOWN_STABILITY = 7;
 export const MASTERED_STABILITY = 30;
+
+export function stageOf(card: Card | null): Stage {
+  if (!card || card.state === State.New) return "new";
+  if (card.state !== State.Review || card.stability < FAMILIAR_STABILITY) return "learning";
+  if (card.stability < KNOWN_STABILITY) return "familiar";
+  if (card.stability < MASTERED_STABILITY) return "known";
+  return "mastered";
+}
 
 export const GRADES: Grade[] = [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy];
 
@@ -65,9 +85,4 @@ export function intervalLabel(due: Date, now: Date): string {
   if (days < 60) return `${Math.round(days / 7)}w`;
   if (days < 365) return `${Math.round(days / 30)}mo`;
   return `${Math.round(days / 365)}y`;
-}
-
-/** Good and Easy count as remembered, for the accuracy figure. */
-export function isCorrect(rating: Grade): boolean {
-  return rating === Rating.Good || rating === Rating.Easy;
 }

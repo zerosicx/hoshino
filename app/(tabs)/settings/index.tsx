@@ -1,6 +1,6 @@
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import Constants from 'expo-constants';
-import { SESSION_SIZES, useSettingsStore } from '@/stores/settingsStore';
+import { NEW_PER_DAY_OPTIONS, SESSION_SIZES, useSettingsStore } from '@/stores/settingsStore';
 import { useTheme } from '@/hooks/useTheme';
 import { Sun, Moon, Monitor, ShieldCheck } from 'lucide-react-native';
 
@@ -10,11 +10,13 @@ export default function SettingsScreen() {
     readingMode,
     cardFrontMode,
     sessionSize,
+    newPerDay,
     motionMode,
     setThemeMode,
     setReadingMode,
     setCardFrontMode,
     setSessionSize,
+    setNewPerDay,
     setMotionMode,
   } = useSettingsStore();
   const { isDark } = useTheme();
@@ -89,10 +91,28 @@ export default function SettingsScreen() {
       </Text>
       <View className={`border ${isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-200 bg-zinc-50'} rounded-xl p-3 mb-6`}>
         <Text className={`text-sm font-medium ${isDark ? 'text-zinc-200' : 'text-zinc-700'} mb-1`}>
+          New words per day
+        </Text>
+        <Text className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'} mb-3`}>
+          How many words you have never seen a day may introduce, across all your lists.
+        </Text>
+        <View className="flex-row gap-2">
+          {NEW_PER_DAY_OPTIONS.map((count) => (
+            <ReadingOption
+              key={count}
+              label={String(count)}
+              active={newPerDay === count}
+              isDark={isDark}
+              onSelect={() => setNewPerDay(count)}
+            />
+          ))}
+        </View>
+
+        <Text className={`text-sm font-medium ${isDark ? 'text-zinc-200' : 'text-zinc-700'} mt-5 mb-1`}>
           Cards per session
         </Text>
         <Text className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'} mb-3`}>
-          The pile is this size every day, however many days were missed.
+          The most cards one session shows. Re-shows of a card do not count.
         </Text>
         <View className="flex-row gap-2">
           {SESSION_SIZES.map((size) => (

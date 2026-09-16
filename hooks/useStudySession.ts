@@ -2,52 +2,106 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getEntry, getExamples } from "@/services/dictionary";
 import { buildSession, rateCard, suspendCard } from "@/services/srs";
 import { recordSessionStart } from "@/services/stats";
-import { Rating, previewIntervals, type Grade } from "@/services/scheduler";
-import type { CardContent, StudyCard } from "@/types/study";
+import { Rating, previewIntervals, stageOf, type Grade } from "@/services/scheduler";
+import {
+  createQueue,
+  next as nextInQueue,
+  remove as removeFromQueue,
+  settle,
+  type QueueItem,
+  type SessionQueue,
+} from "@/services/sessionQueue";
+import type { CardContent, SessionMode, StudyCard } from "@/types/study";
 
 export interface SessionTally {
-  reviewed: number;
+  /** Ratings given, counting re-shows. */
+  ratings: number;
   again: number;
   hard: number;
   good: number;
   easy: number;
+  /** New words the session introduced. */
+  introduced: number;
+  /** Of those, the ones that reached Review. */
+  learned: number;
+  /** Due cards settled, in Review or capped. */
+  reviews: number;
+  /** Cards that hit the show cap and stay in Learning for tomorrow. */
+  stillLearning: number;
 }
 
-const EMPTY_TALLY: SessionTally = { reviewed: 0, again: 0, hard: 0, good: 0, easy: 0 };
+const EMPTY_TALLY: SessionTally = {
+  ratings: 0,
+  again: 0,
+  hard: 0,
+  good: 0,
+  easy: 0,
+  introduced: 0,
+  learned: 0,
+  reviews: 0,
+  stillLearning: 0,
+};
+
+export interface SessionSettings {
+  mode: SessionMode;
+  sessionSize: number;
+  newPerDay: number;
+}
+
+/** The card on screen, and the instant it came up. */
+interface Showing {
+  item: QueueItem;
+  /** One instant for the interval labels and the rating: FSRS seeds its fuzz
+   *  from the review time, so two clocks would promise one interval and give
+   *  another. */
+  at: Date;
+}
 
 /**
- * One pass through a pile of cards.
+ * One session: a queue of cards that runs until each is settled.
  *
  * Each rating is written the moment it is given, so leaving early loses
- * nothing. A card rated Again comes back once at the end of the same session:
- * the point of Again is to see it again while it is fresh, and the next pile
- * may be tomorrow. A review-only session takes due cards and adds no new
- * words, for the day there is time to keep up but not to take on more.
+ * nothing. A card comes back within the session until FSRS moves it to Review
+ * or it has had four shows (`services/sessionQueue.ts`); the header counts
+ * settled cards, not ratings. The mode decides what `buildSession` puts in.
  */
-export type SessionMode = "mixed" | "review";
-
-export function useStudySession(listIds: number[], size: number, mode: SessionMode = "mixed") {
-  const [queue, setQueue] = useState<StudyCard[]>([]);
-  const [index, setIndex] = useState(0);
+export function useStudySession(listIds: number[], settings: SessionSettings) {
+  const { mode, sessionSize, newPerDay } = settings;
+  const [queue, setQueue] = useState<SessionQueue>(() => createQueue([], new Date()));
+  const [showing, setShowing] = useState<Showing | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [content, setContent] = useState<CardContent | null>(null);
   const [tally, setTally] = useState<SessionTally>(EMPTY_TALLY);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [settled, setSettled] = useState(0);
+  const [budgetSpent, setBudgetSpent] = useState(false);
 
   const cache = useRef(new Map<number, CardContent>());
-  const retried = useRef(new Set<number>());
   const key = listIds.join(",");
+
+  /** Advances to the next card, or to nothing when the queue is empty. */
+  const show = useCallback((q: SessionQueue) => {
+    const now = new Date();
+    const picked = nextInQueue(q, now);
+    setQueue(picked ? picked.queue : q);
+    setShowing(picked ? { item: picked.item, at: now } : null);
+    setRevealed(false);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const items = await buildSession(listIds, size, new Date(), { reviewOnly: mode === "review" });
+      const start = new Date();
+      const session = await buildSession(listIds, { mode, sessionSize, newPerDay, now: start });
       if (cancelled) return;
-      if (items.length > 0) await recordSessionStart();
-      setQueue(items);
-      setTotal(items.length);
-      setIndex(0);
+      if (session.cards.length > 0) await recordSessionStart(start);
+      if (cancelled) return;
+      setTotal(session.cards.length);
+      setSettled(0);
+      setTally({ ...EMPTY_TALLY, introduced: session.fresh });
+      setBudgetSpent(session.budgetSpent);
+      show(createQueue(session.cards, start));
       setLoading(false);
     })();
     return () => {
@@ -55,7 +109,7 @@ export function useStudySession(listIds: number[], size: number, mode: SessionMo
     };
     // Rebuilding on every render of the array would restart the session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, size, mode]);
+  }, [key, mode, sessionSize, newPerDay]);
 
   const load = useCallback(async (entryId: number): Promise<CardContent | null> => {
     const hit = cache.current.get(entryId);
@@ -67,9 +121,9 @@ export function useStudySession(listIds: number[], size: number, mode: SessionMo
     return loaded;
   }, []);
 
-  const current = queue[index] ?? null;
+  const current = showing?.item.card ?? null;
 
-  // The current card's content, with the next one fetched behind it.
+  // The current card's content, with the likely next one fetched behind it.
   useEffect(() => {
     if (!current) return;
     let cancelled = false;
@@ -77,54 +131,50 @@ export function useStudySession(listIds: number[], size: number, mode: SessionMo
     load(current.entryId).then((c) => {
       if (!cancelled) setContent(c);
     });
-    const next = queue[index + 1];
-    if (next) load(next.entryId);
+    const upcoming = queue.items.find((i) => i.shows === 0 && i.card.entryId !== current.entryId);
+    if (upcoming) load(upcoming.card.entryId);
     return () => {
       cancelled = true;
     };
-  }, [current, index, queue, load]);
+  }, [current, queue, load]);
 
   const reveal = useCallback(() => setRevealed(true), []);
 
-  const advance = useCallback(() => {
-    setRevealed(false);
-    setIndex((i) => i + 1);
-  }, []);
-
   const rate = useCallback(
     async (grade: Grade) => {
-      if (!current) return;
-      const rated = await rateCard(current, grade);
+      if (!showing) return;
+      const rated = await rateCard(showing.item.card, grade, showing.at);
+      const outcome = settle(queue, showing.item, rated);
 
       setTally((t) => ({
-        reviewed: t.reviewed + 1,
+        ...t,
+        ratings: t.ratings + 1,
         again: t.again + (grade === Rating.Again ? 1 : 0),
         hard: t.hard + (grade === Rating.Hard ? 1 : 0),
         good: t.good + (grade === Rating.Good ? 1 : 0),
         easy: t.easy + (grade === Rating.Easy ? 1 : 0),
+        learned: t.learned + (outcome.settled === "done" && showing.item.fresh ? 1 : 0),
+        reviews: t.reviews + (outcome.settled && !showing.item.fresh ? 1 : 0),
+        stillLearning: t.stillLearning + (outcome.settled === "capped" ? 1 : 0),
       }));
-
-      if (grade === Rating.Again && !retried.current.has(current.entryId)) {
-        retried.current.add(current.entryId);
-        setQueue((q) => [...q, rated]);
-        setTotal((n) => n + 1);
-      }
-      advance();
+      if (outcome.settled) setSettled((n) => n + 1);
+      show(outcome.queue);
     },
-    [current, advance]
+    [showing, queue, show]
   );
 
   /** "I already know this": drops the card from study and moves on. */
   const suspend = useCallback(async () => {
-    if (!current) return;
-    await suspendCard(current.entryId, current.listId);
+    if (!showing) return;
+    await suspendCard(showing.item.card.entryId, showing.item.card.listId);
     setTotal((n) => n - 1);
-    setQueue((q) => q.filter((_, i) => i !== index));
-    setRevealed(false);
-  }, [current, index]);
+    if (showing.item.fresh) setTally((t) => ({ ...t, introduced: t.introduced - 1 }));
+    show(removeFromQueue(queue, showing.item.card));
+  }, [showing, queue, show]);
 
-  const finished = !loading && (queue.length === 0 || index >= queue.length);
-  const intervals = current ? previewIntervals(current.card, new Date()) : null;
+  const finished = !loading && showing === null;
+  const intervals = showing ? previewIntervals(showing.item.card.card, showing.at) : null;
+  const stage = showing ? stageOf(showing.item.card.card) : null;
 
   return {
     loading,
@@ -133,9 +183,12 @@ export function useStudySession(listIds: number[], size: number, mode: SessionMo
     content,
     revealed,
     intervals,
-    position: Math.min(index + 1, total),
+    stage,
+    /** Cards settled so far, of the distinct cards in the session. */
+    settled,
     total,
     tally,
+    budgetSpent,
     reveal,
     rate,
     suspend,

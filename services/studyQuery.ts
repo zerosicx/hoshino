@@ -12,8 +12,8 @@
  */
 
 import { State, type Card } from "ts-fsrs";
-import { MASTERED_STABILITY } from "./scheduler";
-import type { DailyStats, ListProgress, StudyCard } from "@/types/study";
+import { FAMILIAR_STABILITY, KNOWN_STABILITY, MASTERED_STABILITY } from "./scheduler";
+import type { DailyStats, ListProgress, SessionMode, StudyCard } from "@/types/study";
 
 // ---------------------------------------------------------------------------
 // Cards
@@ -85,25 +85,46 @@ function placeholders(count: number): string {
 }
 
 /**
+ * A card in the minute loop is due for a session up to this long before its
+ * clock says so, as in Anki. A session that was left with cards still
+ * learning resumes them at once instead of showing "Nothing due" for nine
+ * minutes; a Review card, scheduled in days, is due only when it is due.
+ */
+export const LEARN_AHEAD_MS = 20 * 60_000;
+
+const IN_MINUTE_LOOP = `c.state IN (${State.Learning}, ${State.Relearning})`;
+
+/** Binds `dueParams(now)`: the learn-ahead instant, then now. */
+const DUE_NOW = `c.due <= CASE WHEN ${IN_MINUTE_LOOP} THEN ? ELSE ? END`;
+
+export function dueParams(now: Date): string[] {
+  return [new Date(now.getTime() + LEARN_AHEAD_MS).toISOString(), now.toISOString()];
+}
+
+/**
  * The cards most at risk of being forgotten, across some lists.
  *
- * Params: `now` (ISO), the list ids, `now` again, then the limit. FSRS's
- * forgetting curve is a function of elapsed time over stability alone, so
- * ordering by that ratio, largest first, is the same as ordering by recall
- * probability, lowest first — without computing the curve for every row.
+ * Params from `reviewQueueParams`. FSRS's forgetting curve is a function of
+ * elapsed time over stability alone, so ordering by that ratio, largest
+ * first, is the same as ordering by recall probability, lowest first —
+ * without computing the curve for every row.
  */
 export function reviewQueueSql(listCount: number): string {
   return `
     SELECT ${CARD_COLUMNS}
     FROM ${LIVE_CARDS}
     WHERE c.suspended = 0
-      AND c.due <= ?
+      AND ${DUE_NOW}
       AND c.list_id IN (${placeholders(listCount)})
     ORDER BY
       (julianday(?) - julianday(c.last_review)) / MAX(c.stability, 0.01) DESC,
       c.due ASC
     LIMIT ?
   `;
+}
+
+export function reviewQueueParams(listIds: number[], now: Date, limit: number) {
+  return [...dueParams(now), ...listIds, now.toISOString(), limit];
 }
 
 /**
@@ -128,10 +149,54 @@ export function newQueueSql(listCount: number): string {
   `;
 }
 
+/**
+ * How many new words a session may add, given the room left after its due
+ * cards. Mixed sessions spend today's budget; review sessions add none; a
+ * learn session is the learner choosing to go past the budget.
+ */
+export function newAllowance(
+  mode: SessionMode,
+  room: number,
+  newPerDay: number,
+  newToday: number
+): number {
+  if (mode === "review") return 0;
+  if (mode === "learn") return Math.max(0, room);
+  return Math.max(0, Math.min(room, newPerDay - newToday));
+}
+
+/** What the Study landing's bar promises a mixed session will contain. */
+export interface SessionPreview {
+  due: number;
+  fresh: number;
+  /** Today's new words are all introduced; only "Learn more" adds any. */
+  budgetSpent: boolean;
+}
+
+export function previewSession(
+  counts: { due: number; unseen: number; newToday: number },
+  settings: { sessionSize: number; newPerDay: number }
+): SessionPreview {
+  const due = Math.min(counts.due, settings.sessionSize);
+  const budget = Math.max(0, settings.newPerDay - counts.newToday);
+  return {
+    due,
+    fresh: Math.max(0, Math.min(settings.sessionSize - due, budget, counts.unseen)),
+    budgetSpent: budget === 0,
+  };
+}
+
 export const CARD_SQL = `
   SELECT ${CARD_COLUMNS}
   FROM srs_cards c
   WHERE c.entry_id = ? AND c.list_id = ?
+`;
+
+/** Every live card in one list, for the per-word stage on the list page. Params: list id. */
+export const LIST_CARDS_SQL = `
+  SELECT ${CARD_COLUMNS}
+  FROM ${LIVE_CARDS}
+  WHERE c.list_id = ?
 `;
 
 /** Params from `cardParams`. Suspension is left as it was. */
@@ -185,31 +250,39 @@ export interface ProgressRow {
   cards: number;
   suspended: number;
   learning: number;
-  review: number;
+  familiar: number;
+  known: number;
   mastered: number;
   due: number;
 }
 
 /**
- * The buckets on the Study landing, for some lists. Params: `now` (ISO), then
- * the list ids. Only lists holding at least one live card come back, which is
- * exactly the "active" lists.
+ * The mastery buckets for some lists, the same rungs as `stageOf`. Params
+ * from `progressParams`. Only lists holding at least one live card come back,
+ * which is exactly the "active" lists.
  */
 export function progressSql(listCount: number): string {
+  const active = "c.suspended = 0";
+  const inReview = `${active} AND c.state = ${State.Review}`;
   return `
     SELECT
       c.list_id,
       (SELECT COUNT(*) FROM list_items WHERE list_items.list_id = c.list_id) AS total,
       COUNT(*) AS cards,
       SUM(c.suspended = 1) AS suspended,
-      SUM(c.suspended = 0 AND c.state IN (${State.Learning}, ${State.Relearning})) AS learning,
-      SUM(c.suspended = 0 AND c.state = ${State.Review} AND c.stability < ${MASTERED_STABILITY}) AS review,
-      SUM(c.suspended = 0 AND c.state = ${State.Review} AND c.stability >= ${MASTERED_STABILITY}) AS mastered,
-      SUM(c.suspended = 0 AND c.due <= ?) AS due
+      SUM(${active} AND (c.state != ${State.Review} OR c.stability < ${FAMILIAR_STABILITY})) AS learning,
+      SUM(${inReview} AND c.stability >= ${FAMILIAR_STABILITY} AND c.stability < ${KNOWN_STABILITY}) AS familiar,
+      SUM(${inReview} AND c.stability >= ${KNOWN_STABILITY} AND c.stability < ${MASTERED_STABILITY}) AS known,
+      SUM(${inReview} AND c.stability >= ${MASTERED_STABILITY}) AS mastered,
+      SUM(${active} AND ${DUE_NOW}) AS due
     FROM ${LIVE_CARDS}
     WHERE c.list_id IN (${placeholders(listCount)})
     GROUP BY c.list_id
   `;
+}
+
+export function progressParams(listIds: number[], now: Date) {
+  return [...dueParams(now), ...listIds];
 }
 
 export function toProgress(row: ProgressRow): ListProgress {
@@ -218,7 +291,8 @@ export function toProgress(row: ProgressRow): ListProgress {
     total: row.total,
     newCount: row.total - row.cards,
     learning: row.learning,
-    review: row.review,
+    familiar: row.familiar,
+    known: row.known,
     mastered: row.mastered,
     due: row.due,
     suspended: row.suspended,
@@ -232,7 +306,8 @@ export function emptyProgress(listId: number, total: number): ListProgress {
     total,
     newCount: total,
     learning: 0,
-    review: 0,
+    familiar: 0,
+    known: 0,
     mastered: 0,
     due: 0,
     suspended: 0,
@@ -253,10 +328,11 @@ export const ACTIVE_LIST_IDS_SQL = `
 export interface StatsRow {
   date: string;
   cards_reviewed: number;
-  cards_correct: number;
   cards_again: number;
   cards_hard: number;
   cards_easy: number;
+  cards_new: number;
+  cards_learned: number;
   session_count: number;
 }
 
@@ -264,10 +340,11 @@ export function toDailyStats(row: StatsRow): DailyStats {
   return {
     date: row.date,
     reviewed: row.cards_reviewed,
-    correct: row.cards_correct,
     again: row.cards_again,
     hard: row.cards_hard,
     easy: row.cards_easy,
+    introduced: row.cards_new,
+    learned: row.cards_learned,
     sessions: row.session_count,
   };
 }
@@ -283,17 +360,33 @@ export function dayKey(now: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Params: date, reviewed (1), correct (0/1), again, hard, easy. */
+/** What one rating adds to the day, as 0/1 deltas. */
+export interface ReviewDelta {
+  again: number;
+  hard: number;
+  easy: number;
+  /** The card had no row: a new word shown for the first time. */
+  introduced: number;
+  /** The card crossed into Review for the first time. */
+  learned: number;
+}
+
+/** Params from `reviewDeltaParams`: date, then the deltas in column order. */
 export const RECORD_REVIEW_SQL = `
-  INSERT INTO study_stats (date, cards_reviewed, cards_correct, cards_again, cards_hard, cards_easy)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO study_stats (date, cards_reviewed, cards_again, cards_hard, cards_easy, cards_new, cards_learned)
+  VALUES (?, 1, ?, ?, ?, ?, ?)
   ON CONFLICT(date) DO UPDATE SET
-    cards_reviewed = cards_reviewed + excluded.cards_reviewed,
-    cards_correct = cards_correct + excluded.cards_correct,
+    cards_reviewed = cards_reviewed + 1,
     cards_again = cards_again + excluded.cards_again,
     cards_hard = cards_hard + excluded.cards_hard,
-    cards_easy = cards_easy + excluded.cards_easy
+    cards_easy = cards_easy + excluded.cards_easy,
+    cards_new = cards_new + excluded.cards_new,
+    cards_learned = cards_learned + excluded.cards_learned
 `;
+
+export function reviewDeltaParams(day: string, d: ReviewDelta) {
+  return [day, d.again, d.hard, d.easy, d.introduced, d.learned];
+}
 
 export const RECORD_SESSION_SQL = `
   INSERT INTO study_stats (date, session_count)
@@ -302,9 +395,14 @@ export const RECORD_SESSION_SQL = `
 `;
 
 export const STATS_FOR_DAY_SQL = `
-  SELECT date, cards_reviewed, cards_correct, cards_again, cards_hard, cards_easy, session_count
+  SELECT date, cards_reviewed, cards_again, cards_hard, cards_easy, cards_new, cards_learned, session_count
   FROM study_stats
   WHERE date = ?
+`;
+
+/** New words introduced on a day, against the daily budget. Params: date. */
+export const NEW_TODAY_SQL = `
+  SELECT cards_new AS n FROM study_stats WHERE date = ?
 `;
 
 /** Days with at least one review, newest first. */

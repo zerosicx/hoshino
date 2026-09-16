@@ -1,36 +1,44 @@
 import { Pressable, Text, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
-import type { ActiveList } from "@/types/study";
+import type { ActiveList, ListProgress } from "@/types/study";
 
 interface ActiveListRowProps {
   item: ActiveList;
   /** Session size: the pill shows what one session will take, never more. */
   pile: number;
+  /** Starts a mixed session for this list. */
   onPress: () => void;
+  /** Starts a review-only session for this list. */
+  onReview: () => void;
 }
 
-/** One line of counts, leaving out any that are zero. */
-export function progressSummary(p: ActiveList["progress"]): string {
+/** One line of counts up the ladder, leaving out any that are zero. */
+export function progressSummary(p: ListProgress): string {
   const parts = [
     p.mastered > 0 && `${p.mastered} mastered`,
-    p.learning + p.review > 0 && `${p.learning + p.review} learning`,
+    p.known > 0 && `${p.known} known`,
+    p.familiar > 0 && `${p.familiar} familiar`,
+    p.learning > 0 && `${p.learning} learning`,
     p.newCount > 0 && `${p.newCount} new`,
-    p.suspended > 0 && `${p.suspended} known`,
+    p.suspended > 0 && `${p.suspended} marked known`,
   ].filter(Boolean);
   return parts.join(" · ");
 }
 
 /**
  * A list with study progress: name, how far along it is, and how many cards
- * are waiting. Flat row with a divider, like every other list in the app.
+ * are waiting, with a way to review just those. Flat row with a divider, like
+ * every other list in the app.
  */
-export default function ActiveListRow({ item, pile, onPress }: ActiveListRowProps) {
+export default function ActiveListRow({ item, pile, onPress, onReview }: ActiveListRowProps) {
   const { isDark } = useTheme();
   const { list, progress } = item;
   const studied = progress.total - progress.suspended || 1;
   const masteredPct = (100 * progress.mastered) / studied;
-  const learningPct = (100 * (progress.learning + progress.review)) / studied;
+  const risingPct = (100 * (progress.known + progress.familiar)) / studied;
+  const learningPct = (100 * progress.learning) / studied;
+  const due = Math.min(progress.due, pile);
 
   return (
     <Pressable
@@ -50,20 +58,35 @@ export default function ActiveListRow({ item, pile, onPress }: ActiveListRowProp
           </Text>
         </View>
 
-        {progress.due > 0 && (
-          <View className="bg-accent/10 px-3 py-1 rounded-full mr-2">
-            <Text className="text-caption1 font-semibold text-accent dark:text-accent-light">
-              {Math.min(progress.due, pile)} ready
-            </Text>
+        {due > 0 && (
+          <View className="items-end mr-2">
+            <View className="bg-accent/10 px-3 py-1 rounded-full">
+              <Text className="text-caption1 font-semibold text-accent dark:text-accent-light">
+                {due} due
+              </Text>
+            </View>
+            <Pressable
+              onPress={onReview}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Review ${list.name}`}
+              className="mt-1"
+            >
+              <Text className="text-caption1 font-semibold text-accent dark:text-accent-light">
+                Review
+              </Text>
+            </Pressable>
           </View>
         )}
         <ChevronRight size={18} color={isDark ? "#71717A" : "#A1A1AA"} />
       </View>
 
-      {/* Mastered fills solid, learning fills lighter, new is the track. */}
+      {/* Mastered fills solid, known and familiar lighter, learning lightest;
+          new is the track. */}
       <View className={`h-1 rounded-full mt-3 flex-row overflow-hidden ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}>
         <View className="bg-accent h-full" style={{ width: `${masteredPct}%` }} />
-        <View className="bg-accent/40 h-full" style={{ width: `${learningPct}%` }} />
+        <View className="bg-accent/50 h-full" style={{ width: `${risingPct}%` }} />
+        <View className="bg-accent/25 h-full" style={{ width: `${learningPct}%` }} />
       </View>
     </Pressable>
   );

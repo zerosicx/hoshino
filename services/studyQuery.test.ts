@@ -4,20 +4,31 @@ import { USER_SCHEMA, MIGRATIONS } from "@/services/schema";
 import { Rating, State, schedule } from "@/services/scheduler";
 import {
   ACTIVE_LIST_IDS_SQL,
+  LEARN_AHEAD_MS,
+  LIST_CARDS_SQL,
+  NEW_TODAY_SQL,
   RECORD_REVIEW_SQL,
+  STATS_FOR_DAY_SQL,
   SUSPEND_SQL,
   UNSUSPEND_SQL,
   UPSERT_CARD_SQL,
   cardParams,
   dayKey,
+  newAllowance,
   newQueueSql,
+  previewSession,
+  progressParams,
   progressSql,
+  reviewDeltaParams,
+  reviewQueueParams,
   reviewQueueSql,
   streakFrom,
+  toDailyStats,
   toProgress,
   toStudyCard,
   type CardRow,
   type ProgressRow,
+  type StatsRow,
 } from "@/services/studyQuery";
 import { JLPT_COPY_SQL, CREATE_JLPT_COPY_SQL } from "@/services/listQuery";
 
@@ -61,9 +72,26 @@ function reviewCard(listId: number, entryId: number, stability: number, elapsed:
   );
 }
 
+/** A card in the minute loop, due at a given moment. */
+function learningCard(listId: number, entryId: number, due: Date, state = State.Learning) {
+  db.prepare(UPSERT_CARD_SQL).run(
+    ...cardParams(entryId, listId, {
+      due,
+      stability: 0.5,
+      difficulty: 5,
+      elapsed_days: 0,
+      scheduled_days: 0,
+      reps: 1,
+      lapses: 0,
+      state,
+      last_review: daysAgo(0),
+    })
+  );
+}
+
 function reviewQueue(listIds: number[], limit: number) {
   return (
-    db.prepare(reviewQueueSql(listIds.length)).all(NOW, ...listIds, NOW, limit) as CardRow[]
+    db.prepare(reviewQueueSql(listIds.length)).all(...reviewQueueParams(listIds, now, limit)) as CardRow[]
   ).map((r) => r.entry_id);
 }
 
@@ -74,7 +102,7 @@ function newQueue(listIds: number[], limit: number) {
 }
 
 function progress(listId: number) {
-  const row = db.prepare(progressSql(1)).get(NOW, listId) as ProgressRow | undefined;
+  const row = db.prepare(progressSql(1)).get(...progressParams([listId], now)) as ProgressRow | undefined;
   return row ? toProgress(row) : null;
 }
 
@@ -106,6 +134,33 @@ describe("schema", () => {
     expect(columns).toContain("suspended");
     // The unique index the upsert relies on has to exist on the old table too.
     expect(() => old.prepare(SUSPEND_SQL).run(1, 1)).not.toThrow();
+    old.close();
+  });
+
+  it("adds the new-word counters to a study_stats table that predates them", () => {
+    const old = new Database(":memory:");
+    old.exec(`
+      CREATE TABLE study_stats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT UNIQUE NOT NULL,
+        cards_reviewed INTEGER DEFAULT 0, cards_correct INTEGER DEFAULT 0,
+        cards_again INTEGER DEFAULT 0, cards_hard INTEGER DEFAULT 0,
+        cards_easy INTEGER DEFAULT 0, session_count INTEGER DEFAULT 0,
+        streak_length INTEGER DEFAULT 0
+      );
+    `);
+    old.prepare("INSERT INTO study_stats (date, cards_reviewed) VALUES ('2026-09-01', 4)").run();
+    for (const m of MIGRATIONS.filter((m) => m.table === "study_stats")) old.exec(m.sql);
+    old.exec(USER_SCHEMA);
+
+    const columns = old.prepare("PRAGMA table_info(study_stats)").all().map((c) => (c as { name: string }).name);
+    expect(columns).toEqual(expect.arrayContaining(["cards_new", "cards_learned"]));
+    // Old rows read as zero, and the new upsert works against the old table.
+    expect(old.prepare(NEW_TODAY_SQL).get("2026-09-01")).toEqual({ n: 0 });
+    expect(() =>
+      old.prepare(RECORD_REVIEW_SQL).run(...reviewDeltaParams("2026-09-01", { again: 0, hard: 0, easy: 0, introduced: 1, learned: 0 }))
+    ).not.toThrow();
+    expect(old.prepare(NEW_TODAY_SQL).get("2026-09-01")).toEqual({ n: 1 });
     old.close();
   });
 
@@ -185,6 +240,58 @@ describe("the review queue", () => {
     expect(reviewQueue([a, b], 10)).toHaveLength(2);
     expect(reviewQueue([a], 10)).toEqual([1]);
   });
+
+  it("takes cards in the minute loop up to twenty minutes early, and review cards only when due", () => {
+    const list = createList("A");
+    for (const id of [1, 2, 3, 4, 5]) addItem(list, id);
+    const soon = new Date(now.getTime() + 10 * 60_000);
+    const later = new Date(now.getTime() + LEARN_AHEAD_MS + 60_000);
+    learningCard(list, 1, soon); //                    Learning, due in 10 min: in
+    learningCard(list, 2, soon, State.Relearning); //  Relearning, due in 10 min: in
+    learningCard(list, 3, later); //                   Learning, due in 21 min: out
+    learningCard(list, 4, daysAgo(0)); //              Learning, due now: in
+    reviewCard(list, 5, 1, 0.99); //                   Review, due in 15 min: out
+
+    expect(reviewQueue([list], 10).sort()).toEqual([1, 2, 4]);
+    // The progress count agrees with the queue, so the bar never lies.
+    expect(progress(list)?.due).toBe(3);
+  });
+
+  it("lists every live card of a list by word, for the stage beside each row", () => {
+    const list = createList("A");
+    addItem(list, 1);
+    addItem(list, 2);
+    reviewCard(list, 1, 10, 1);
+    reviewCard(list, 3, 10, 1); // not in the list
+    const rows = db.prepare(LIST_CARDS_SQL).all(list) as CardRow[];
+    expect(rows.map((r) => r.entry_id)).toEqual([1]);
+    expect(toStudyCard(rows[0]).card?.stability).toBe(10);
+  });
+});
+
+describe("the new-word budget", () => {
+  it("a mixed session spends what is left of today's budget, within the room", () => {
+    expect(newAllowance("mixed", 14, 10, 0)).toBe(10);
+    expect(newAllowance("mixed", 14, 10, 6)).toBe(4);
+    expect(newAllowance("mixed", 2, 10, 6)).toBe(2);
+    expect(newAllowance("mixed", 14, 10, 10)).toBe(0);
+    expect(newAllowance("mixed", 14, 10, 12)).toBe(0);
+  });
+
+  it("a review session adds nothing; a learn session fills the room past the budget", () => {
+    expect(newAllowance("review", 14, 10, 0)).toBe(0);
+    expect(newAllowance("learn", 14, 10, 10)).toBe(14);
+    expect(newAllowance("learn", 0, 10, 0)).toBe(0);
+    expect(newAllowance("mixed", -2, 10, 0)).toBe(0);
+  });
+
+  it("previews what the bar promises: due capped at the session, new within budget and supply", () => {
+    const settings = { sessionSize: 20, newPerDay: 10 };
+    expect(previewSession({ due: 6, unseen: 100, newToday: 6 }, settings)).toEqual({ due: 6, fresh: 4, budgetSpent: false });
+    expect(previewSession({ due: 340, unseen: 100, newToday: 0 }, settings)).toEqual({ due: 20, fresh: 0, budgetSpent: false });
+    expect(previewSession({ due: 0, unseen: 3, newToday: 0 }, settings)).toEqual({ due: 0, fresh: 3, budgetSpent: false });
+    expect(previewSession({ due: 0, unseen: 100, newToday: 10 }, settings)).toEqual({ due: 0, fresh: 0, budgetSpent: true });
+  });
 });
 
 describe("the new queue", () => {
@@ -216,23 +323,26 @@ describe("the new queue", () => {
 });
 
 describe("progress", () => {
-  it("sorts the cards into buckets and counts the rest as new", () => {
+  it("sorts the cards onto the mastery ladder and counts the rest as new", () => {
     const list = createList("A");
-    for (let id = 1; id <= 6; id++) addItem(list, id);
-    reviewCard(list, 1, 45, 1); // mastered
-    reviewCard(list, 2, 5, 1); //  review, not due
-    reviewCard(list, 3, 1, 3); //  review, due
-    db.prepare(UPSERT_CARD_SQL).run(...cardParams(4, list, schedule(null, Rating.Again, now))); // learning
-    db.prepare(SUSPEND_SQL).run(5, list);
+    for (let id = 1; id <= 8; id++) addItem(list, id);
+    reviewCard(list, 1, 45, 1); //  mastered
+    reviewCard(list, 2, 12, 1); //  known, not due
+    reviewCard(list, 3, 5, 1); //   familiar, not due
+    reviewCard(list, 4, 1, 3); //   familiar, due
+    reviewCard(list, 5, 0.5, 0); // review state but under a day: learning
+    db.prepare(UPSERT_CARD_SQL).run(...cardParams(6, list, schedule(null, Rating.Again, now))); // learning, due in a minute
+    db.prepare(SUSPEND_SQL).run(7, list);
 
     expect(progress(list)).toEqual({
       listId: list,
-      total: 6,
+      total: 8,
       newCount: 1,
-      learning: 1,
-      review: 2,
+      learning: 2,
+      familiar: 2,
+      known: 1,
       mastered: 1,
-      due: 1,
+      due: 2,
       suspended: 1,
     });
   });
@@ -259,18 +369,34 @@ describe("progress", () => {
 });
 
 describe("stats", () => {
-  it("accumulates one row per day", () => {
-    const day = dayKey(now);
-    db.prepare(RECORD_REVIEW_SQL).run(day, 1, 1, 0, 0, 0);
-    db.prepare(RECORD_REVIEW_SQL).run(day, 1, 0, 1, 0, 0);
-    db.prepare(RECORD_REVIEW_SQL).run(day, 1, 1, 0, 0, 1);
+  const none = { again: 0, hard: 0, easy: 0, introduced: 0, learned: 0 };
 
-    const rows = db.prepare("SELECT * FROM study_stats").all() as Record<string, number>[];
-    expect(rows).toHaveLength(1);
+  it("accumulates one row per day, with introductions and graduations", () => {
+    const day = dayKey(now);
+    db.prepare(RECORD_REVIEW_SQL).run(...reviewDeltaParams(day, { ...none, introduced: 1 }));
+    db.prepare(RECORD_REVIEW_SQL).run(...reviewDeltaParams(day, { ...none, again: 1 }));
+    db.prepare(RECORD_REVIEW_SQL).run(...reviewDeltaParams(day, { ...none, easy: 1, introduced: 1, learned: 1 }));
+    db.prepare(RECORD_REVIEW_SQL).run(...reviewDeltaParams(dayKey(daysAgo(1)), { ...none, introduced: 1 }));
+
+    const rows = db.prepare("SELECT * FROM study_stats ORDER BY date DESC").all() as Record<string, number>[];
+    expect(rows).toHaveLength(2);
     expect(rows[0].cards_reviewed).toBe(3);
-    expect(rows[0].cards_correct).toBe(2);
     expect(rows[0].cards_again).toBe(1);
     expect(rows[0].cards_easy).toBe(1);
+    expect(rows[0].cards_new).toBe(2);
+    expect(rows[0].cards_learned).toBe(1);
+
+    const today = toDailyStats(db.prepare(STATS_FOR_DAY_SQL).get(day) as StatsRow);
+    expect(today).toMatchObject({ reviewed: 3, introduced: 2, learned: 1, sessions: 0 });
+  });
+
+  it("counts today's new words for the budget, zero before any", () => {
+    const day = dayKey(now);
+    expect(db.prepare(NEW_TODAY_SQL).get(day)).toBeUndefined();
+    db.prepare(RECORD_REVIEW_SQL).run(...reviewDeltaParams(day, { ...none, introduced: 1 }));
+    db.prepare(RECORD_REVIEW_SQL).run(...reviewDeltaParams(day, { ...none, introduced: 1 }));
+    db.prepare(RECORD_REVIEW_SQL).run(...reviewDeltaParams(day, { ...none }));
+    expect(db.prepare(NEW_TODAY_SQL).get(day)).toEqual({ n: 2 });
   });
 
   it("keys days locally", () => {

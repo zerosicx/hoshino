@@ -68,6 +68,20 @@ describe("FlashCard", () => {
     expect(props.onSeeMore).toHaveBeenCalled();
   });
 
+  it("shows the mastery rung in the corner on both faces", () => {
+    renderCard({ stage: "familiar" });
+    expect(screen.getByText("Familiar")).toBeTruthy();
+    screen.unmount();
+    renderCard({ stage: "familiar", revealed: true });
+    expect(screen.getByText("Familiar")).toBeTruthy();
+    expect(screen.getByLabelText("Card options")).toBeTruthy();
+  });
+
+  it("shows no badge until the stage is known", () => {
+    renderCard();
+    expect(screen.queryByText(/New|Learning|Familiar|Known|Mastered/)).toBeNull();
+  });
+
   it("marks a word as known only through the corner menu", () => {
     const props = renderCard();
     expect(screen.queryByText("I already know this")).toBeNull();

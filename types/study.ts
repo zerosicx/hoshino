@@ -11,13 +11,25 @@ export interface StudyCard {
   suspended: boolean;
 }
 
-/** How far a list has come, for the Study landing. Counts exclude suspended. */
+/**
+ * What a session is made of. Mixed: due cards, then new words up to today's
+ * remaining budget. Review: due cards only. Learn: new words past the budget,
+ * for the learner who has finished and wants to go on.
+ */
+export type SessionMode = "mixed" | "review" | "learn";
+
+/**
+ * How far a list has come, for the Study landing and the list page. The five
+ * buckets are the mastery ladder (`stageOf` in `services/scheduler.ts`);
+ * counts exclude suspended words, which are listed apart.
+ */
 export interface ListProgress {
   listId: number;
   total: number;
   newCount: number;
   learning: number;
-  review: number;
+  familiar: number;
+  known: number;
   mastered: number;
   due: number;
   suspended: number;
@@ -32,17 +44,20 @@ export interface ActiveList {
 export interface DailyStats {
   date: string;
   reviewed: number;
-  correct: number;
   again: number;
   hard: number;
   easy: number;
+  /** New words shown for the first time. */
+  introduced: number;
+  /** Words that graduated to Review for the first time. */
+  learned: number;
   sessions: number;
 }
 
+/** The three numbers in the Study landing's banner. */
 export interface StudyStats {
   streak: number;
-  /** Good + Easy as a share of today's reviews, or null before any review. */
-  accuracy: number | null;
+  learnedToday: number;
   reviewedToday: number;
 }
 

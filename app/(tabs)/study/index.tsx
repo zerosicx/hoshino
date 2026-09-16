@@ -11,7 +11,7 @@ export default function StudyScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const sessionSize = useSettingsStore((s) => s.sessionSize);
-  const { stats, activeLists, totalDue, loading } = useStudyStats();
+  const { stats, activeLists, preview, loading } = useStudyStats();
 
   const secondary = isDark ? "text-zinc-500" : "text-zinc-400";
 
@@ -34,14 +34,13 @@ export default function StudyScreen() {
             {activeLists.length > 0 && (
               <View className="px-4 mt-4">
                 <DueTodayBar
-                  due={totalDue}
-                  pile={sessionSize}
+                  preview={preview}
                   onStart={() => router.push("/study/session?lists=all")}
+                  onLearnMore={() => router.push("/study/session?lists=all&mode=learn")}
+                  onBrowse={() => router.push("/lists")}
                 />
-                {/* Only when it changes something: with nothing due the bar
-                    already says Learn New, and with a full pile of due cards
-                    the two sessions are the same. */}
-                {totalDue > 0 && totalDue < sessionSize && (
+                {/* Whenever anything is due: just those cards, no new words. */}
+                {preview.due > 0 && (
                   <Pressable
                     onPress={() => router.push("/study/session?lists=all&mode=review")}
                     hitSlop={8}
@@ -50,7 +49,7 @@ export default function StudyScreen() {
                     className="self-end mt-2"
                   >
                     <Text className="text-footnote text-accent dark:text-accent-light">
-                      Review only · {totalDue} {totalDue === 1 ? "card" : "cards"}, no new words
+                      Review only · {preview.due} {preview.due === 1 ? "card" : "cards"}, no new words
                     </Text>
                   </Pressable>
                 )}
@@ -75,9 +74,8 @@ export default function StudyScreen() {
           loading ? null : (
             <View className="px-4 py-6">
               <Text className={`text-footnote ${secondary}`}>
-                Nothing in study yet. Open a list and tap Study to build your
-                first pile — every word you look up is already waiting in
-                Searched Terms.
+                Nothing in study yet. Open a list and tap Study to begin — every
+                word you look up is already waiting in Searched Terms.
               </Text>
               <Pressable
                 onPress={() => router.push("/lists")}
@@ -93,6 +91,7 @@ export default function StudyScreen() {
             item={item}
             pile={sessionSize}
             onPress={() => router.push(`/study/session?lists=${item.list.id}`)}
+            onReview={() => router.push(`/study/session?lists=${item.list.id}&mode=review`)}
           />
         )}
       />

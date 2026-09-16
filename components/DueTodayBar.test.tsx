@@ -1,21 +1,44 @@
 import { render, screen, fireEvent } from "@testing-library/react-native";
-import DueTodayBar from "./DueTodayBar";
+import DueTodayBar, { barMessage } from "./DueTodayBar";
+
+function renderBar(preview: { due: number; fresh: number; budgetSpent: boolean }) {
+  const handlers = { onStart: jest.fn(), onLearnMore: jest.fn(), onBrowse: jest.fn() };
+  render(<DueTodayBar preview={preview} {...handlers} />);
+  return handlers;
+}
+
+describe("barMessage", () => {
+  it("names both parts, drops a zero part, and says when the day is done", () => {
+    expect(barMessage({ due: 6, fresh: 4, budgetSpent: false })).toBe("6 due · 4 new");
+    expect(barMessage({ due: 20, fresh: 0, budgetSpent: false })).toBe("20 due");
+    expect(barMessage({ due: 0, fresh: 10, budgetSpent: false })).toBe("10 new");
+    expect(barMessage({ due: 0, fresh: 0, budgetSpent: true })).toBe("Done for today");
+    expect(barMessage({ due: 0, fresh: 0, budgetSpent: false })).toBe("Nothing due");
+  });
+});
 
 describe("DueTodayBar", () => {
-  it("shows the pile and offers a review when cards are due", () => {
-    const onStart = jest.fn();
-    render(<DueTodayBar due={340} pile={20} onStart={onStart} />);
-    expect(screen.getByText("20 cards ready")).toBeTruthy();
-    expect(screen.getByText("Start Review")).toBeTruthy();
-    fireEvent.press(screen.getByLabelText("Start review"));
+  it("says what the session holds and starts it", () => {
+    const { onStart } = renderBar({ due: 6, fresh: 4, budgetSpent: false });
+    expect(screen.getByText("6 due · 4 new")).toBeTruthy();
+    fireEvent.press(screen.getByLabelText("Start"));
     expect(onStart).toHaveBeenCalled();
+    // The message is the only part allowed to give way on a narrow screen.
+    expect(screen.getByText("6 due · 4 new").props.numberOfLines).toBe(1);
   });
 
-  it("keeps the copy short and offers new words when nothing is due", () => {
-    render(<DueTodayBar due={0} pile={20} onStart={jest.fn()} />);
+  it("offers to learn more once the budget is spent and nothing is due", () => {
+    const { onLearnMore, onStart } = renderBar({ due: 0, fresh: 0, budgetSpent: true });
+    expect(screen.getByText("Done for today")).toBeTruthy();
+    fireEvent.press(screen.getByLabelText("Learn more"));
+    expect(onLearnMore).toHaveBeenCalled();
+    expect(onStart).not.toHaveBeenCalled();
+  });
+
+  it("points at the lists when there is nothing due and nothing new left", () => {
+    const { onBrowse } = renderBar({ due: 0, fresh: 0, budgetSpent: false });
     expect(screen.getByText("Nothing due")).toBeTruthy();
-    expect(screen.getByText("Learn New")).toBeTruthy();
-    // The message is the only part allowed to give way on a narrow screen.
-    expect(screen.getByText("Nothing due").props.numberOfLines).toBe(1);
+    fireEvent.press(screen.getByLabelText("Browse lists"));
+    expect(onBrowse).toHaveBeenCalled();
   });
 });

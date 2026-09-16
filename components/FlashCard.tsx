@@ -8,16 +8,20 @@ import Animated, {
 } from "react-native-reanimated";
 import { ArrowRight, MoreHorizontal } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
+import type { Stage } from "@/services/scheduler";
 import type { CardFrontMode, ReadingMode } from "@/stores/settingsStore";
 import type { CardContent } from "@/types/study";
 import FuriganaText from "./FuriganaText";
 import WordDetail from "./WordDetail";
 import BottomDrawer from "./BottomDrawer";
+import MasteryBadge from "./MasteryBadge";
 
 interface FlashCardProps {
   content: CardContent | null;
   revealed: boolean;
   onReveal: () => void;
+  /** Where the word is on the mastery ladder; shown in the top-left corner. */
+  stage?: Stage | null;
   readingMode: ReadingMode;
   cardFront: CardFrontMode;
   reduceMotion: boolean;
@@ -39,6 +43,7 @@ export default function FlashCard({
   content,
   revealed,
   onReveal,
+  stage = null,
   readingMode,
   cardFront,
   reduceMotion,
@@ -128,6 +133,13 @@ export default function FlashCard({
             {back}
           </Animated.View>
         </>
+      )}
+
+      {/* Over both faces, so it neither flips nor disappears with the turn. */}
+      {stage && (
+        <View className="absolute top-3 left-3">
+          <MasteryBadge stage={stage} />
+        </View>
       )}
 
       <Pressable
