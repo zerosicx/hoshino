@@ -8,10 +8,12 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Search, X } from "lucide-react-native";
+import { BookOpen, ChevronRight, Search, X } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { useDictionary } from "@/hooks/useDictionary";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useReaderStore } from "@/stores/readerStore";
+import { getSearchedTermsList } from "@/services/lists";
 import DictionaryResultRow from "@/components/DictionaryResultRow";
 import SwipeAction from "@/components/SwipeAction";
 import { useAddToList } from "@/hooks/useLists";
@@ -21,8 +23,14 @@ export default function DictionaryScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const readingMode = useSettingsStore((s) => s.readingMode);
+  const readerText = useReaderStore((s) => s.text);
 
   const { addToMostRecent } = useAddToList();
+
+  const openSearchedTerms = async () => {
+    const list = await getSearchedTermsList();
+    if (list) router.push(`/lists/${list.id}`);
+  };
 
   // A swipe with no lists yet turns into creating one, with the word going in.
   const swipeAdd = async (item: SearchResult) => {
@@ -123,15 +131,43 @@ export default function DictionaryScreen() {
           )}
         </>
       ) : (
-        // Home state — recent searches + empty prompt
+        // Home state — the reader, recent searches, empty prompt
         <View className="flex-1">
+          <Pressable
+            onPress={() => router.push("/dictionary/reader")}
+            accessibilityRole="button"
+            accessibilityLabel="Read a text"
+            className={`flex-row items-center py-3 mb-4 border-b ${isDark ? "border-zinc-800 active:bg-zinc-900" : "border-zinc-200 active:bg-zinc-50"}`}
+          >
+            <View className="w-8 h-8 rounded-md bg-accent/10 items-center justify-center mr-3">
+              <BookOpen size={16} color={isDark ? "#6366F1" : "#4F46E5"} />
+            </View>
+            <View className="flex-1 mr-3">
+              <Text className={`text-body font-semibold ${isDark ? "text-zinc-100" : "text-zinc-900"}`}>
+                {readerText ? "Continue reading" : "Read a text"}
+              </Text>
+              <Text
+                className={`text-caption1 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                numberOfLines={1}
+              >
+                {readerText ? readerText.replace(/\s+/g, " ").slice(0, 40) : "Paste Japanese, tap any word"}
+              </Text>
+            </View>
+            <ChevronRight size={18} color={isDark ? "#71717A" : "#A1A1AA"} />
+          </Pressable>
+
           {recentSearches.length > 0 && (
             <View className="mb-6">
-              <Text
-                className={`text-body font-semibold ${isDark ? "text-zinc-50" : "text-zinc-900"} mb-3`}
-              >
-                Recently Searched
-              </Text>
+              <View className="flex-row items-center justify-between mb-3">
+                <Text
+                  className={`text-body font-semibold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}
+                >
+                  Recently Searched
+                </Text>
+                <Pressable onPress={openSearchedTerms} hitSlop={8} accessibilityLabel="See all searched terms">
+                  <Text className="text-footnote text-accent dark:text-accent-light">See all</Text>
+                </Pressable>
+              </View>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}

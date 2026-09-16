@@ -100,6 +100,15 @@ export function jlptListsSql(): string {
   `;
 }
 
+/** The one system list, Searched Terms. */
+export const SYSTEM_LIST_SQL = `
+  SELECT ${COLUMNS}
+  FROM lists
+  WHERE lists.type = 'system'
+  ORDER BY lists.id ASC
+  LIMIT 1
+`;
+
 export const LIST_BY_ID_SQL = `
   SELECT ${COLUMNS}
   FROM lists

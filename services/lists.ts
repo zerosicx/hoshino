@@ -17,6 +17,7 @@ import {
   MOST_RECENT_LIST_SQL,
   REMOVE_ITEM_SQL,
   SET_STARRED_SQL,
+  SYSTEM_LIST_SQL,
   customListsSql,
   jlptListsSql,
   toSummary,
@@ -55,6 +56,13 @@ export async function getJlptLists(): Promise<ListSummary[]> {
 /** Lists a word can be added to, most recently added-to first. */
 export async function getCustomLists(): Promise<ListSummary[]> {
   return summarise(await getUserDb().getAllAsync<ListRow>(customListsSql()));
+}
+
+/** Searched Terms, which every lookup feeds. */
+export async function getSearchedTermsList(): Promise<ListSummary | null> {
+  const row = await getUserDb().getFirstAsync<ListRow>(SYSTEM_LIST_SQL);
+  if (!row) return null;
+  return (await summarise([row]))[0];
 }
 
 export async function getList(id: number): Promise<ListSummary | null> {
