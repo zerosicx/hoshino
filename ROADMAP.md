@@ -89,7 +89,7 @@ on it.
 
 ### Stage 7 — done. Paste anything, read it, tap any word
 
-Built 16/09/26; preview build 10 and the first production build. The
+Built 16/09/26; preview build 14 and production build 15. The
 Dictionary home has a "Read a text" row; the reader segments a paste into
 words with their readings, and every tap goes through the word page, so it
 lands in Searched Terms like a search does.
@@ -363,11 +363,12 @@ already built with theme and reading-mode preferences.
       arrives on the second launch after the update, and note how long the
       download takes. Note for later: the build is not byte-deterministic, so
       an update published after the next database rebuild will re-fetch it.
-- [x] **First Android production build** — `eas build --profile production
-      --platform android` on 16/09/26, version code 11, an app bundle for the
-      Play Console. Not yet uploaded anywhere; no Play Console record exists.
-      Version codes are one counter across profiles (`appVersionSource:
-      remote`), so preview 10 and production 11 are the same code.
+- [x] **First Android production build** — `npm run release:production` on
+      16/09/26, version code 15, an app bundle for the Play Console. Not yet
+      uploaded anywhere; no Play Console record exists. Version codes are one
+      counter across profiles (`appVersionSource: remote`), so preview 14 and
+      production 15 sit on the same counter, and codes 8 and 10–13 were burnt
+      by uploads that failed silently (see "Releasing a beta update").
 - [ ] **Play Console** — create the app record, internal testing track,
       upload the bundle
 - [ ] **iOS** — TestFlight via EAS, App Store Connect record
@@ -426,9 +427,20 @@ Two loops, one per platform.
 JavaScript and assets ship over the air; anything native needs a build.
 
 ```bash
-eas update --branch preview --message "added: study tab"   # JS only, ~1 min
-eas build --profile preview --platform android             # native changes
+npm run release:update -- --message "added: study tab"   # JS only, ~1 min
+npm run release:preview                                  # native changes, APK
+npm run release:production                               # app bundle for the Play Console
 ```
+
+**Use the scripts, not `eas` directly, on this machine.** Homebrew's Git
+config (`/opt/homebrew/etc/gitconfig`) turns on `core.fsmonitor`, and the
+monitor daemon drops a socket file into the temporary clone EAS makes while
+archiving the project. `eas build` then dies on "Cannot copy a socket file"
+— but swallows the error, prints nothing after "Compressing project files",
+exits 0, and has already incremented the remote version code. Five codes
+went that way on 16/09/26. The scripts pass Git an environment override that
+disables the monitor for the EAS process only. `eas build:inspect --stage
+archive` shows the real error when a build vanishes like this.
 
 A build is only needed for a new native dependency, an edit to `plugins`,
 `android` or `ios` in `app.json`, an icon or display-name change, an SDK bump,
