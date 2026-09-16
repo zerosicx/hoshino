@@ -364,8 +364,10 @@ already built with theme and reading-mode preferences.
       download takes. Note for later: the build is not byte-deterministic, so
       an update published after the next database rebuild will re-fetch it.
 - [x] **First Android production build** — `eas build --profile production
-      --platform android` on 16/09/26, an app bundle for the Play Console.
-      Not yet uploaded anywhere; no Play Console record exists.
+      --platform android` on 16/09/26, version code 11, an app bundle for the
+      Play Console. Not yet uploaded anywhere; no Play Console record exists.
+      Version codes are one counter across profiles (`appVersionSource:
+      remote`), so preview 10 and production 11 are the same code.
 - [ ] **Play Console** — create the app record, internal testing track,
       upload the bundle
 - [ ] **iOS** — TestFlight via EAS, App Store Connect record
