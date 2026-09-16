@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
-import { useStudySession } from "@/hooks/useStudySession";
+import { useStudySession, type SessionMode } from "@/hooks/useStudySession";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useToastStore } from "@/stores/toastStore";
 import { getActiveLists } from "@/services/srs";
@@ -21,8 +21,9 @@ function parseListIds(param: string | undefined): number[] | "all" {
 }
 
 export default function StudySessionScreen() {
-  const { lists } = useLocalSearchParams<{ lists?: string }>();
+  const { lists, mode } = useLocalSearchParams<{ lists?: string; mode?: string }>();
   const wanted = parseListIds(lists);
+  const sessionMode: SessionMode = mode === "review" ? "review" : "mixed";
   const [listIds, setListIds] = useState<number[] | null>(
     wanted === "all" ? null : wanted
   );
@@ -44,10 +45,10 @@ export default function StudySessionScreen() {
   if (listIds === null) {
     return <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"}`} />;
   }
-  return <Session listIds={listIds} />;
+  return <Session listIds={listIds} listsParam={lists ?? "all"} mode={sessionMode} />;
 }
 
-function Session({ listIds }: { listIds: number[] }) {
+function Session({ listIds, listsParam, mode }: { listIds: number[]; listsParam: string; mode: SessionMode }) {
   const router = useRouter();
   const { isDark } = useTheme();
   const readingMode = useSettingsStore((s) => s.readingMode);
@@ -56,7 +57,8 @@ function Session({ listIds }: { listIds: number[] }) {
   const reduceMotion = useReduceMotion();
   const toast = useToastStore((s) => s.show);
 
-  const session = useStudySession(listIds, sessionSize);
+  const session = useStudySession(listIds, sessionSize, mode);
+  const reviewOnly = mode === "review";
   const secondary = isDark ? "text-zinc-500" : "text-zinc-400";
   const progress = session.total > 0 ? (100 * (session.position - 1)) / session.total : 0;
 
@@ -77,11 +79,16 @@ function Session({ listIds }: { listIds: number[] }) {
         >
           <X size={22} color={isDark ? "#A1A1AA" : "#71717A"} />
         </Pressable>
-        <Text
-          className={`flex-1 text-center text-subheadline font-semibold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
-        >
-          {session.total > 0 ? `${session.position} / ${session.total}` : ""}
-        </Text>
+        <View className="flex-1 items-center">
+          <Text
+            className={`text-subheadline font-semibold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
+          >
+            {session.total > 0 ? `${session.position} / ${session.total}` : ""}
+          </Text>
+          {reviewOnly && session.total > 0 && (
+            <Text className={`text-caption2 ${secondary}`}>Review only</Text>
+          )}
+        </View>
         <View className="w-9" />
       </View>
       <View className={`h-1 rounded-full mt-3 overflow-hidden ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}>
@@ -100,7 +107,24 @@ function Session({ listIds }: { listIds: number[] }) {
       <View className={`flex-1 ${isDark ? "bg-zinc-950" : "bg-white"}`}>
         {header}
         <View className="flex-1 items-center justify-center px-8">
-          {tally.reviewed === 0 ? (
+          {tally.reviewed === 0 && reviewOnly ? (
+            <>
+              <Text className={`text-title2 font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}>
+                Nothing due right now
+              </Text>
+              <Text className={`text-footnote text-center mt-2 ${secondary}`}>
+                Every card is scheduled for later. Start a normal session to learn new words.
+              </Text>
+              <Pressable
+                onPress={() => router.replace(`/study/session?lists=${listsParam}&mode=mixed`)}
+                className={`mt-6 px-5 py-2.5 rounded-md border ${isDark ? "border-zinc-700" : "border-zinc-300"}`}
+              >
+                <Text className="text-subheadline font-semibold text-accent dark:text-accent-light">
+                  Learn new words
+                </Text>
+              </Pressable>
+            </>
+          ) : tally.reviewed === 0 ? (
             <>
               <Text className={`text-title2 font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}>
                 Nothing to study
@@ -112,7 +136,7 @@ function Session({ listIds }: { listIds: number[] }) {
           ) : (
             <>
               <Text className={`text-title2 font-bold ${isDark ? "text-zinc-50" : "text-zinc-900"}`}>
-                Session complete
+                {reviewOnly ? "Review complete" : "Session complete"}
               </Text>
               <Text className={`text-body mt-2 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
                 {tally.reviewed} {tally.reviewed === 1 ? "card" : "cards"} reviewed

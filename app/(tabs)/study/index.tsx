@@ -38,6 +38,22 @@ export default function StudyScreen() {
                   pile={sessionSize}
                   onStart={() => router.push("/study/session?lists=all")}
                 />
+                {/* Only when it changes something: with nothing due the bar
+                    already says Learn New, and with a full pile of due cards
+                    the two sessions are the same. */}
+                {totalDue > 0 && totalDue < sessionSize && (
+                  <Pressable
+                    onPress={() => router.push("/study/session?lists=all&mode=review")}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Review only"
+                    className="self-end mt-2"
+                  >
+                    <Text className="text-footnote text-accent dark:text-accent-light">
+                      Review only · {totalDue} {totalDue === 1 ? "card" : "cards"}, no new words
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             )}
 

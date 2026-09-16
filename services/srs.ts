@@ -31,17 +31,24 @@ import type { ActiveList, ListProgress, StudyCard } from "@/types/study";
 
 /**
  * Today's pile: `size` cards, the ones most at risk of being forgotten first,
- * topped up with never-seen words only when fewer than `size` are waiting.
+ * topped up with never-seen words only when fewer than `size` are waiting —
+ * or not at all, for a review-only session.
  *
  * The pile is the same size whether one day or ten were missed. Missed reviews
  * are not a debt to FSRS: a late card is scheduled from the time that actually
  * passed, so nothing needs catching up, and the count shown is always one the
  * user can finish.
  */
+export interface SessionOptions {
+  /** Due cards only — no new words are added to fill the pile. */
+  reviewOnly?: boolean;
+}
+
 export async function buildSession(
   listIds: number[],
   size: number,
-  now = new Date()
+  now = new Date(),
+  options: SessionOptions = {}
 ): Promise<StudyCard[]> {
   if (listIds.length === 0 || size <= 0) return [];
   const db = getUserDb();
@@ -54,7 +61,7 @@ export async function buildSession(
   ]);
   const session = reviews.map(toStudyCard);
 
-  const room = size - session.length;
+  const room = options.reviewOnly ? 0 : size - session.length;
   if (room > 0) {
     const fresh = await db.getAllAsync<{ entry_id: number; list_id: number }>(
       newQueueSql(listIds.length),

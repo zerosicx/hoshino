@@ -21,9 +21,12 @@ const EMPTY_TALLY: SessionTally = { reviewed: 0, again: 0, hard: 0, good: 0, eas
  * Each rating is written the moment it is given, so leaving early loses
  * nothing. A card rated Again comes back once at the end of the same session:
  * the point of Again is to see it again while it is fresh, and the next pile
- * may be tomorrow.
+ * may be tomorrow. A review-only session takes due cards and adds no new
+ * words, for the day there is time to keep up but not to take on more.
  */
-export function useStudySession(listIds: number[], size: number) {
+export type SessionMode = "mixed" | "review";
+
+export function useStudySession(listIds: number[], size: number, mode: SessionMode = "mixed") {
   const [queue, setQueue] = useState<StudyCard[]>([]);
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -39,7 +42,7 @@ export function useStudySession(listIds: number[], size: number) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const items = await buildSession(listIds, size);
+      const items = await buildSession(listIds, size, new Date(), { reviewOnly: mode === "review" });
       if (cancelled) return;
       if (items.length > 0) await recordSessionStart();
       setQueue(items);
@@ -52,7 +55,7 @@ export function useStudySession(listIds: number[], size: number) {
     };
     // Rebuilding on every render of the array would restart the session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, size]);
+  }, [key, size, mode]);
 
   const load = useCallback(async (entryId: number): Promise<CardContent | null> => {
     const hit = cache.current.get(entryId);

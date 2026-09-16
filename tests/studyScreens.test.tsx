@@ -166,6 +166,58 @@ describe("study session", () => {
     srs.buildSession.mockResolvedValue([]);
     renderRouter(routes, { initialUrl: "/study/session?lists=all" });
     await act(async () => {});
-    expect(srs.buildSession).toHaveBeenCalledWith([3, 9], 20);
+    expect(srs.buildSession).toHaveBeenCalledWith([3, 9], 20, expect.any(Date), { reviewOnly: false });
+  });
+
+  it("takes due cards only in review mode, and offers new words when none are due", async () => {
+    srs.buildSession.mockResolvedValue([]);
+    renderRouter(routes, { initialUrl: "/study/session?lists=3&mode=review" });
+    await act(async () => {});
+
+    expect(srs.buildSession).toHaveBeenCalledWith([3], 20, expect.any(Date), { reviewOnly: true });
+    expect(screen.getByText("Nothing due right now")).toBeTruthy();
+
+    await act(async () => fireEvent.press(screen.getByText("Learn new words")));
+    expect(screen).toHaveSearchParams({ lists: "3", mode: "mixed" });
+    expect(srs.buildSession).toHaveBeenLastCalledWith([3], 20, expect.any(Date), { reviewOnly: false });
+  });
+
+  it("labels a review-only session and its completion", async () => {
+    srs.buildSession.mockResolvedValue([newCard(1)]);
+    renderRouter(routes, { initialUrl: "/study/session?lists=3&mode=review" });
+    await act(async () => {});
+    expect(screen.getByText("Review only")).toBeTruthy();
+
+    await act(async () => fireEvent.press(screen.getByLabelText("Reveal answer")));
+    await act(async () => fireEvent.press(screen.getByLabelText("Good")));
+    expect(screen.getByText("Review complete")).toBeTruthy();
+  });
+});
+
+describe("review only on the landing", () => {
+  it("appears only when some, but fewer than a pile of, cards are due", async () => {
+    srs.getActiveLists.mockResolvedValue([{ ...active, progress: { ...active.progress, due: 7 } }]);
+    srs.buildSession.mockResolvedValue([]);
+    renderRouter(routes, { initialUrl: "/study" });
+    await act(async () => {});
+    expect(screen.getByText(/Review only · 7 cards/)).toBeTruthy();
+
+    await act(async () => fireEvent.press(screen.getByLabelText("Review only")));
+    expect(screen).toHaveSearchParams({ lists: "all", mode: "review" });
+  });
+
+  it("stays hidden with nothing due or a full pile due", async () => {
+    srs.getActiveLists.mockResolvedValue([{ ...active, progress: { ...active.progress, due: 0 } }]);
+    renderRouter(routes, { initialUrl: "/study" });
+    await act(async () => {});
+    expect(screen.queryByLabelText("Review only")).toBeNull();
+
+    await act(async () => {
+      srs.getActiveLists.mockResolvedValue([{ ...active, progress: { ...active.progress, due: 40 } }]);
+    });
+    screen.unmount();
+    renderRouter(routes, { initialUrl: "/study" });
+    await act(async () => {});
+    expect(screen.queryByLabelText("Review only")).toBeNull();
   });
 });
