@@ -104,7 +104,7 @@ The primary user is an intermediate-to-advanced Japanese learner (JLPT N3–N1 l
   - **Easy** — instant recall; longer interval
 - Each rating button displays the next scheduled interval (e.g., "<1m", "6m", "10m", "4d")
 - The FSRS algorithm calculates the next review date based on the rating
-- The session shows a progress bar and a settled count (e.g., "7 / 20")
+- The session shows a progress bar and a card counter, done over distinct cards (e.g., "7 / 20")
 - Users can exit a session early via the X button, which returns to the Study landing; every rating is saved as it is given
 - **Two limits.** New words per day (default 10) caps how many never-seen words may be introduced in a day across every list. Cards per session (default 20) caps the distinct cards one session holds; due cards fill it first, ordered by how likely they are to have been forgotten, then new words within the day's remaining budget. The landing shows what the session will hold, never a backlog count
 - **A session runs until its cards are settled.** A card comes back within the session — soonest after Again, then Hard, then Good, never straight after itself — until the algorithm moves it to the review stage, or until it has been shown four times, in which case it stays in learning and returns tomorrow
