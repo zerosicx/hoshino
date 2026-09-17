@@ -37,7 +37,7 @@ Rules for the lines:
 
 ---
 
-## v0.1.0 Happy Fruit
+## v1.0.0 Happy Fruit
 
 Last updated: 17/09/26
 Created: 03/09/26
@@ -76,6 +76,7 @@ Changelog:
 - [FEATURE] Your pasted text stays in the reader until you replace it, and the Dictionary tab offers to continue reading it.
 - [FEATURE] Review only: when some cards are due, a link under the study bar runs through just those, with no new words added.
 - [FEATURE] "See all" on Recently Searched opens the Searched Terms list.
+- [FEATURE] An About screen in Settings lists where the dictionary comes from and each source's licence, and carries the privacy policy so it can be read offline.
 - [UPDATED] Each active list on the Study tab has its own Review button under its progress bar, so reviewing due cards and learning from the list are clearly different taps.
 - [UPDATED] The study session shows a plain card counter at the top instead of a "Settled" count.
 - [BUG FIX] The Settings screen scrolls fully clear of the tab bar; the last lines are no longer cut off.

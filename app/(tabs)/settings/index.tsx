@@ -1,8 +1,9 @@
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
 import { NEW_PER_DAY_OPTIONS, SESSION_SIZES, useSettingsStore } from '@/stores/settingsStore';
 import { useTheme } from '@/hooks/useTheme';
-import { Sun, Moon, Monitor, ShieldCheck } from 'lucide-react-native';
+import { Sun, Moon, Monitor, ShieldCheck, ChevronRight, Info } from 'lucide-react-native';
 
 export default function SettingsScreen() {
   const {
@@ -20,6 +21,7 @@ export default function SettingsScreen() {
     setMotionMode,
   } = useSettingsStore();
   const { isDark } = useTheme();
+  const router = useRouter();
 
   return (
     <ScrollView
@@ -189,9 +191,26 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* About: sources, licences, privacy — its own screen, as the dictionary licence requires */}
+      <Pressable
+        onPress={() => router.push('/settings/about')}
+        accessibilityRole="button"
+        accessibilityLabel="About and sources"
+        className={`border ${isDark ? 'border-zinc-800 bg-zinc-900 active:bg-zinc-800' : 'border-zinc-200 bg-zinc-50 active:bg-zinc-100'} rounded-xl p-4 mb-8 flex-row items-center justify-between`}
+      >
+        <View className="flex-row items-center flex-1">
+          <Info size={20} color={isDark ? '#6366F1' : '#4F46E5'} />
+          <View className="ml-3 flex-1">
+            <Text className={`text-sm font-semibold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>About and sources</Text>
+            <Text className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Dictionary licences and the privacy policy</Text>
+          </View>
+        </View>
+        <ChevronRight size={18} color={isDark ? '#71717A' : '#A1A1AA'} />
+      </Pressable>
+
       {/* Footer */}
       <Text className={`text-center text-xs ${isDark ? 'text-zinc-600' : 'text-zinc-400'} mb-1`}>
-        Hoshino v{Constants.expoConfig?.version ?? '0.1.0'} by zerosicx
+        Hoshino v{Constants.expoConfig?.version ?? '1.0.0'} by zerosicx
       </Text>
       <Text className={`text-center text-xs ${isDark ? 'text-zinc-600' : 'text-zinc-400'} mb-12`}>
         Offline-First Japanese Dictionary

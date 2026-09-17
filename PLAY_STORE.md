@@ -43,7 +43,7 @@ not compliant.
      person. Host from the repo on GitHub Pages (Hannah switches Pages on in
      the repository settings).
    - Version `1.0.0` in `app.json` — `0.1.0` reads as unfinished on a listing.
-     The changelog's version name is internal and can stay or change.
+     Done: the changelog section was retitled v1.0.0 Happy Fruit, same lines.
    - A fresh production build after these land: `npm run release:production`.
 
 3. **Create the app in the Console** — Hannah. Name "hoshino: jisho", English
@@ -96,7 +96,7 @@ not compliant.
 | Step | State |
 |---|---|
 | 1 Account | not started |
-| 2 About screen, privacy policy, version | not started |
+| 2 About screen, privacy policy, version | done 17/09/26 — pending Hannah switching on GitHub Pages (Settings → Pages → main, /docs) so the policy URL resolves |
 | 3 App record | not started |
 | 4 Listing | not started |
 | 5 Declarations | not started |

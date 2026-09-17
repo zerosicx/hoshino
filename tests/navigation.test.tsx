@@ -15,6 +15,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import * as DictionaryLayout from "@/app/(tabs)/dictionary/_layout";
 import * as ListsLayout from "@/app/(tabs)/lists/_layout";
 import * as StudyLayout from "@/app/(tabs)/study/_layout";
+import * as SettingsLayout from "@/app/(tabs)/settings/_layout";
 import Index from "@/app/index";
 
 /**
@@ -55,6 +56,7 @@ const routes = {
   "(tabs)/study/_layout": StudyLayout,
   "(tabs)/study/index": Screen,
   "(tabs)/study/session": Screen,
+  "(tabs)/settings/_layout": SettingsLayout,
   "(tabs)/settings/index": Screen,
   "word/[id]": Screen,
   "kanji/[char]": Screen,

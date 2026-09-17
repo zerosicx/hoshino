@@ -16,6 +16,7 @@ import CreateList from "@/app/create-list";
 import Index from "@/app/index";
 import TabsLayout from "@/app/(tabs)/_layout";
 import * as ListsLayout from "@/app/(tabs)/lists/_layout";
+import * as SettingsLayout from "@/app/(tabs)/settings/_layout";
 import type { ListSummary } from "@/types/lists";
 
 jest.mock("@/services/lists");
@@ -63,6 +64,7 @@ const routes = {
   "(tabs)/lists/_layout": ListsLayout,
   "(tabs)/lists/index": Screen,
   "(tabs)/lists/[id]": Screen,
+  "(tabs)/settings/_layout": SettingsLayout,
   "(tabs)/settings/index": Screen,
   "(tabs)/study/index": Screen,
   "word/[id]": Screen,

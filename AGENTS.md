@@ -133,6 +133,10 @@ hoshino/
 │   │   │   ├── _layout.tsx       # Stack
 │   │   │   ├── index.tsx         # All lists
 │   │   │   └── [id].tsx          # List detail / items
+│   │   ├── settings/
+│   │   │   ├── _layout.tsx       # Stack
+│   │   │   ├── index.tsx         # Settings
+│   │   │   └── about.tsx         # Sources, licences, privacy — required by the EDRDG licence
 │   │   └── _layout.tsx
 │   ├── word/[id].tsx             # Word detail screen (root stack, over the tabs)
 │   ├── kanji/[char].tsx          # Kanji detail screen (root stack, over the tabs)

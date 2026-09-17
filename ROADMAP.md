@@ -438,6 +438,10 @@ already built with theme and reading-mode preferences.
       counter across profiles (`appVersionSource: remote`), so preview 14 and
       production 15 sit on the same counter, and codes 8 and 10–13 were burnt
       by uploads that failed silently (see "Releasing a beta update").
+- [x] **About and sources screen, privacy policy, version 1.0.0** — the
+      licence acknowledgements the EDRDG requires on their own screen;
+      the policy text ships in-app and as `docs/privacy.html` for GitHub
+      Pages, which Hannah has to switch on for the URL to resolve.
 - [ ] **Play Console** — the full plan and its status table are in
       `PLAY_STORE.md`. Two things gate it: a personal account must run a
       closed test with 12 testers for 14 days before production, and the app

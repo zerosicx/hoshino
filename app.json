@@ -2,7 +2,7 @@
   "expo": {
     "name": "hoshino: jisho",
     "slug": "hoshino",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "scheme": "hoshino",
     "runtimeVersion": {
       "policy": "fingerprint"
