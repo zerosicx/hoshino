@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About Hoshino</title>
+<meta name="description" content="Who makes Hoshino, how it treats your data, the dictionary sources it is built on, and how it was built.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html" aria-label="Hoshino home">
+      <svg class="star" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.5l2.9 6.2 6.7.8-5 4.6 1.4 6.7L12 17.4l-6 3.4 1.4-6.7-5-4.6 6.7-.8z"/></svg>
+      <span>Hoshino</span>
+    </a>
+    <nav class="site-nav" aria-label="Site">
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html" aria-current="page">About</a></li>
+        <li><span class="nav-soon">Feature requests <span class="tag">soon</span></span></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <div class="wrap page-title">
+    <h1>About Hoshino</h1>
+    <p class="muted">A small app, made carefully, by one person who wanted it to exist.</p>
+  </div>
+
+  <section class="section" id="hello" aria-labelledby="hello-title">
+    <div class="wrap prose">
+      <h2 id="hello-title">Hello</h2>
+      <p>Hi, I'm ZEROSICX. I love learning Japanese, and I have tried a lot of apps along the way. Most of them were either too slow, too complicated, or padded with things I never asked for. I would open one to check a word and leave ten minutes later without having learned it.</p>
+      <p>I'm at an intermediate level, so the thing I care about most is building vocabulary. I wanted a dictionary that is quick to search and honest about what it shows, and a study tool that quietly picks up the words I meet, without asking me to manage anything. So I made Hoshino: a simple, easy-to-use app that makes that loop more efficient, and that I actually enjoy opening.</p>
+      <p>I build it in my free time and I'm listening. The goal is as many genuinely useful features as possible, each one bringing real value without adding complexity. A place to send feature requests is coming soon. Until then, thank you for trying it.</p>
+      <p class="signoff">ZEROSICX</p>
+    </div>
+  </section>
+
+  <section class="section" id="privacy" aria-labelledby="privacy-title">
+    <div class="wrap prose">
+      <h2 id="privacy-title">Privacy</h2>
+      <p>Hoshino has no accounts and collects no personal data. The words you search, the lists you make, your study progress and any text you paste into the reader all stay on your device. Nothing is sent to me.</p>
+      <p>The one thing the app does send is an update check. It tells Expo's update service the operating system, the app version and a random identifier created for this installation, so the right update can be delivered. That identifier is not linked to you or to anything you do in the app, and nothing else is sent.</p>
+      <p>The app asks for no permissions beyond network access for those update checks. If you delete the app, all of its data goes with it.</p>
+      <p>Accounts and optional sync across devices may come later. If they do, this page and the privacy policy will say exactly what is stored and why, before it ships, and the app will stay fully usable without an account.</p>
+      <p>The full text is in the <a href="privacy.html">privacy policy</a>.</p>
+    </div>
+  </section>
+
+  <section class="section" id="sources" aria-labelledby="sources-title">
+    <div class="wrap prose">
+      <h2 id="sources-title">Sources and licences</h2>
+      <p>Hoshino is built on open dictionary data. These are the projects it depends on, with thanks to the people who maintain them.</p>
+
+      <ul class="sources">
+        <li>
+          <h3>JMdict</h3>
+          <div class="source-meta">
+            <span>Japanese to English vocabulary</span>
+            <span class="licence">CC BY-SA 4.0</span>
+          </div>
+          <blockquote>This site and app use the JMdict/EDICT dictionary files. These files are the property of the Electronic Dictionary Research and Development Group, and are used in conformance with the Group's licence.</blockquote>
+          <p><a href="https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project">JMdict-EDICT Dictionary Project</a></p>
+        </li>
+        <li>
+          <h3>KANJIDIC2</h3>
+          <div class="source-meta">
+            <span>Kanji readings, meanings and metadata</span>
+            <span class="licence">CC BY-SA 4.0</span>
+          </div>
+          <blockquote>This site and app use the KANJIDIC2 dictionary file. This file is the property of the Electronic Dictionary Research and Development Group, and is used in conformance with the Group's licence.</blockquote>
+          <p><a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project">KANJIDIC Project</a></p>
+        </li>
+        <li>
+          <h3>Tatoeba</h3>
+          <div class="source-meta">
+            <span>Example sentences and translations</span>
+            <span class="licence">CC BY 2.0 FR</span>
+          </div>
+          <p>The example sentences in every entry come from the Tatoeba community's collection of sentences and their translations.</p>
+          <p><a href="https://tatoeba.org">tatoeba.org</a></p>
+        </li>
+        <li>
+          <h3>yomitan-jlpt-vocab</h3>
+          <div class="source-meta">
+            <span>JLPT levels for words</span>
+            <span class="licence">CC BY</span>
+          </div>
+          <p>By stephenmk, built on Jonathan Waller's JLPT vocabulary lists. It is how the app knows which level a word belongs to.</p>
+          <p><a href="https://github.com/stephenmk/yomitan-jlpt-vocab">github.com/stephenmk/yomitan-jlpt-vocab</a></p>
+        </li>
+        <li>
+          <h3>kanji-data</h3>
+          <div class="source-meta">
+            <span>JLPT levels for kanji</span>
+            <span class="licence">MIT</span>
+          </div>
+          <p>By David Gouveia. It is how the app knows which level a kanji belongs to.</p>
+          <p><a href="https://github.com/davidluzgouveia/kanji-data">github.com/davidluzgouveia/kanji-data</a></p>
+        </li>
+      </ul>
+
+      <p class="small muted" style="margin-top:1.25rem">The JMdict and KANJIDIC2 files are made available under CC BY-SA 4.0 by the Electronic Dictionary Research and Development Group. <a href="https://www.edrdg.org/edrdg/licence.html">Read the EDRDG licence</a>.</p>
+    </div>
+  </section>
+
+  <section class="section" id="built" aria-labelledby="built-title">
+    <div class="wrap prose">
+      <h2 id="built-title">How it was built</h2>
+      <p>Hoshino is written once and runs on Android, iOS and the web, using Expo and React Native. The dictionary is a pre-built database that ships inside the app, with full-text search already indexed, so a lookup never needs a connection. Flashcards are scheduled by FSRS (through the ts-fsrs library), a modern spaced repetition algorithm that works out when you are most likely to forget a word and shows it to you just before then.</p>
+      <p>The reader does not use a separate language model to split text into words. It leans on the dictionary itself: it finds every word the dictionary could recognise at each position, then picks the split that scores best. That split is checked against a benchmark of sentences marked up by hand, and the search ranking is checked against a benchmark of its own, so a change that makes either one worse shows up before it reaches the app.</p>
+      <p>I build Hoshino in my free time, with AI-assisted development, and I write the design decisions down as the project goes so the reasoning behind each one is not lost. If something feels off, it is probably a decision that deserves a second look, and I would rather hear about it.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="foot-row">
+      <a class="brand" href="index.html">
+        <svg class="star" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.5l2.9 6.2 6.7.8-5 4.6 1.4 6.7L12 17.4l-6 3.4 1.4-6.7-5-4.6 6.7-.8z"/></svg>
+        <span>Hoshino</span>
+      </a>
+      <span>by ZEROSICX</span>
+      <nav aria-label="Footer">
+        <ul>
+          <li><a href="about.html">About</a></li>
+          <li><a href="privacy.html">Privacy policy</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p>Dictionary data from JMdict, KANJIDIC2 and Tatoeba. <a href="#sources">Full credits and licences</a>.</p>
+  </div>
+</footer>
+
+</body>
+</html>

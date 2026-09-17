@@ -98,7 +98,7 @@ not compliant.
 | Step | State |
 |---|---|
 | 1 Account | not started |
-| 2 About screen, privacy policy, version | done 17/09/26 — pending Hannah switching on GitHub Pages (Settings → Pages → main, /docs) so the policy URL resolves |
+| 2 About screen, privacy policy, version | done 17/09/26; the marketing site and policy are in `docs/`, pending Hannah switching on GitHub Pages (repository Settings, Pages, main branch, /docs folder) so the URLs resolve |
 | 3 App record | not started |
 | 4 Listing | not started |
 | 5 Declarations | not started |

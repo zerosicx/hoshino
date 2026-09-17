@@ -1,3 +1,231 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=privacy.html"><title>hoshino: jisho</title></head>
-<body><p><a href="privacy.html">Privacy policy</a></p></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hoshino: a free, offline Japanese dictionary and study app</title>
+<meta name="description" content="Hoshino is a free Japanese dictionary and study tool in one. 217,000 words and 13,000 kanji on your phone, flashcards with spaced repetition, and a reader for any text. No account, works offline.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html" aria-label="Hoshino home">
+      <svg class="star" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.5l2.9 6.2 6.7.8-5 4.6 1.4 6.7L12 17.4l-6 3.4 1.4-6.7-5-4.6 6.7-.8z"/></svg>
+      <span>Hoshino</span>
+    </a>
+    <nav class="site-nav" aria-label="Site">
+      <ul>
+        <li><a href="index.html" aria-current="page">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><span class="nav-soon">Feature requests <span class="tag">soon</span></span></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap">
+      <h1 id="hero-title">Look a word up. Then actually learn it.</h1>
+      <p class="lede">Hoshino is a Japanese dictionary and a study tool in one. Search a word, tap it, and it is already waiting in your study pile. Everything lives on your phone: no connection, no account, nothing to pay for.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="#download">Get the Android beta</a>
+        <a class="btn btn-secondary" href="#how">How it works</a>
+      </div>
+      <p class="fine">Free. Works offline. No account.</p>
+    </div>
+  </section>
+
+  <section class="section" id="try" aria-labelledby="try-title">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Live demo</span>
+        <h2 id="try-title">Try the dictionary</h2>
+        <p>Type in kanji, kana, romaji or English. Results appear as you type, the same way they do in the app.</p>
+      </div>
+
+      <div class="demo">
+        <form id="demo-form" data-words="demo/words.json" role="search" autocomplete="off">
+          <label class="search-label" for="demo-query">Search the demo dictionary</label>
+          <div class="search-box">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input class="search-input" id="demo-query" type="search" name="q" placeholder="Search kanji, kana or romaji" spellcheck="false" autocapitalize="off" autocorrect="off" lang="ja" aria-describedby="demo-status">
+          </div>
+        </form>
+
+        <noscript>
+          <p class="demo-status">The live demo needs JavaScript. The rest of this page works without it.</p>
+        </noscript>
+
+        <ul class="chips" id="demo-chips" aria-label="Suggested words">
+          <li><button type="button" class="chip" data-word="水" lang="ja">水</button></li>
+          <li><button type="button" class="chip" data-word="食べる" lang="ja">食べる</button></li>
+          <li><button type="button" class="chip" data-word="日本語" lang="ja">日本語</button></li>
+          <li><button type="button" class="chip" data-word="学校" lang="ja">学校</button></li>
+          <li><button type="button" class="chip" data-word="猫" lang="ja">猫</button></li>
+          <li><button type="button" class="chip" data-word="時間" lang="ja">時間</button></li>
+        </ul>
+
+        <p class="demo-status" id="demo-status" role="status" aria-live="polite"></p>
+        <ul class="results" id="demo-results" aria-label="Search results"></ul>
+
+        <p class="demo-note">A taste of it. The app holds 217,000 words and 13,000 kanji, all on your phone.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">What it does</span>
+        <h2 id="how-title">A dictionary that remembers what you looked up</h2>
+        <p>Four parts, one app. Each one is built to get you from a word you do not know to a word you do, in as few taps as possible.</p>
+      </div>
+
+      <ul class="features">
+        <li class="feature">
+          <span class="icon-wrap" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </span>
+          <h3>Dictionary</h3>
+          <p>217,000 words and 13,000 kanji, searchable by kanji, kana, romaji or English. Type a conjugated form like 食べました and it resolves to 食べる. Every entry shows readings over the kanji, example sentences, and a full conjugation table.</p>
+        </li>
+        <li class="feature">
+          <span class="icon-wrap" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" focusable="false"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+          </span>
+          <h3>JLPT reference</h3>
+          <p>Ten built-in lists, N5 to N1, for vocabulary and for kanji. Browse a level, see which words you already know, and start studying any list with one tap.</p>
+        </li>
+        <li class="feature">
+          <span class="icon-wrap" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" focusable="false"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>
+          </span>
+          <h3>Study</h3>
+          <p>Flashcards with spaced repetition, so each word comes back just before you would forget it. You set a daily budget of new words, and each word climbs a ladder from New to Mastered. Review-only sessions when you are short on time. No accuracy score, no shaming.</p>
+        </li>
+        <li class="feature">
+          <span class="icon-wrap" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" focusable="false"><rect x="8" y="2" width="14" height="14" rx="2"/><path d="M16 16v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2"/></svg>
+          </span>
+          <h3>Reader</h3>
+          <p>Paste any Japanese text. Every word gets its reading, and a tap opens the full entry. The words you look up are collected into Searched Terms, so reading and studying feed each other.</p>
+        </li>
+      </ul>
+
+      <div class="strip">
+        <h3>Every word you look up is already waiting to be studied</h3>
+        <p>Searched Terms is a list the app keeps for you. Any word you open, from search or from the reader, lands in it. When you are ready, study the list like any other and the words you actually met become the words you learn.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="why" aria-labelledby="why-title">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Why it feels fast</span>
+        <h2 id="why-title">Built to get out of your way</h2>
+      </div>
+      <ol class="points">
+        <li>
+          <h3>Everything is on the device</h3>
+          <p>The whole dictionary ships inside the app. Search on a train, in a basement, or on a plane. Nothing waits on a connection.</p>
+        </li>
+        <li>
+          <h3>One tap from a word to its entry</h3>
+          <p>Results, the reader, flashcards and lists all open the same word page. There is no menu to learn and no second screen in the way.</p>
+        </li>
+        <li>
+          <h3>A pile, not a backlog</h3>
+          <p>A study session is a fixed size. Miss a week and you come back to twenty cards, not a wall of hundreds. The scheduler simply picks up from where you left off.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="download" aria-labelledby="download-title">
+    <div class="wrap">
+      <div class="download-grid">
+        <div class="download">
+          <span class="eyebrow">Download</span>
+          <h2 id="download-title">Android beta</h2>
+          <p class="muted">Hoshino is in beta on Android. The Google Play listing is being prepared, and this page will link to it as soon as it is live.</p>
+          <div class="actions">
+            <a class="btn btn-primary" href="#" aria-disabled="true" role="button">Google Play, coming soon</a>
+          </div>
+          <p class="fine">iOS and web are on the roadmap.</p>
+        </div>
+
+        <div>
+          <h3 id="roadmap-title">Roadmap</h3>
+          <dl class="roadmap" aria-labelledby="roadmap-title">
+            <dt class="shipped">Shipped</dt>
+            <dd>
+              <ul>
+                <li>Dictionary with conjugation tables and examples</li>
+                <li>JLPT lists, N5 to N1, vocabulary and kanji</li>
+                <li>Study system with spaced repetition</li>
+                <li>Reader for pasted text</li>
+                <li>Reduced motion setting</li>
+              </ul>
+            </dd>
+            <dt class="progress">In progress</dt>
+            <dd>
+              <ul>
+                <li>Google Play release</li>
+              </ul>
+            </dd>
+            <dt class="next">Next</dt>
+            <dd>
+              <ul>
+                <li>Accounts and sync across devices <span class="muted">(optional; the app stays fully usable without one)</span></li>
+              </ul>
+            </dd>
+            <dt class="later">Later</dt>
+            <dd>
+              <ul>
+                <li>A library of saved texts in the reader</li>
+                <li>iOS</li>
+                <li>Web</li>
+                <li>More study modes</li>
+              </ul>
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="foot-row">
+      <a class="brand" href="index.html">
+        <svg class="star" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.5l2.9 6.2 6.7.8-5 4.6 1.4 6.7L12 17.4l-6 3.4 1.4-6.7-5-4.6 6.7-.8z"/></svg>
+        <span>Hoshino</span>
+      </a>
+      <span>by ZEROSICX</span>
+      <nav aria-label="Footer">
+        <ul>
+          <li><a href="about.html">About</a></li>
+          <li><a href="privacy.html">Privacy policy</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p>Dictionary data from JMdict, KANJIDIC2 and Tatoeba. <a href="about.html#sources">Full credits and licences</a>.</p>
+  </div>
+</footer>
+
+<script src="site.js" defer></script>
+</body>
+</html>
