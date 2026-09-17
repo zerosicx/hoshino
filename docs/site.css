@@ -638,7 +638,7 @@ li { margin-bottom: 0.35rem; }
   margin-top: 1.5rem;
   font-weight: 600;
 }
-.page-title { padding: 3.5rem 0 0; }
+.page-title { padding-top: 3.5rem; }
 .page-title h1 { margin-bottom: 0.5rem; }
 
 .sources {
