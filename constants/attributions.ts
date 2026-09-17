@@ -2,9 +2,10 @@
  * Where the dictionary comes from, and what each source's licence asks of us.
  *
  * The EDRDG's terms require the acknowledgement to sit on its own screen,
- * reached from a menu — not on a launch screen — so `settings/about.tsx`
+ * reached from a menu, not on a launch screen, so `settings/about.tsx`
  * exists for this before anything else. Wording follows the samples on the
- * EDRDG licence page.
+ * EDRDG licence page. No contact address: feedback will come through an
+ * anonymous channel later, and the founder keeps her own address private.
  */
 
 export interface Attribution {
@@ -64,9 +65,9 @@ export const EDRDG_LICENCE_URL = "https://www.edrdg.org/edrdg/licence.html";
 /** The policy in full, so it can be read without a connection. */
 export const PRIVACY_POLICY = [
   "Hoshino does not collect, store or share any personal data.",
-  "Everything you do in the app — the words you search, the lists you make, your study progress and any text you paste into the reader — stays on your device. Nothing is sent to us. There is no account and nothing to sign in to.",
+  "Everything you do in the app, from the words you search and the lists you make to your study progress and any text you paste into the reader, stays on your device. Nothing is sent to us. There is no account and nothing to sign in to.",
   "When the app checks for updates it sends the operating system, the app version and a random identifier created for this installation to Expo's update service, so that the right update can be delivered. That identifier is not linked to you or to anything you do in the app.",
   "The app asks for no permissions beyond network access for those update checks.",
   "If you delete the app, all of its data goes with it.",
-  "Questions: hcsofteng@gmail.com",
+  "Accounts and optional sync may come later. If they do, this policy will say exactly what is stored and why before it ships.",
 ];

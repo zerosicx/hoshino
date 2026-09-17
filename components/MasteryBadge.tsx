@@ -18,7 +18,7 @@ export const STAGE_LABEL: Record<Stage, string> = {
 /**
  * Where a word is on the mastery ladder: the rung's name and, unless compact,
  * five dots filled up to it (DESIGN_SYSTEM.md §9.3 badge, §9.12). One colour
- * for every rung — the ladder says how far, the colour never says how well.
+ * for every rung, the ladder says how far, the colour never says how well.
  */
 export default function MasteryBadge({ stage, compact = false }: MasteryBadgeProps) {
   const filled = STAGES.indexOf(stage) + 1;

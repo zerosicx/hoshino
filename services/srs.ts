@@ -55,7 +55,7 @@ export interface Session {
 /**
  * What a session starts with: the cards most at risk of being forgotten
  * (including any still in the minute loop from an earlier session), capped
- * at the session size, then new words in the room left — up to today's
+ * at the session size, then new words in the room left, up to today's
  * remaining budget in a mixed session, none in review, as many as fit in
  * learn. No side effects; `recordSessionStart` is the hook's to call.
  *
@@ -103,8 +103,8 @@ export async function buildSession(
 }
 
 /**
- * Applies a rating: reschedules the card, writes it, and counts the review —
- * and any introduction or graduation — in today's stats. One transaction, so
+ * Applies a rating: reschedules the card, writes it, and counts the review ,
+ * and any introduction or graduation, in today's stats. One transaction, so
  * a crash mid-way loses the rating rather than half-recording it.
  */
 export async function rateCard(

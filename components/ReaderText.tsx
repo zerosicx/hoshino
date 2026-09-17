@@ -17,9 +17,8 @@ interface ReaderTextProps {
  *
  * Views in a wrapping row rather than nested Text: Android cannot lay out a
  * View inside Text without a fixed size, and nested-Text press targets land
- * in the wrong place. Romaji is not offered here — romaji above every kanji
- * run spaces a paragraph out until it stops reading as prose — so the romaji
- * setting shows kana instead.
+ * in the wrong place. The reading setting is honoured: furigana or romaji
+ * above the kanji, or nothing.
  */
 export default function ReaderText({
   tokens,
@@ -29,6 +28,7 @@ export default function ReaderText({
   onPressUnknown,
 }: ReaderTextProps) {
   const showRuby = readingMode !== "none";
+  const romaji = readingMode === "romaji";
 
   if (!tokens) {
     return (
@@ -49,7 +49,7 @@ export default function ReaderText({
                     className="text-[10px] leading-[12px] text-accent dark:text-accent-light text-center"
                     style={{ minHeight: 12 }}
                   >
-                    {rubyText(pair, false) || " "}
+                    {rubyText(pair, romaji) || " "}
                   </Text>
                 )}
                 <Text

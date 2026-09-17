@@ -16,6 +16,9 @@ node_modules/
 /ios
 /android
 
+# The marketing site, served by GitHub Pages; not part of the app
+docs/
+
 # Build outputs
 .expo/
 dist/

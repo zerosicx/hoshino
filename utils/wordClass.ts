@@ -3,7 +3,7 @@
  *
  * The tags arrive already expanded from XML entities, so what the database
  * holds is `Godan verb with 'ru' ending` rather than `v5r`. That is why
- * `entries.conjugation_class` is null for every row — the build script looks
+ * `entries.conjugation_class` is null for every row, the build script looks
  * up the short codes, which never arrive.
  */
 

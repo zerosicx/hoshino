@@ -8,7 +8,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
  * NativeWind resolves `dark:` classes from its own colour scheme, which follows
  * the device unless it is told otherwise. Screens that computed their own
  * `isDark` from the settings store therefore disagreed with every `dark:` class
- * whenever the chosen theme differed from the device — light backgrounds with
+ * whenever the chosen theme differed from the device, light backgrounds with
  * dark-mode text on top. Pushing the setting into NativeWind and reading the
  * answer back means the two can no longer drift apart.
  */

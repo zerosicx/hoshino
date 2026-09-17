@@ -109,7 +109,7 @@ export default function WordDetailScreen() {
   const primaryKanji = entry.kanjiForms[0] ?? entry.readingForms[0] ?? "";
 
   // Tapping a list the word is already in takes it out again, so the same row
-  // both adds and undoes — there is nowhere else to remove a word from a list.
+  // both adds and undoes, there is nowhere else to remove a word from a list.
   const pickList = async (list: ListSummary) => {
     setPicking(false);
 

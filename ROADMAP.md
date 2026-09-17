@@ -167,8 +167,8 @@ first run, technical) whose memos were reconciled into these decisions:
 - **Words looked up before are underlined** in the accent colour, derived
   from `search_history` at read time, so the "search → study" loop is visible
   without a toast or counter.
-- **No romaji in the reader.** Romaji above every kanji run spaces prose out
-  until it stops reading as prose; the romaji setting shows kana here.
+- **The reading setting is honoured in the reader**, romaji included (it was
+  kana-only at first; Hannah asked for romaji on 17/09/26).
 - **The text persists; the scroll position does not** (the reader stays
   mounted under the word page, so back lands where you were anyway).
 - **Segmentation is dictionary-driven**, no new library: see

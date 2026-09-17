@@ -2,7 +2,7 @@
  * Serves the read-only dictionary from the official SQLite WebAssembly build,
  * running in a dedicated worker. Web only.
  *
- * expo-sqlite's own WASM build omits FTS5 — its compile options list just
+ * expo-sqlite's own WASM build omits FTS5, its compile options list just
  * ENABLE_BATCH_ATOMIC_WRITE, ENABLE_PREUPDATE_HOOK and ENABLE_SESSION, and the
  * binary contains no fts5 symbols at all. A build without that module cannot
  * read a schema declaring `CREATE VIRTUAL TABLE ... USING fts5`, which is why

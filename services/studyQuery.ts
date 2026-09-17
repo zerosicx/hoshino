@@ -5,7 +5,7 @@
  * file in tests; `services/srs.ts` and `services/stats.ts` execute them.
  *
  * Two rules shape the queries. A word in a list is "new" by having no row in
- * `srs_cards` — the row is created on the first rating, so joining a list has
+ * `srs_cards`, the row is created on the first rating, so joining a list has
  * no side effects. And every card query joins `list_items`, so a card whose
  * word has left its list is simply invisible rather than deleted, and its
  * progress comes back if the word is re-added.
@@ -112,7 +112,7 @@ export function dueParams(now: Date): string[] {
  *
  * Params from `reviewQueueParams`. FSRS's forgetting curve is a function of
  * elapsed time over stability alone, so ordering by that ratio, largest
- * first, is the same as ordering by recall probability, lowest first —
+ * first, is the same as ordering by recall probability, lowest first ,
  * without computing the curve for every row.
  */
 export function reviewQueueSql(listCount: number): string {
@@ -412,8 +412,8 @@ export const STUDY_DAYS_SQL = `
 /**
  * Consecutive days studied, counting back from today.
  *
- * A day not yet studied does not break the run — the streak is intact until
- * midnight passes without a review — so the count may start from yesterday.
+ * A day not yet studied does not break the run, the streak is intact until
+ * midnight passes without a review, so the count may start from yesterday.
  * `days` is newest first, as `STUDY_DAYS_SQL` returns it. Purely on the
  * YYYY-MM-DD strings, so no time zone can move a day.
  */

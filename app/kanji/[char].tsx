@@ -159,12 +159,12 @@ export default function KanjiDetailScreen() {
           <View className="flex-row flex-wrap gap-4">
             <MetadataItem
               label="Strokes"
-              value={kanji.strokeCount != null ? String(kanji.strokeCount) : "—"}
+              value={kanji.strokeCount != null ? String(kanji.strokeCount) : "-"}
               isDark={isDark}
             />
             <MetadataItem
               label="Frequency"
-              value={kanji.frequency != null ? `#${kanji.frequency}` : "—"}
+              value={kanji.frequency != null ? `#${kanji.frequency}` : "-"}
               isDark={isDark}
             />
             {kanji.radicals.length > 0 && (

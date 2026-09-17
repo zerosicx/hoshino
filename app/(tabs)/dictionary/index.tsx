@@ -131,7 +131,7 @@ export default function DictionaryScreen() {
           )}
         </>
       ) : (
-        // Home state — the reader, recent searches, empty prompt
+        // Home state, the reader, recent searches, empty prompt
         <View className="flex-1">
           <Pressable
             onPress={() => router.push("/dictionary/reader")}

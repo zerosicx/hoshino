@@ -52,7 +52,7 @@ async function step<T>(label: string, fn: () => Promise<T>): Promise<T> {
       `?? [DB] failed at "${label}" after ${Date.now() - started}ms:`,
       err
     );
-    throw new Error(`${label} — ${message}`);
+    throw new Error(`${label}: ${message}`);
   }
 }
 
@@ -163,11 +163,11 @@ async function initialise(): Promise<void> {
     );
     if (!table) {
       throw new Error(
-        "entries_fts is missing — the imported database is empty or incomplete"
+        "entries_fts is missing: the imported database is empty or incomplete"
       );
     }
 
-    // Reading the schema is not enough — the fts5 module also has to run a
+    // Reading the schema is not enough, the fts5 module also has to run a
     // MATCH, which is exactly what a build lacking FTS5 cannot do.
     await dictDbInstance!.getFirstAsync<{ rowid: number }>(
       "SELECT rowid FROM entries_fts WHERE entries_fts MATCH ? LIMIT 1",
@@ -216,7 +216,7 @@ async function initialise(): Promise<void> {
 
   if (__DEV__) {
     console.log(
-      `?? [DB] ready in ${Date.now() - started}ms — ${entries} dictionary entries`
+      `?? [DB] ready in ${Date.now() - started}ms, ${entries} dictionary entries`
     );
   }
 }

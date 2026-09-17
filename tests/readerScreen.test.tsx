@@ -7,10 +7,12 @@ import { useSearchStore } from "@/stores/searchStore";
 import type { ReaderToken } from "@/types/reader";
 
 jest.mock("@/services/reader");
+jest.mock("expo-clipboard", () => ({ getStringAsync: jest.fn() }));
 jest.mock("@/services/dictionary");
 jest.mock("@/services/lists");
 
 const reader = jest.requireMock("@/services/reader");
+const clipboard = jest.requireMock("expo-clipboard");
 const dictionary = jest.requireMock("@/services/dictionary");
 const lists = jest.requireMock("@/services/lists");
 
@@ -66,7 +68,7 @@ describe("reader screen", () => {
     renderRouter(routes, { initialUrl: "/dictionary/reader" });
     await act(async () => {});
 
-    expect(screen.getByText("Try it — tap any word")).toBeTruthy();
+    expect(screen.getByText("Try it: tap any word")).toBeTruthy();
     expect(reader.readParagraph).toHaveBeenCalledWith(SAMPLE_TEXT);
 
     fireEvent.changeText(screen.getByPlaceholderText(/Paste Japanese/), "猫が好き\n\n犬も好き");
@@ -75,7 +77,7 @@ describe("reader screen", () => {
     expect(useReaderStore.getState().text).toBe("猫が好き\n\n犬も好き");
     expect(reader.readParagraph).toHaveBeenCalledWith("猫が好き");
     expect(reader.readParagraph).toHaveBeenCalledWith("犬も好き");
-    expect(screen.queryByText("Try it — tap any word")).toBeNull();
+    expect(screen.queryByText("Try it: tap any word")).toBeNull();
   });
 
   it("opens a word page from a word", async () => {
@@ -96,6 +98,21 @@ describe("reader screen", () => {
     await act(async () => fireEvent.press(screen.getByLabelText("が、search")));
     expect(useSearchStore.getState().query).toBe("が");
     expect(screen).toHavePathname("/dictionary");
+  });
+
+  it("pastes the clipboard into the field, and straight into reading when already reading", async () => {
+    clipboard.getStringAsync.mockResolvedValue("  昨日は雨。  ");
+    renderRouter(routes, { initialUrl: "/dictionary/reader" });
+    await act(async () => {});
+
+    await act(async () => fireEvent.press(screen.getByLabelText("Paste")));
+    expect(screen.getByPlaceholderText(/Paste Japanese/).props.value).toBe("昨日は雨。");
+
+    await act(async () => fireEvent.press(screen.getByLabelText("Read")));
+    clipboard.getStringAsync.mockResolvedValue("今日は晴れ。");
+    await act(async () => fireEvent.press(screen.getByLabelText("Paste")));
+    expect(useReaderStore.getState().text).toBe("今日は晴れ。");
+    expect(reader.readParagraph).toHaveBeenCalledWith("今日は晴れ。");
   });
 
   it("goes back to the field with the text prefilled on Edit", async () => {

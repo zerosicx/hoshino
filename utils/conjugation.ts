@@ -4,7 +4,7 @@
  * Conjugation only ever rewrites the okurigana at the end of a word, which is
  * always kana. That means the same transformation applies unchanged to the
  * kanji spelling and to the reading, so 食べる/たべる yields 食べた/たべた from
- * one rule — and the reading stays available for furigana.
+ * one rule, and the reading stays available for furigana.
  */
 
 import type { WordClass } from "@/utils/wordClass";
@@ -120,7 +120,7 @@ function suruStems(prefix: string): Stems {
 }
 
 function kuruStems(prefix: string, kanji: boolean): Stems {
-  // 来る is read こない / きます / こよう — the kanji never changes, the kana does.
+  // 来る is read こない / きます / こよう, the kanji never changes, the kana does.
   const ko = kanji ? "来" : "こ";
   const ki = kanji ? "来" : "き";
   const ku = kanji ? "来" : "く";
@@ -294,7 +294,7 @@ function adjectiveGroups(
     ];
   }
 
-  // いい conjugates from よい: よかった, よくない — but stays いい in the present.
+  // いい conjugates from よい: よかった, よくない, but stays いい in the present.
   const stem = (text: string): string =>
     wordClass === "i-adjective-ii"
       ? text.replace(/(いい|良い)$/, (m) => (m === "いい" ? "よ" : "良"))

@@ -223,7 +223,7 @@ export interface RankableRow {
 
 /**
  * Score bands. The gaps are wide enough that a band always beats the one below
- * it, so `is_common` and JLPT level only ever break ties within a band — they
+ * it, so `is_common` and JLPT level only ever break ties within a band, they
  * can never promote an unrelated entry over a real match, which is what the
  * previous `rank - (is_common * 15)` arithmetic allowed.
  */
@@ -233,7 +233,7 @@ const FORM_PREFIX = 400;
 /**
  * A word that merely contains the query, like 水曜日 for 曜.
  *
- * Ranked well below a prefix match, so 曜日 still comes first — this band is
+ * Ranked well below a prefix match, so 曜日 still comes first, this band is
  * for results the prefix-anchored index cannot reach at all.
  */
 const FORM_CONTAINS = 150;
@@ -275,7 +275,7 @@ const LOWEST_BAND = 48;
  * Turns a frequency band into a bonus, nf01 highest.
  *
  * A missing band means the newspaper corpus never measured the word, not that
- * the word is rare — 本 has none. Absent therefore scores as average rather
+ * the word is rare, 本 has none. Absent therefore scores as average rather
  * than worst, so a banded word cannot leapfrog an unbanded one on the strength
  * of having been measured at all.
  */

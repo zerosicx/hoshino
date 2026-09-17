@@ -50,11 +50,11 @@ describe("ReaderText", () => {
     expect(screen.queryByText("わたし")).toBeNull();
   });
 
-  it("shows kana, not romaji, in romaji mode", () => {
+  it("shows romaji in romaji mode", () => {
     render(
       <ReaderText tokens={tokens} plain="" readingMode="romaji" onPressWord={jest.fn()} onPressUnknown={jest.fn()} />
     );
-    expect(screen.getByText("わたし")).toBeTruthy();
-    expect(screen.queryByText("watashi")).toBeNull();
+    expect(screen.getByText("watashi")).toBeTruthy();
+    expect(screen.queryByText("わたし")).toBeNull();
   });
 });

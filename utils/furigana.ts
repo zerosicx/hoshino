@@ -54,7 +54,7 @@ function fold(text: string): string {
 /**
  * Pairs each run of `written` with the slice of `reading` it is read as.
  * Falls back to a single pair covering the whole word when the reading cannot
- * be split — which is correct, just less granular.
+ * be split, which is correct, just less granular.
  */
 export function alignFurigana(written: string, reading: string): FuriganaPair[] {
   if (!written) return [];
@@ -100,7 +100,7 @@ export function alignFurigana(written: string, reading: string): FuriganaPair[] 
 
     // The kana after this run anchors its end. A trailing run can only be the
     // end of the reading, and any run reads as at least one kana, so the search
-    // starts past the cursor — otherwise 痛い/いたい finds い inside 痛's own
+    // starts past the cursor, otherwise 痛い/いたい finds い inside 痛's own
     // reading and leaves the kanji with nothing.
     const nextFolded = fold(next.text);
     const trailing = i + 1 === segments.length - 1;

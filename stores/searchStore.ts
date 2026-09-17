@@ -50,7 +50,7 @@ export const useSearchStore = create<SearchState>()((set, get) => ({
       const recentSearches = await dictionary.getRecentSearches();
       set({ recentSearches });
     } catch {
-      // silently fail — recent searches are non-critical
+      // silently fail, recent searches are non-critical
     }
   },
 

@@ -6,7 +6,7 @@ import { useTheme } from "@/hooks/useTheme";
  * Gives every navigator the app's own surface colours.
  *
  * Expo Router falls back to React Navigation's light theme, so each stack and
- * tab scene was painted #F2F2F2 underneath the screen — visible as a flash on
+ * tab scene was painted #F2F2F2 underneath the screen, visible as a flash on
  * every transition until the screen's own background landed, and glaring in
  * dark mode.
  */

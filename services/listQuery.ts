@@ -19,8 +19,8 @@ export interface ListRow {
 }
 
 /**
- * A JLPT list has no rows in `list_items` — it is defined by the dictionary's
- * own `jlpt_level` — so its count has to come from the dictionary too.
+ * A JLPT list has no rows in `list_items`, it is defined by the dictionary's
+ * own `jlpt_level`, so its count has to come from the dictionary too.
  */
 export function toSummary(row: ListRow, jlpt: JlptCounts): ListSummary {
   const level = row.jlpt_level;
@@ -143,7 +143,7 @@ export const LIST_ITEM_IDS_SQL = `
 
 /**
  * A JLPT list is a reference, not somewhere progress can live. Studying one
- * copies it into a list of the user's own — `type = 'custom'` so it can be
+ * copies it into a list of the user's own, `type = 'custom'` so it can be
  * added to, starred and deleted like any other, with `jlpt_level` kept as
  * provenance so the reference knows it has been started.
  */

@@ -31,7 +31,7 @@ export default function ConjugationTable({
   const summary = [
     info.group ? `${info.label} (${info.group})` : info.label,
     info.transitivity && TRANSITIVITY_HINT[info.transitivity]
-      ? `${info.transitivity} — ${TRANSITIVITY_HINT[info.transitivity]}`
+      ? `${info.transitivity}: ${TRANSITIVITY_HINT[info.transitivity]}`
       : null,
   ]
     .filter(Boolean)

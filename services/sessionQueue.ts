@@ -5,8 +5,8 @@
  * does with the answer. A card is settled when the library moves it to Review
  * or when it has been shown `MAX_SHOWS` times, in which case it stays in
  * Learning and is due again tomorrow. Otherwise it comes back later in the
- * same session, at the time FSRS gave it — shown early rather than making
- * anyone wait for a ten-minute timer — and never straight after itself: at
+ * same session, at the time FSRS gave it, shown early rather than making
+ * anyone wait for a ten-minute timer, and never straight after itself: at
  * least `GAP` other cards go between two shows, fewer when fewer remain.
  *
  * Pure over plain values, no database, so it runs under Vitest.
@@ -62,8 +62,8 @@ export function minimumGap(remaining: number): number {
 
 /**
  * Picks the next card and records the show. A card that has come round again
- * takes precedence over one not yet seen — the point of Again is to see the
- * word while it is fresh — then the unseen cards in the order the session was
+ * takes precedence over one not yet seen, the point of Again is to see the
+ * word while it is fresh, then the unseen cards in the order the session was
  * built, then the earliest-due card waiting on its timer.
  */
 export function next(queue: SessionQueue, now: Date): { queue: SessionQueue; item: QueueItem } | null {

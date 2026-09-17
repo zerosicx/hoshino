@@ -42,11 +42,11 @@ not compliant.
      per-installation identifier to Expo's update service, not linked to a
      person. Host from the repo on GitHub Pages (Hannah switches Pages on in
      the repository settings).
-   - Version `1.0.0` in `app.json` — `0.1.0` reads as unfinished on a listing.
+   - Version `1.0.0` in `app.json`; `0.1.0` reads as unfinished on a listing.
      Done: the changelog section was retitled v1.0.0 Happy Fruit, same lines.
    - A fresh production build after these land: `npm run release:production`.
 
-3. **Create the app in the Console** — Hannah. Name "hoshino: jisho", English
+3. **Create the app in the Console** — Hannah. Name "Hoshino", English
    default, App not Game, **Free**. Free is irrevocable: a free app can never
    become paid, though it can add in-app purchases. Matches the decision that
    the logged-out app is free forever.
@@ -57,7 +57,9 @@ not compliant.
      on build 16 or later, dark mode: a search result, a word page, the reader
      with a paragraph, the Study landing, a flashcard back, Lists.
    - Short description ≤ 80 characters; full description ≤ 4,000. Draft both
-     from `CHANGELOG.md`. Category Education. Contact email (public).
+     from `CHANGELOG.md`. Category Education. Contact email: Play shows one
+     publicly, so use an address kept for the app, not a personal one; the app
+     and site themselves carry none.
 
 5. **App content declarations** — Hannah, answers below.
    - Privacy policy URL from step 2.

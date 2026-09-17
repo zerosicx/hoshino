@@ -19,7 +19,7 @@ interface ReaderState {
 /**
  * Only the text is stored, never the segmentation: it is recomputed from the
  * dictionary, which is the single source of truth for what a word is. Kept
- * out of the user database on purpose — it is not synced, has no query, and a
+ * out of the user database on purpose, it is not synced, has no query, and a
  * pasted passage may be someone else's writing.
  */
 export const useReaderStore = create<ReaderState>()(

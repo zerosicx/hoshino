@@ -24,14 +24,18 @@ export default function SettingsScreen() {
   const router = useRouter();
 
   return (
+    <View className={`flex-1 ${isDark ? 'bg-zinc-950' : 'bg-white'}`}>
+      {/* Fixed above the scroll, so the screen's name stays in view. */}
+      <View className={`px-4 pt-14 pb-3 border-b ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
+        <Text className={`text-3xl font-bold ${isDark ? 'text-zinc-50' : 'text-zinc-900'} tracking-tight`}>
+          Settings
+        </Text>
+      </View>
+
     <ScrollView
-      className={`flex-1 ${isDark ? 'bg-zinc-950' : 'bg-white'} px-4 pt-14`}
-      contentContainerStyle={{ paddingBottom: 120 }}
+      className="flex-1 px-4"
+      contentContainerStyle={{ paddingTop: 20, paddingBottom: 120 }}
     >
-      {/* Header */}
-      <Text className={`text-3xl font-bold ${isDark ? 'text-zinc-50' : 'text-zinc-900'} mb-6 tracking-tight`}>
-        Settings
-      </Text>
 
       {/* Section 1: Appearance / Theme */}
       <Text className={`text-xs font-semibold ${isDark ? 'text-zinc-400' : 'text-zinc-500'} uppercase tracking-wider mb-2 px-1`}>
@@ -191,7 +195,7 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {/* About: sources, licences, privacy — its own screen, as the dictionary licence requires */}
+      {/* About: sources, licences, privacy. Its own screen, as the dictionary licence requires */}
       <Pressable
         onPress={() => router.push('/settings/about')}
         accessibilityRole="button"
@@ -210,12 +214,13 @@ export default function SettingsScreen() {
 
       {/* Footer */}
       <Text className={`text-center text-xs ${isDark ? 'text-zinc-600' : 'text-zinc-400'} mb-1`}>
-        Hoshino v{Constants.expoConfig?.version ?? '1.0.0'} by zerosicx
+        Hoshino v{Constants.expoConfig?.version ?? '1.0.0'} by ZEROSICX
       </Text>
       <Text className={`text-center text-xs ${isDark ? 'text-zinc-600' : 'text-zinc-400'} mb-12`}>
         Offline-First Japanese Dictionary
       </Text>
     </ScrollView>
+    </View>
   );
 }
 

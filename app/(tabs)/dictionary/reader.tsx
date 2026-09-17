@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { FlatList, Pressable, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
-import { ChevronLeft, X } from "lucide-react-native";
+import { ChevronLeft, ClipboardPaste, X } from "lucide-react-native";
+import * as Clipboard from "expo-clipboard";
 import { useTheme } from "@/hooks/useTheme";
 import { useParagraph } from "@/hooks/useReader";
 import { MAX_READER_CHARS, useReaderStore } from "@/stores/readerStore";
@@ -36,6 +37,26 @@ export default function ReaderScreen() {
     router.dismissTo("/dictionary");
   };
 
+  /**
+   * Whatever was copied last, in one tap. While editing it fills the field;
+   * while reading it replaces the text and reads it straight away.
+   */
+  const paste = async () => {
+    const copied = (await Clipboard.getStringAsync()).trim();
+    if (!copied) {
+      toast("Nothing to paste yet. Copy some Japanese first.");
+      return;
+    }
+    if (editing) {
+      setDraft(copied);
+      return;
+    }
+    if ([...copied].length > MAX_READER_CHARS) {
+      toast(`Kept the first ${MAX_READER_CHARS.toLocaleString()} characters.`);
+    }
+    setText(copied);
+  };
+
   const read = () => {
     const trimmed = draft.trim();
     if (!trimmed) return;
@@ -57,31 +78,42 @@ export default function ReaderScreen() {
           <Text className="text-body text-accent dark:text-accent-light ml-1">Dictionary</Text>
         </Pressable>
 
-        {editing ? (
+        <View className="flex-row items-center gap-3">
           <Pressable
-            onPress={read}
-            disabled={!draft.trim()}
-            accessibilityRole="button"
-            accessibilityLabel="Read"
-            className={`px-4 py-1.5 rounded-full ${draft.trim() ? "bg-accent active:bg-accent-dark" : isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-          >
-            <Text className={`text-footnote font-semibold ${draft.trim() ? "text-white" : secondary}`}>
-              Read
-            </Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            onPress={() => {
-              setDraft(text);
-              setEditing(true);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Edit text"
+            onPress={paste}
             hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Paste"
+            className="w-9 h-9 items-center justify-center rounded-full"
           >
-            <Text className="text-body text-accent dark:text-accent-light">Edit</Text>
+            <ClipboardPaste size={20} color={isDark ? "#6366F1" : "#4F46E5"} />
           </Pressable>
-        )}
+          {editing ? (
+            <Pressable
+              onPress={read}
+              disabled={!draft.trim()}
+              accessibilityRole="button"
+              accessibilityLabel="Read"
+              className={`px-4 py-1.5 rounded-full ${draft.trim() ? "bg-accent active:bg-accent-dark" : isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
+            >
+              <Text className={`text-footnote font-semibold ${draft.trim() ? "text-white" : secondary}`}>
+                Read
+              </Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={() => {
+                setDraft(text);
+                setEditing(true);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Edit text"
+              hitSlop={8}
+            >
+              <Text className="text-body text-accent dark:text-accent-light">Edit</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
 
       {editing ? (
@@ -97,7 +129,7 @@ export default function ReaderScreen() {
               multiline
               autoFocus={text.length > 0}
               textAlignVertical="top"
-              placeholder="Paste Japanese — a message, an article, a menu"
+              placeholder="Paste Japanese: a message, an article, a menu"
               placeholderTextColor={isDark ? "#71717A" : "#A1A1AA"}
               autoCapitalize="none"
               autoCorrect={false}
@@ -123,7 +155,7 @@ export default function ReaderScreen() {
 
           {text.length === 0 && (
             <View className="mt-8">
-              <Text className={`text-caption1 font-semibold mb-3 ${secondary}`}>Try it — tap any word</Text>
+              <Text className={`text-caption1 font-semibold mb-3 ${secondary}`}>Try it: tap any word</Text>
               <Paragraph text={SAMPLE_TEXT} readingMode={readingMode} onPressWord={openWord} onPressUnknown={searchFor} />
             </View>
           )}

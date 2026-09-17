@@ -74,7 +74,7 @@ export default function StudyScreen() {
           loading ? null : (
             <View className="px-4 py-6">
               <Text className={`text-footnote ${secondary}`}>
-                Nothing in study yet. Open a list and tap Study to begin — every
+                Nothing in study yet. Open a list and tap Study to begin. Every
                 word you look up is already waiting in Searched Terms.
               </Text>
               <Pressable

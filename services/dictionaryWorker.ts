@@ -1,12 +1,12 @@
 /**
- * Hosts the read-only dictionary inside a dedicated worker. Web only — spawned
+ * Hosts the read-only dictionary inside a dedicated worker. Web only, spawned
  * by sqliteWasm.web.ts, never imported directly.
  *
  * The dictionary lives here rather than on the main thread for two reasons.
  *
  * OPFS is the first. Persisting the 98MB file means reading it through an OPFS
  * VFS, which is built on FileSystemFileHandle.createSyncAccessHandle(), and the
- * spec only exposes that inside a dedicated worker — on the main thread it
+ * spec only exposes that inside a dedicated worker, on the main thread it
  * throws. Reading through a VFS also keeps the file out of the WASM heap
  * entirely, since SQLite pages in only what a query touches.
  *
@@ -74,8 +74,8 @@ const init = sqlite3InitModule as unknown as (
 // including the ones inside sqlite-wasm. Expo installs it from the app entry's
 // polyfills, which a worker bundle never runs, so reading it here throws unless
 // we provide it. The value is inert: sqlite-wasm only stores it, since the two
-// paths that would resolve against it — its default wasm lookup and its own
-// worker spawning — are overridden by locateFile and stubbed in metro.config.js.
+// paths that would resolve against it, its default wasm lookup and its own
+// worker spawning, are overridden by locateFile and stubbed in metro.config.js.
 const importMetaRegistry = globalThis as {
   __ExpoImportMetaRegistry?: { url: string };
 };
@@ -173,7 +173,7 @@ function resolveCacheKey(
   // Caching still beats a 98MB download per reload, but this build cannot be
   // told apart from the last one, so a rebuild has to be evicted by hand.
   console.warn(
-    "?? [DICT] no content hash on this build — caching under a fixed name. " +
+    "?? [DICT] no content hash on this build; caching under a fixed name. " +
       "After rebuilding the dictionary, clear DevTools > Application > " +
       `Storage > ${POOL_DIRECTORY} or the stale copy will be served.`
   );
@@ -306,7 +306,7 @@ function assertPortableSqliteImage(bytes: Uint8Array): void {
 
   // Byte 18 is the file format write version: 1 is a rollback journal, 2 is WAL.
   // WAL needs a real file plus shared memory, which no browser VFS provides, so
-  // SQLite fails with SQLITE_CANTOPEN when it reads the schema — long after the
+  // SQLite fails with SQLITE_CANTOPEN when it reads the schema, long after the
   // open call appears to have succeeded, since SQLite opens files lazily.
   if (bytes[18] === 2) {
     throw new Error(

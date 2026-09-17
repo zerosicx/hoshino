@@ -64,7 +64,7 @@ interface RawSearchHistory {
 }
 
 // ---------------------------------------------------------------------------
-// Parsers — JSON columns → typed objects
+// Parsers, JSON columns → typed objects
 // ---------------------------------------------------------------------------
 
 function parseTokens(raw: string | null): ExampleToken[] {
@@ -322,7 +322,7 @@ export async function recordSearch(entryId: number): Promise<void> {
  * Entries for a set of ids, kept in the order the ids were given.
  *
  * `IN (...)` returns rows in whatever order SQLite likes, so the caller's
- * ordering — recency, for both search history and list items — is reapplied.
+ * ordering, recency, for both search history and list items, is reapplied.
  */
 export async function getEntriesByIds(
   ids: number[]

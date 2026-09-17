@@ -7,7 +7,7 @@
  * form with `deinflect`, and the split that covers the most text with the
  * fewest, longest, most plausible words wins.
  *
- * Pure. The caller supplies a `Lexicon` — which candidate terms exist — so the
+ * Pure. The caller supplies a `Lexicon`, which candidate terms exist, so the
  * same code runs against a fake in unit tests and the real database in the
  * benchmark and the app.
  */
@@ -42,7 +42,7 @@ export interface Segment {
 
 /**
  * Longest word worth trying. Of JMdict's 217k entries, 5,406 forms are longer
- * than eight characters and 29 of those are common — not worth the candidates.
+ * than eight characters and 29 of those are common, not worth the candidates.
  */
 export const MAX_SPAN = 8;
 
@@ -134,8 +134,8 @@ function resolve(
 const TAIL_PARTICLES = new Set(["は", "が", "を", "に", "で", "と", "も", "の", "へ"]);
 
 /**
- * Longer words are worth more than shorter ones — quadratically, so that 日本語
- * beats 日本 + 語 — and a rare word climbs a lower curve than a common one, so
+ * Longer words are worth more than shorter ones, quadratically, so that 日本語
+ * beats 日本 + 語, and a rare word climbs a lower curve than a common one, so
  * 毎日 + 野菜 beats 日野菜, a turnip. The span as written beats one that had to
  * be deinflected.
  *

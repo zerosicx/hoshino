@@ -23,18 +23,22 @@ export default function AboutScreen() {
   const divider = isDark ? 'border-zinc-800' : 'border-zinc-200';
 
   return (
-    <ScrollView
-      className={`flex-1 ${isDark ? 'bg-zinc-950' : 'bg-white'} px-4 pt-14`}
-      contentContainerStyle={{ paddingBottom: 120 }}
-    >
-      <Pressable onPress={() => router.back()} className="flex-row items-center mb-4" hitSlop={8}>
-        <ChevronLeft size={20} color={isDark ? '#6366F1' : '#4F46E5'} />
-        <Text className="text-body text-accent dark:text-accent-light ml-1">Settings</Text>
-      </Pressable>
+    <View className={`flex-1 ${isDark ? 'bg-zinc-950' : 'bg-white'}`}>
+      {/* Fixed above the scroll, so the way back and the screen's name stay in view. */}
+      <View className={`px-4 pt-14 pb-3 border-b ${divider}`}>
+        <Pressable onPress={() => router.back()} className="flex-row items-center mb-2" hitSlop={8}>
+          <ChevronLeft size={20} color={isDark ? '#6366F1' : '#4F46E5'} />
+          <Text className="text-body text-accent dark:text-accent-light ml-1">Settings</Text>
+        </Pressable>
+        <Text className={`text-largeTitle font-bold tracking-tight ${primary}`}>About</Text>
+      </View>
 
-      <Text className={`text-largeTitle font-bold tracking-tight ${primary}`}>About</Text>
-      <Text className={`text-footnote mt-1 mb-6 ${secondary}`}>
-        hoshino: jisho {Constants.expoConfig?.version ?? ''} · an offline Japanese dictionary and study tool by zerosicx
+    <ScrollView
+      className="flex-1 px-4"
+      contentContainerStyle={{ paddingTop: 16, paddingBottom: 120 }}
+    >
+      <Text className={`text-footnote mb-6 ${secondary}`}>
+        Hoshino {Constants.expoConfig?.version ?? ''}, an offline Japanese dictionary and study tool by ZEROSICX
       </Text>
 
       <Text className={`text-body font-semibold ${primary} mb-1`}>Sources and licences</Text>
@@ -72,6 +76,7 @@ export default function AboutScreen() {
       ))}
       <Link url={PRIVACY_POLICY_URL} label="Privacy policy online" isDark={isDark} />
     </ScrollView>
+    </View>
   );
 }
 

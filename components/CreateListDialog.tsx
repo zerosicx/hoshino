@@ -16,8 +16,8 @@ interface CreateListDialogProps {
 /**
  * A floating card for naming a new list, dimming the screen behind it.
  *
- * The card sits two-fifths of the way down the free space — low enough for a
- * thumb to reach the buttons — and the keyboard pads the bottom, so when the
+ * The card sits two-fifths of the way down the free space, low enough for a
+ * thumb to reach the buttons, and the keyboard pads the bottom, so when the
  * keyboard opens the free space shrinks and the card rises with it. Meant to be rendered by a transparent-modal route, not a
  * Modal: a Modal is its own window on Android, where autofocus and insets both
  * misfire.

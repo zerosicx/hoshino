@@ -178,7 +178,8 @@ Never reach across layers. Screens don't query SQLite. Components don't import s
 Document any deliberate deviations here so future agents don't "fix" them.
 
 - **The package name is not the display name.** `com.zerosicx.hoshino` is the
-  Android package and iOS bundle id, while the app displays as "hoshino: jisho".
+  Android package and iOS bundle id, while the app displays as "Hoshino" (it
+  was "hoshino: jisho" until 17/09/26).
   Deliberate, and not to be tidied up: a published package name cannot be
   changed, and a new one is a different app with no upgrade path for anyone who
   already installed it. The display name is free to change at any time.
@@ -248,7 +249,7 @@ Do not add a new store for something that belongs in a service or local state.
 - Segmentation lives in `utils/segment.ts` and is pure over a `Lexicon`. A wrong split is fixed with a scoring rule that has a reason in its comment, never a hard-coded word; add the failing sentence to `tests/segmentBenchmark.ts` first.
 - The reader never records history itself. A tap opens `/word/[id]`, and the word page records the lookup.
 - Only the pasted text is stored (`stores/readerStore.ts`). Never persist tokens.
-- No romaji in the reader; the romaji setting shows kana there.
+- The reader honours the reading setting, romaji included.
 
 ---
 
@@ -279,6 +280,12 @@ Do not add a new store for something that belongs in a service or local state.
 7. Confirm what changed and how to test it.
 
 ---
+
+## Copy Rules
+
+- No em-dashes in anything a user reads: UI strings, toasts, the site. Use a comma, a colon, a full stop or parentheses.
+- The app is "Hoshino"; the developer is "ZEROSICX", in capitals.
+- No contact email anywhere in the app or the site. Feedback will come through an anonymous channel later.
 
 ## Communication
 

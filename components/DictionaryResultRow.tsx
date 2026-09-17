@@ -22,7 +22,7 @@ export default function DictionaryResultRow({
 }: DictionaryResultRowProps) {
   const romaji = readingMode === "romaji";
   // The reading is what tells two spellings apart here, so it stays visible
-  // under "none" — that setting hides ruby text, not this column.
+  // under "none", that setting hides ruby text, not this column.
   const reading = romaji ? kanaToRomaji(item.readingForm) : item.readingForm;
 
   // A kana word normally repeats itself here, so the column is hidden. In

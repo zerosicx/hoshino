@@ -182,7 +182,7 @@ learner managed to type.
   to continue it
 - Before anything is pasted, a sample sentence is shown live with tappable
   words, so the mechanic is seen rather than explained
-- Romaji is not offered in the reader; the romaji setting shows kana there
+- The reader honours the reading setting, furigana or romaji
 - Works offline, on all three platforms, from the bundled dictionary alone
 
 **Out of scope for the first version.** Saving several texts as a library;

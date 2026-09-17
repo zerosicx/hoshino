@@ -193,8 +193,8 @@ export async function getListIdsContaining(
 /**
  * The words in a list.
  *
- * A JLPT vocabulary list has no rows in `list_items` — it is defined by
- * `jlpt_level` in the dictionary — so it is read from there instead.
+ * A JLPT vocabulary list has no rows in `list_items`, it is defined by
+ * `jlpt_level` in the dictionary, so it is read from there instead.
  */
 export async function getListEntries(
   list: ListSummary
