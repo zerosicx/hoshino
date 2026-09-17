@@ -76,6 +76,9 @@ Changelog:
 - [FEATURE] Your pasted text stays in the reader until you replace it, and the Dictionary tab offers to continue reading it.
 - [FEATURE] Review only: when some cards are due, a link under the study bar runs through just those, with no new words added.
 - [FEATURE] "See all" on Recently Searched opens the Searched Terms list.
+- [UPDATED] Each active list on the Study tab has its own Review button under its progress bar, so reviewing due cards and learning from the list are clearly different taps.
+- [UPDATED] The study session shows a plain card counter at the top instead of a "Settled" count.
+- [BUG FIX] The Settings screen scrolls fully clear of the tab bar; the last lines are no longer cut off.
 - [FEATURE] A daily budget of new words, set in Settings (10 a day to start), separate from how many cards one session may show; once the day's new words are done the Study tab says so and offers to learn more if you want to keep going.
 - [FEATURE] A word you get wrong comes back within the same session — soonest after Again, later after Hard, later still after Good — until you know it, or until it has had four goes, in which case it returns tomorrow. The session header counts the cards you have settled.
 - [FEATURE] Every word has a place on a five-rung ladder — New, Learning, Familiar, Known, Mastered — shown on the card's corner, in each list's progress, and beside each word on a list's page.

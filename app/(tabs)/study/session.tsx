@@ -109,7 +109,7 @@ function Session({ listIds, listsParam, mode }: { listIds: number[]; listsParam:
           <Text
             className={`text-subheadline font-semibold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
           >
-            {session.total > 0 ? `Settled ${session.settled} of ${session.total}` : ""}
+            {session.total > 0 ? `${session.settled} / ${session.total}` : ""}
           </Text>
           {caption && session.total > 0 && (
             <Text className={`text-caption2 ${secondary}`}>{caption}</Text>

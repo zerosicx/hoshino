@@ -22,7 +22,10 @@ export default function SettingsScreen() {
   const { isDark } = useTheme();
 
   return (
-    <ScrollView className={`flex-1 ${isDark ? 'bg-zinc-950' : 'bg-white'} px-4 pt-14`}>
+    <ScrollView
+      className={`flex-1 ${isDark ? 'bg-zinc-950' : 'bg-white'} px-4 pt-14`}
+      contentContainerStyle={{ paddingBottom: 120 }}
+    >
       {/* Header */}
       <Text className={`text-3xl font-bold ${isDark ? 'text-zinc-50' : 'text-zinc-900'} mb-6 tracking-tight`}>
         Settings

@@ -96,7 +96,7 @@ The scheduler is untouched; everything around it changed.
 - **A session runs until its cards are settled.** A card comes back within
   the session — Again soonest, then Hard, then Good — until FSRS moves it to
   Review or it has had four shows, in which case it stays in Learning for
-  tomorrow. The header reads "Settled 3 of 12". A card in the minute loop is
+  tomorrow. The header reads "3 / 12". A card in the minute loop is
   picked up again by the next session for up to twenty minutes, so leaving
   early loses nothing.
 - **Three modes, everywhere a session starts.** The bar says "6 due · 4
@@ -438,8 +438,11 @@ already built with theme and reading-mode preferences.
       counter across profiles (`appVersionSource: remote`), so preview 14 and
       production 15 sit on the same counter, and codes 8 and 10–13 were burnt
       by uploads that failed silently (see "Releasing a beta update").
-- [ ] **Play Console** — create the app record, internal testing track,
-      upload the bundle
+- [ ] **Play Console** — the full plan and its status table are in
+      `PLAY_STORE.md`. Two things gate it: a personal account must run a
+      closed test with 12 testers for 14 days before production, and the app
+      needs an About / Sources screen for the EDRDG dictionary licence before
+      the first store build.
 - [ ] **iOS** — TestFlight via EAS, App Store Connect record
 - [ ] **Web** — `npx expo export --platform web`, deploy with the headers above
 

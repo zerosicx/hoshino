@@ -59,23 +59,10 @@ export default function ActiveListRow({ item, pile, onPress, onReview }: ActiveL
         </View>
 
         {due > 0 && (
-          <View className="items-end mr-2">
-            <View className="bg-accent/10 px-3 py-1 rounded-full">
-              <Text className="text-caption1 font-semibold text-accent dark:text-accent-light">
-                {due} due
-              </Text>
-            </View>
-            <Pressable
-              onPress={onReview}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={`Review ${list.name}`}
-              className="mt-1"
-            >
-              <Text className="text-caption1 font-semibold text-accent dark:text-accent-light">
-                Review
-              </Text>
-            </Pressable>
+          <View className="bg-accent/10 px-3 py-1 rounded-full mr-2">
+            <Text className="text-caption1 font-semibold text-accent dark:text-accent-light">
+              {due} due
+            </Text>
           </View>
         )}
         <ChevronRight size={18} color={isDark ? "#71717A" : "#A1A1AA"} />
@@ -88,6 +75,21 @@ export default function ActiveListRow({ item, pile, onPress, onReview }: ActiveL
         <View className="bg-accent/50 h-full" style={{ width: `${risingPct}%` }} />
         <View className="bg-accent/25 h-full" style={{ width: `${learningPct}%` }} />
       </View>
+
+      {/* Its own primary button, apart from the row: tapping the row learns,
+          this reviews, and the two should never be mistaken for one another. */}
+      {due > 0 && (
+        <Pressable
+          onPress={onReview}
+          accessibilityRole="button"
+          accessibilityLabel={`Review ${list.name}`}
+          className="mt-3 h-10 rounded-md bg-accent active:bg-accent-dark items-center justify-center"
+        >
+          <Text className="text-footnote font-semibold text-white">
+            Review {due} {due === 1 ? "card" : "cards"}
+          </Text>
+        </Pressable>
+      )}
     </Pressable>
   );
 }

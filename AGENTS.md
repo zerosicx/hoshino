@@ -33,6 +33,7 @@ Keep implementations simple and readable.
 | `SRD.md` | Product requirements. |
 | `STUDY_ALGORITHM.md` | The study system's design record: the problem, what Anki and FSRS do, the decisions, how it is built, and what was decided while building. Read before touching sessions, budgets or mastery. |
 | `BUG_TRIAGE.md` | Root-caused beta bugs for the current version, in execution order, with status. Read before fixing a bug; mark Landed / ✅ as items progress. |
+| `PLAY_STORE.md` | The Google Play launch plan: the 12-tester rule, licence compliance, listing, declarations, and a status table. Update the table as steps land. |
 
 ---
 

@@ -213,14 +213,14 @@ describe("study session", () => {
     renderRouter(routes, { initialUrl: "/study/session?lists=3" });
     await act(async () => {});
 
-    expect(screen.getByText("Settled 0 of 2")).toBeTruthy();
+    expect(screen.getByText("0 / 2")).toBeTruthy();
     expect(screen.queryByLabelText("Good")).toBeNull();
     expect(screen.getByText("New")).toBeTruthy();
 
     await reveal();
     await rate("Good");
     expect(srs.rateCard).toHaveBeenCalledWith(newCard(1), Rating.Good, expect.any(Date));
-    expect(screen.getByText("Settled 1 of 2")).toBeTruthy();
+    expect(screen.getByText("1 / 2")).toBeTruthy();
 
     await reveal();
     await rate("Easy");
@@ -248,7 +248,7 @@ describe("study session", () => {
     await reveal();
     await rate("Again");
     // Alone in the queue, so it comes straight back; nothing is settled yet.
-    expect(screen.getByText("Settled 0 of 1")).toBeTruthy();
+    expect(screen.getByText("0 / 1")).toBeTruthy();
     expect(screen.getByText("Learning")).toBeTruthy();
 
     srs.rateCard.mockImplementation(rateTo(State.Review));
@@ -314,7 +314,7 @@ describe("study session", () => {
     await act(async () => fireEvent.press(screen.getByLabelText("Card options")));
     await act(async () => fireEvent.press(screen.getByText("I already know this")));
     expect(srs.suspendCard).toHaveBeenCalledWith(1, 3);
-    expect(screen.getByText("Settled 0 of 1")).toBeTruthy();
+    expect(screen.getByText("0 / 1")).toBeTruthy();
   });
 
   it("resolves every active list for a combined session, with the settings", async () => {
